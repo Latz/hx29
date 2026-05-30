@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 2,
+  "settings": {
+    "appearanceTools": true,
+    "layout": {
+      "contentSize": "100%",
+      "wideSize": "100%"
+    },
+    "color": {
+      "palette": [
+        { "slug": "terminal-fg",     "color": "#00ff00", "name": "Terminal Foreground" },
+        { "slug": "terminal-dim",    "color": "#008800", "name": "Terminal Dim" },
+        { "slug": "terminal-bg",     "color": "#000000", "name": "Terminal Background" }
+      ]
+    },
+    "typography": {
+      "fontSizes": [
+        { "slug": "small",  "size": "0.75rem", "name": "Small" },
+        { "slug": "medium", "size": "1rem",    "name": "Medium" },
+        { "slug": "large",  "size": "1.25rem", "name": "Large" }
+      ],
+      "fontFamilies": [
+        {
+          "slug": "monospace",
+          "fontFamily": "Consolas, Monaco, 'Courier New', monospace",
+          "name": "Monospace"
+        }
+      ]
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "#000000",
+      "text": "#00ff00"
+    },
+    "typography": {
+      "fontSize": "1rem",
+      "lineHeight": "1.4",
+      "fontFamily": "Consolas, Monaco, 'Courier New', monospace"
+    }
+  },
+  "templateParts": [
+    { "name": "header", "area": "header" },
+    { "name": "footer", "area": "footer" }
+  ]
+}
