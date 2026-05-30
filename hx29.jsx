@@ -20,36 +20,16 @@ const styles = {
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-  },
-  titleBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "8px 16px",
-    backgroundColor: "#1a1a1a",
-    borderBottom: "1px solid #333",
-    flexShrink: 0,
-  },
-  dot: (color) => ({
-    width: "12px",
-    height: "12px",
-    borderRadius: "50%",
-    backgroundColor: color,
-  }),
-  titleText: {
-    color: "#888",
-    fontSize: "12px",
-    marginLeft: "8px",
+    cursor: "text",
   },
   output: {
     flex: 1,
     overflowY: "auto",
     padding: "16px",
-    scrollbarWidth: "thin",
-    scrollbarColor: "#333 #0d0d0d",
+    scrollbarWidth: "none",
   },
   line: {
-    margin: "2px 0",
+    margin: "0",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
   },
@@ -57,7 +37,7 @@ const styles = {
     color: "#00ff41",
   },
   command: {
-    color: "#ffffff",
+    color: "#c0c0c0",
   },
   error: {
     color: "#ff4444",
@@ -66,32 +46,35 @@ const styles = {
     color: "#00aaff",
   },
   muted: {
-    color: "#666",
+    color: "#555",
   },
   success: {
     color: "#00ff41",
   },
-  inputRow: {
+  inputLine: {
     display: "flex",
     alignItems: "center",
-    padding: "8px 16px",
-    borderTop: "1px solid #1a1a1a",
-    flexShrink: 0,
+    margin: "0",
+    whiteSpace: "pre",
   },
   promptLabel: {
     color: "#00ff41",
-    marginRight: "8px",
-    whiteSpace: "nowrap",
+    flexShrink: 0,
   },
-  input: {
-    flex: 1,
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#ffffff",
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: "14px",
-    caretColor: "#00ff41",
+  hiddenInput: {
+    position: "absolute",
+    opacity: 0,
+    pointerEvents: "none",
+    width: "1px",
+    height: "1px",
+  },
+  cursor: {
+    display: "inline-block",
+    width: "0.6em",
+    height: "1.1em",
+    backgroundColor: "#00ff41",
+    verticalAlign: "text-bottom",
+    animation: "blink 1s step-end infinite",
   },
 };
 
@@ -232,6 +215,16 @@ async function executeCommand(rawInput) {
   }
 }
 
+// ─── Blink-Keyframe einmalig injizieren ───────────────────────────────────────
+if (typeof document !== "undefined" && !document.getElementById("vt-blink")) {
+  const s = document.createElement("style");
+  s.id = "vt-blink";
+  s.textContent = "@keyframes blink { 50% { opacity: 0; } }";
+  document.head.appendChild(s);
+}
+
+const PROMPT = `guest@${SITE_NAME}:~$ `;
+
 // ─── Haupt-Komponente ─────────────────────────────────────────────────────────
 export default function WPTerminal() {
   const [lines, setLines] = useState([
@@ -248,7 +241,7 @@ export default function WPTerminal() {
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
 
-  // Responsive: ResizeObserver passt fontSize an
+  // Responsive fontSize
   useEffect(() => {
     if (!wrapperRef.current) return;
     const observer = new ResizeObserver((entries) => {
@@ -267,9 +260,8 @@ export default function WPTerminal() {
     if (outputRef.current) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
-  }, [lines]);
+  }, [lines, input, loading]);
 
-  // Fokus beim Klick ins Terminal
   const handleWrapperClick = useCallback(() => {
     inputRef.current?.focus();
   }, []);
@@ -283,15 +275,13 @@ export default function WPTerminal() {
     setInput("");
     setHistoryIndex(-1);
 
-    // Eingabe anzeigen
     setLines((prev) => [
       ...prev,
-      { text: `guest@${SITE_NAME}:~$ ${raw}`, style: "prompt" },
+      { text: `${PROMPT}${raw}`, style: "prompt" },
     ]);
 
     if (!raw) return;
 
-    // Zur History hinzufügen
     setHistory((prev) => [raw, ...prev.slice(0, 49)]);
 
     setLoading(true);
@@ -330,43 +320,38 @@ export default function WPTerminal() {
 
   return (
     <div ref={wrapperRef} style={styles.wrapper} onClick={handleWrapperClick}>
-      {/* Titel-Leiste */}
-      <div style={styles.titleBar}>
-        <div style={styles.dot("#ff5f57")} />
-        <div style={styles.dot("#febc2e")} />
-        <div style={styles.dot("#28c840")} />
-        <span style={styles.titleText}>{SITE_NAME} — bash</span>
-      </div>
-
-      {/* Output */}
       <div ref={outputRef} style={styles.output}>
         {lines.map((line, i) => (
           <div key={i} style={{ ...styles.line, ...styles[line.style || "command"] }}>
             {line.text}
           </div>
         ))}
-        {loading && (
-          <div style={{ ...styles.line, ...styles.muted }}>…</div>
+
+        {loading ? (
+          <div style={{ ...styles.line, ...styles.muted }}>{PROMPT}</div>
+        ) : (
+          <div style={styles.inputLine}>
+            <span style={styles.promptLabel}>{PROMPT}</span>
+            <span style={{ color: "#c0c0c0" }}>{input}</span>
+            <span style={styles.cursor} />
+          </div>
         )}
       </div>
 
-      {/* Input */}
-      <div style={styles.inputRow}>
-        <span style={styles.promptLabel}>guest@{SITE_NAME}:~$</span>
-        <input
-          ref={inputRef}
-          style={styles.input}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          aria-label="Terminal-Eingabe"
-        />
-      </div>
+      {/* Hidden real input to capture keyboard */}
+      <input
+        ref={inputRef}
+        style={styles.hiddenInput}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        autoFocus
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        aria-label="Terminal-Eingabe"
+      />
     </div>
   );
 }
