@@ -111,6 +111,19 @@ html, body {
     font-size: var(--fsize) !important;
 }
 
+.react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
+    background: var(--fg) !important;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        rgba(0, 0, 0, 0.45) 1px,
+        rgba(0, 0, 0, 0.45) 2px
+    ) !important;
+    width: 0.55em !important;
+    box-shadow: 0 0 4px var(--fg) !important;
+}
+
 .react-terminal-wrapper {
     height: 100% !important;
     display: flex !important;
@@ -124,7 +137,7 @@ html, body {
 .react-terminal {
     flex: 1 !important;
     min-height: 0 !important;
-    overflow-y: scroll !important;
+    overflow-y: auto !important;
     scrollbar-width: none !important;
 }
 

@@ -40,11 +40,28 @@ function stripHtml(html) {
     .trim();
 }
 
-// ─── WordPress API ────────────────────────────────────────────────────────────
-const PAGE_SIZE = 10;
+// ─── User config (cookie) ─────────────────────────────────────────────────────
+const CONFIG_DEFAULTS = { font: 22, posts: 10 };
 
-async function fetchPosts(page = 1) {
-  const res = await apiFetch(`/posts?per_page=${PAGE_SIZE}&page=${page}&_fields=id,slug,title,date`);
+function loadConfig() {
+  const c = document.cookie.split('; ').find(r => r.startsWith('hx29_config='));
+  if (!c) return { ...CONFIG_DEFAULTS };
+  try { return { ...CONFIG_DEFAULTS, ...JSON.parse(decodeURIComponent(c.split('=').slice(1).join('='))) }; }
+  catch { return { ...CONFIG_DEFAULTS }; }
+}
+
+function saveConfig(cfg) {
+  const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
+  document.cookie = `hx29_config=${encodeURIComponent(JSON.stringify(cfg))}; expires=${exp}; path=/; SameSite=Lax`;
+}
+
+function applyConfig(cfg) {
+  document.documentElement.style.setProperty('--fsize', cfg.font + 'px');
+}
+
+// ─── WordPress API ────────────────────────────────────────────────────────────
+async function fetchPosts(page = 1, pageSize = 10) {
+  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&_fields=id,slug,title,date`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
@@ -59,8 +76,8 @@ async function fetchPostBySlug(slug) {
   return posts[0];
 }
 
-async function fetchPages(page = 1) {
-  const res = await apiFetch(`/pages?per_page=${PAGE_SIZE}&page=${page}&_fields=slug,title`);
+async function fetchPages(page = 1, pageSize = 10) {
+  const res = await apiFetch(`/pages?per_page=${pageSize}&page=${page}&_fields=slug,title`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const pages = await res.json();
@@ -103,7 +120,7 @@ function wrapLines(rawLines, width) {
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
-async function executeCommand(rawInput, pager) {
+async function executeCommand(rawInput, pager, configRef) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -118,6 +135,7 @@ async function executeCommand(rawInput, pager) {
         "  m                 – weitere Einträge / nächste Seite",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
+        "  config            – Einstellungen anzeigen / ändern",
         "  whoami            – Über den Autor",
         "  date              – aktuelles Datum",
         "  clear             – Terminal leeren",
@@ -146,12 +164,13 @@ async function executeCommand(rawInput, pager) {
         }
         return [...slice, ...more];
       }
+      const ps = configRef.current.posts;
       const nextPage = page + 1;
-      const offset = page * PAGE_SIZE;
+      const offset = page * ps;
       try {
         if (type === "posts") {
-          const { posts, total: t } = await fetchPosts(nextPage);
-          const shown = nextPage * PAGE_SIZE;
+          const { posts, total: t } = await fetchPosts(nextPage, ps);
+          const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
@@ -162,8 +181,8 @@ async function executeCommand(rawInput, pager) {
           ];
         }
         if (type === "pages") {
-          const { pages, total: t } = await fetchPages(nextPage);
-          const shown = nextPage * PAGE_SIZE;
+          const { pages, total: t } = await fetchPages(nextPage, ps);
+          const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
           pages.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
@@ -181,13 +200,14 @@ async function executeCommand(rawInput, pager) {
 
     case "ls": {
       pager.current = null;
+      const ps = configRef.current.posts;
       const cols = getLineWidth();
       const target = args[0]?.toLowerCase();
       if (!target || target === "posts") {
         try {
-          const { posts, total } = await fetchPosts(1);
+          const { posts, total } = await fetchPosts(1, ps);
           if (!posts.length) return ["Keine Posts gefunden."];
-          const hasMore = total > PAGE_SIZE;
+          const hasMore = total > ps;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = p.slug; });
           pager.current = { type: "posts", page: 1, total, slugMap };
@@ -203,9 +223,9 @@ async function executeCommand(rawInput, pager) {
       }
       if (target === "pages") {
         try {
-          const { pages, total } = await fetchPages(1);
+          const { pages, total } = await fetchPages(1, ps);
           if (!pages.length) return ["Keine Seiten gefunden."];
-          const hasMore = total > PAGE_SIZE;
+          const hasMore = total > ps;
           const slugMap = {};
           pages.forEach((p, i) => { slugMap[i + 1] = p.slug; });
           pager.current = { type: "pages", page: 1, total, slugMap };
@@ -289,6 +309,37 @@ async function executeCommand(rawInput, pager) {
       }
     }
 
+    case "config": {
+      const cfg = { ...configRef.current };
+      if (!args.length) {
+        return [
+          "Aktuelle Konfiguration:",
+          "",
+          `  --font   ${cfg.font}px`,
+          `  --posts  ${cfg.posts}`,
+          "",
+          "Verwendung: config --font <px> --posts <n>",
+        ];
+      }
+      let changed = false;
+      for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--font' && args[i + 1]) {
+          const v = parseInt(args[++i], 10);
+          if (v > 0) { cfg.font = v; changed = true; }
+        } else if (args[i] === '--posts' && args[i + 1]) {
+          const v = parseInt(args[++i], 10);
+          if (v > 0) { cfg.posts = v; changed = true; }
+        }
+      }
+      if (changed) {
+        configRef.current = cfg;
+        saveConfig(cfg);
+        applyConfig(cfg);
+        return ["Konfiguration gespeichert."];
+      }
+      return ["Unbekannte Option. Versuche: config --font 22 --posts 10"];
+    }
+
     case "whoami":
       return [
         AUTHOR,
@@ -341,7 +392,9 @@ function WPTerminal() {
   ]);
   const [printing, setPrinting] = useState(false);
   const pager = useRef(null);
+  const configRef = useRef(loadConfig());
 
+  useEffect(() => { applyConfig(configRef.current); }, []);
   useEffect(() => {
     scrollTerminal();
   }, [terminalLines]);
@@ -356,7 +409,7 @@ function WPTerminal() {
 
     if (!raw) return;
 
-    const result = await executeCommand(raw, pager);
+    const result = await executeCommand(raw, pager, configRef);
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
@@ -381,6 +434,8 @@ function WPTerminal() {
         let charIndex = 0;
         const tick = () => {
           charIndex++;
+          // skip over whitespace runs instantly
+          while (charIndex < text.length && text[charIndex] === ' ') charIndex++;
           const partial = text.slice(0, charIndex);
           setTerminalLines((prev) => {
             const next = [...prev];
