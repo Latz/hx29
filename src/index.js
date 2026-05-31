@@ -39,6 +39,59 @@ function stripHtml(html) {
     .trim();
 }
 
+// Parse HTML body into an array of lines (strings or React elements),
+// with <a> links rendered as underlined text + footnote number.
+// Returns { lines: [...], footnotes: ["[1] url", ...] }
+function parseBodyWithLinks(html, width) {
+  const footnotes = [];
+  const urlIndex = {};
+
+  // Replace <a href="url">text</a> with a placeholder __LINK_n__text__END__
+  const withPlaceholders = html.replace(
+    /<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+    (_, url, text) => {
+      const t = stripHtml(text);
+      if (!urlIndex[url]) {
+        footnotes.push(url);
+        urlIndex[url] = footnotes.length;
+      }
+      return `\x00LINK${urlIndex[url]}\x01${t}\x02`;
+    }
+  );
+
+  const plainText = stripHtml(withPlaceholders);
+  const rawLines = plainText.split("\n").filter(l => l.trim());
+  const wrapped = wrapLines(rawLines, width);
+
+  // Convert each wrapped line to a React element if it contains link markers
+  const linkRe = /\x00LINK(\d+)\x01([^\x02]*)\x02/g;
+  const lines = wrapped.map((line, li) => {
+    if (!line.includes('\x00')) return line;
+    const parts = [];
+    let last = 0;
+    let m;
+    linkRe.lastIndex = 0;
+    while ((m = linkRe.exec(line)) !== null) {
+      if (m.index > last) parts.push(line.slice(last, m.index));
+      const num = m[1];
+      const txt = m[2];
+      parts.push(
+        <span key={`lnk-${li}-${num}`} style={{textDecoration: "underline"}}>{txt}</span>
+      );
+      parts.push(` [${num}]`);
+      last = m.index + m[0].length;
+    }
+    if (last < line.length) parts.push(line.slice(last));
+    return <span key={`line-${li}`}>{parts}</span>;
+  });
+
+  const footerLines = footnotes.length
+    ? ["", "─".repeat(Math.min(width, 40)), ...footnotes.map((u, i) => `[${i + 1}] ${u}`)]
+    : [];
+
+  return { lines, footerLines, footnotes };
+}
+
 // ─── User config (cookie) ─────────────────────────────────────────────────────
 const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: 'a' };
 
@@ -82,7 +135,7 @@ function applyConfig(cfg) {
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
 async function fetchPosts(page = 1, pageSize = 10) {
-  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&_fields=id,slug,title,date`);
+  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&_fields=id,slug,title,date,link`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
@@ -98,7 +151,7 @@ async function fetchPostBySlug(slug) {
 }
 
 async function fetchPages(page = 1, pageSize = 10) {
-  const res = await apiFetch(`/pages?per_page=${pageSize}&page=${page}&_fields=slug,title`);
+  const res = await apiFetch(`/pages?per_page=${pageSize}&page=${page}&_fields=id,slug,title,link`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const pages = await res.json();
@@ -138,6 +191,17 @@ const LINE_W  = 72;
 const DATE_W  = 12;
 const NUM_W   = 4;
 const TITLE_W = LINE_W - DATE_W - NUM_W - 2;
+
+function fmtLineEl(n, title, date, cols) {
+  const base = fmtLine(n, title, date, cols);
+  return (
+    <span key={n}>
+      {base}
+      {"  "}
+      <span style={{textDecoration:"underline"}}>{`link [${n}]`}</span>
+    </span>
+  );
+}
 
 function fmtLine(n, title, date, cols) {
   const titleW = (cols || LINE_W) - DATE_W - NUM_W - 2;
@@ -183,6 +247,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "  ls pages          – alle Seiten anzeigen",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
+        "  link <n>, l <n>   – Post im Browser öffnen",
         "  search <…>        – Posts durchsuchen",
         "  grep <…>          – Volltext in Posts durchsuchen",
         "  comments <n>      – Kommentare zu Beitrag n anzeigen",
@@ -202,14 +267,14 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const { type, page, total, slugMap } = pager.current;
 
       if (type === "article") {
-        const { lines, offset, slugMap: articleSlugMap } = pager.current;
+        const { lines, offset, slugMap: articleSlugMap, footnotes: articleFootnotes } = pager.current;
         const pageLines = getPageLines();
         const slice = lines.slice(offset, offset + pageLines);
         const nextOffset = offset + pageLines;
         const hasMore = nextOffset < lines.length;
         pager.current = hasMore
-          ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap }
-          : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap };
+          ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap, footnotes: articleFootnotes }
+          : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes: articleFootnotes };
         if (hasMore) {
           const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
           return [...slice, "", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
@@ -242,11 +307,11 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           const { posts, total: t } = await fetchPosts(nextPage, ps);
           const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
-          posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id }; });
+          posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
           const cols = getLineWidth();
           return [
-            ...posts.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...posts.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -254,11 +319,11 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           const { pages, total: t } = await fetchPages(nextPage, ps);
           const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
-          pages.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
+          pages.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
           const cols = getLineWidth();
           return [
-            ...pages.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), '', cols)),
+            ...pages.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), '', cols)),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -279,12 +344,12 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           if (!posts.length) return ["Keine Posts gefunden."];
           const hasMore = total > ps;
           const slugMap = {};
-          posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id }; });
+          posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "posts", page: 1, total, slugMap };
           return [
             `${total} Posts gefunden:`,
             "",
-            ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...posts.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -297,12 +362,12 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           if (!pages.length) return ["Keine Seiten gefunden."];
           const hasMore = total > ps;
           const slugMap = {};
-          pages.forEach((p, i) => { slugMap[i + 1] = p.slug; });
+          pages.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "pages", page: 1, total, slugMap };
           return [
             `${total} Seiten:`,
             "",
-            ...pages.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), '', cols)),
+            ...pages.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), '', cols)),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -326,8 +391,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         const post = await fetchPostBySlug(slug);
         if (!post) return [`read: ${slug}: Kein Post gefunden`];
         const cols = getLineWidth();
-        const body = stripHtml(post.content.rendered);
-        const bodyLines = wrapLines(body.split("\n").filter((l) => l.trim()), cols);
+        const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
         const allLines = [
           "─".repeat(cols),
           ...wordWrap(stripHtml(post.title.rendered), cols),
@@ -335,14 +399,15 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           "─".repeat(cols),
           "",
           ...bodyLines,
+          ...footerLines,
           "",
         ];
         const pageLines = getPageLines();
         const hasMore = allLines.length > pageLines;
         const slice = allLines.slice(0, pageLines);
         pager.current = hasMore
-          ? { type: "article", lines: allLines, offset: pageLines, slugMap: savedSlugMap }
-          : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap };
+          ? { type: "article", lines: allLines, offset: pageLines, slugMap: savedSlugMap, footnotes }
+          : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes };
         let more = [];
         if (hasMore) {
           const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + l.length, 0);
@@ -379,6 +444,29 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       } catch (e) {
         return [`Fehler: ${e.message}`];
       }
+    }
+
+    case "l":
+    case "link": {
+      const n = parseInt(args[0], 10);
+      if (isNaN(n)) return ["Verwendung: link <nummer>"];
+      // Article footnotes take priority when reading an article
+      const footnotes = pager.current?.footnotes;
+      let url = footnotes && footnotes[n - 1] ? footnotes[n - 1] : null;
+      if (!url) {
+        const entry = pager.current?.slugMap?.[n];
+        if (!entry) return [`Nummer ${n} nicht bekannt.`];
+        url = typeof entry === "object" ? entry.url : null;
+      }
+      if (!url) return ["Keine URL verfügbar."];
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return [`Öffne: ${url}`];
     }
 
     case "search": {
