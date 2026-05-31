@@ -179,6 +179,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
         "  search <…>        – Posts durchsuchen",
+        "  grep <…>          – Volltext in Posts durchsuchen",
         "  comments <n>      – Kommentare zu Beitrag n anzeigen",
         "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
         "  about             – über dieses Terminal",
@@ -204,12 +205,29 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         pager.current = hasMore
           ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap }
           : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap };
-        let more = [""];
         if (hasMore) {
-          const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + l.length, 0);
-          more = ["", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
+          const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
+          return [...slice, "", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
         }
-        return [...slice, ...more];
+        return [...slice, ""];
+      }
+
+      if (type === "grep") {
+        const { blocks, shownBlocks, slugMap: grepSlugMap } = pager.current;
+        const pageLines = getPageLines();
+        const nextPage = [];
+        let newShown = shownBlocks;
+        for (let i = shownBlocks; i < blocks.length; i++) {
+          if (nextPage.length + blocks[i].length > pageLines) break;
+          nextPage.push(...blocks[i]);
+          newShown++;
+        }
+        const remaining = blocks.length - newShown;
+        pager.current = { type: "grep", blocks, shownBlocks: newShown, slugMap: grepSlugMap };
+        if (remaining > 0) {
+          return [...nextPage, `[m]ore  (${remaining} weitere Treffer)`];
+        }
+        return [...nextPage, ""];
       }
       const ps = configRef.current.posts;
       const nextPage = page + 1;
@@ -377,6 +395,77 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           "",
           ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
         ];
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+    }
+
+    case "grep": {
+      if (!args.length) return ["Verwendung: grep <suchbegriff>"];
+      const term = args.join(" ");
+      const termLower = term.toLowerCase();
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try {
+        const res = await apiFetch(`/posts?per_page=100&_fields=id,slug,title,date,content`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+        const posts = await res.json();
+        const cols = getLineWidth();
+        const slugMap = {};
+        // Build per-post blocks: each block = [titleLine, ...matchLines, ""]
+        const blocks = [];
+        posts.forEach((p) => {
+          const body = stripHtml(p.content.rendered);
+          const lines = body.split("\n").filter(l => l.trim());
+          const matchLines = lines
+            .filter(line => line.toLowerCase().includes(termLower))
+            .map(line => {
+              const raw = line.slice(0, cols - 4);
+              const re = new RegExp(`(${escaped})`, "gi");
+              const parts = raw.split(re);
+              return (
+                <span key={raw}>
+                  {"    "}
+                  {parts.map((part, i) =>
+                    i % 2 === 1
+                      ? <span key={i} style={{background:"var(--fg)",color:"var(--bg)"}}>{part}</span>
+                      : part
+                  )}
+                </span>
+              );
+            });
+          if (!matchLines.length) return;
+          const n = blocks.length + 1;
+          slugMap[n] = { slug: p.slug, id: p.id };
+          blocks.push([
+            fmtLine(n, stripHtml(p.title.rendered), formatDate(p.date), cols),
+            ...matchLines,
+            "",
+          ]);
+        });
+        if (!blocks.length) return [`Keine Treffer für "${term}".`];
+        const pageLines = getPageLines();
+        // Fit as many whole blocks as possible into first page
+        const firstPage = [];
+        let shownBlocks = 0;
+        for (const block of blocks) {
+          if (firstPage.length + block.length > pageLines) break;
+          firstPage.push(...block);
+          shownBlocks++;
+        }
+        const remainingBlocks = blocks.length - shownBlocks;
+        pager.current = {
+          type: "grep",
+          blocks,
+          shownBlocks,
+          slugMap,
+        };
+        const header = [`${blocks.length} Treffer für "${term}":`, ""];
+        if (remainingBlocks > 0) {
+          return [...header, ...firstPage, `[m]ore  (${remainingBlocks} weitere Treffer)`];
+        }
+        pager.current = { type: "grep", blocks: [], shownBlocks: blocks.length, slugMap };
+        return [...header, ...firstPage];
       } catch (e) {
         return [`Fehler: ${e.message}`];
       }
@@ -604,6 +693,12 @@ function WPTerminal() {
 
       if (!text) {
         setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{" "}</TerminalOutput>]);
+        continue;
+      }
+
+      // React elements (e.g. highlighted grep lines) — render instantly
+      if (typeof text !== "string") {
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{text}</TerminalOutput>]);
         continue;
       }
 
