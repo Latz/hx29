@@ -230,7 +230,7 @@ const MAN_PAGES = {
     "",
     "SYNTAX",
     "  config",
-    "  config --theme <a|b|c|d>",
+    "  config --theme <a|b|c|d|e>",
     "  config --font <px>",
     "  config --posts <n>",
     "  config --order <asc|desc>",
@@ -241,6 +241,7 @@ const MAN_PAGES = {
     "  --theme   Farbschema wechseln",
     "            a = VT100 Grün  b = GitHub Dark",
     "            c = Lila        d = Solarized Light",
+    "            e = Amber (orange Phosphor)",
     "  --font    Schriftgröße in Pixeln (Standard: 22)",
     "  --posts   Posts pro Seite (Standard: 10)",
     "  --order   Sortierreihenfolge für ls posts",
@@ -883,10 +884,10 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           "",
           `  --font   ${cfg.font}px`,
           `  --posts  ${cfg.posts}`,
-          `  --theme  ${cfg.theme}  (a=grün, b=dunkel, c=lila, d=hell)`,
+          `  --theme  ${cfg.theme}  (a=grün, b=dunkel, c=lila, d=hell, e=amber)`,
           `  --order  ${cfg.order}  (asc=älteste zuerst, desc=neueste zuerst)`,
           "",
-          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d> --order <asc|desc>",
+          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc>",
         ];
       }
       let changed = false;
@@ -899,7 +900,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           if (v > 0) { cfg.posts = v; changed = true; }
         } else if (args[i] === '--theme' && args[i + 1]) {
           const v = args[++i];
-          if (['a', 'b', 'c', 'd'].includes(v)) { cfg.theme = v; changed = true; }
+          if (['a', 'b', 'c', 'd', 'e'].includes(v)) { cfg.theme = v; changed = true; }
         } else if (args[i] === '--order' && args[i + 1]) {
           const v = args[++i];
           if (['asc', 'desc'].includes(v)) { cfg.order = v; changed = true; }

@@ -47,6 +47,13 @@ Text Domain: hx29
     --accent: #268bd2;
 }
 
+[data-theme="e"] {
+    --bg:     #0a0500;
+    --fg:     #ffb000;
+    --dim:    #7a5000;
+    --accent: #ffb000;
+}
+
 /* ── Reset ───────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -69,13 +76,13 @@ html, body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
-    margin: 0 !important;
-    padding: 0 !important;
+    margin: 0;
+    padding: 0;
 }
 
 .wp-site-blocks > * {
-    margin: 0 !important;
-    padding: 0 !important;
+    margin: 0;
+    padding: 0;
 }
 
 /* The group block wrapping the terminal should expand to fill remaining space */
@@ -111,21 +118,22 @@ html, body {
     font-size: var(--fsize) !important;
 }
 
-.react-terminal-input[data-terminal-prompt]:before {
-    margin-right: 0.25em !important;
+#hx29-root .react-terminal-input[data-terminal-prompt]:before {
+    margin-right: 0.25em;
+    color: var(--accent);
 }
 
-.react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
-    background: var(--fg) !important;
+#hx29-root .react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
+    background: var(--fg);
     background-image: repeating-linear-gradient(
         to bottom,
         transparent 0px,
         transparent 1px,
         rgba(0, 0, 0, 0.45) 1px,
         rgba(0, 0, 0, 0.45) 2px
-    ) !important;
-    width: 0.55em !important;
-    box-shadow: 0 0 4px var(--fg) !important;
+    );
+    width: 0.55em;
+    box-shadow: 0 0 4px var(--fg);
 }
 
 .react-terminal-wrapper {
@@ -146,7 +154,7 @@ html, body {
 }
 
 .react-terminal::-webkit-scrollbar {
-    display: none !important;
+    display: none;
 }
 
 /* ── Terminal container (legacy / no-JS fallback) ────────────────── */
