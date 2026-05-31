@@ -667,11 +667,63 @@ function WPTerminal() {
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
   const historyRef = useRef(loadHistory());
+  const historyPosRef = useRef(-1);
 
   useEffect(() => { applyConfig(configRef.current); }, []);
   useEffect(() => {
     scrollTerminal();
   }, [terminalLines]);
+
+  // Arrow-key history navigation — intercept before react-terminal-ui handles it
+  useEffect(() => {
+    const setNativeValue = (el, value) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(el, value);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    const onKeyDown = (e) => {
+      if (printing) return;
+      const el = e.currentTarget;
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const h = historyRef.current;
+        if (!h.length) return;
+        const next = Math.min(historyPosRef.current + 1, h.length - 1);
+        historyPosRef.current = next;
+        setNativeValue(el, h[next]);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const h = historyRef.current;
+        const next = historyPosRef.current - 1;
+        historyPosRef.current = Math.max(next, -1);
+        setNativeValue(el, next < 0 ? '' : h[next]);
+      }
+    };
+
+    const attach = () => {
+      const el = document.querySelector('.terminal-hidden-input');
+      if (el) {
+        el.addEventListener('keydown', onKeyDown, true);
+        return el;
+      }
+      return null;
+    };
+
+    // The input may not exist immediately on mount — retry briefly
+    let el = attach();
+    let timer;
+    if (!el) {
+      timer = setTimeout(() => { el = attach(); }, 300);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      if (el) el.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [printing]);
 
   const handleInput = useCallback(async (input) => {
     const raw = input.trim();
@@ -680,6 +732,8 @@ function WPTerminal() {
       ...prev,
       <TerminalInput key={`in-${Date.now()}`}>{raw}</TerminalInput>,
     ]);
+
+    historyPosRef.current = -1;
 
     if (!raw) return;
 
