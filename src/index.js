@@ -12,7 +12,6 @@ const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
 const WP_API = (HX29.rest_root || "/wp-json/").replace(/\/$/, "") + "/wp/v2";
 const NONCE = HX29.nonce || "";
 const SITE_NAME = HX29.site_name || "my-terminal";
-const AUTHOR = HX29.author || "Admin";
 
 function apiFetch(path) {
   return fetch(`${WP_API}${path}`, {
@@ -132,12 +131,10 @@ async function executeCommand(rawInput, pager, configRef) {
         "",
         "  ls posts          – alle Blogposts anzeigen",
         "  ls pages          – alle Seiten anzeigen",
-        "  m                 – weitere Einträge / nächste Seite",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
+        "  about             – über dieses Terminal",
         "  config            – Einstellungen anzeigen / ändern",
-        "  whoami            – Über den Autor",
-        "  date              – aktuelles Datum",
         "  clear             – Terminal leeren",
         "  help              – diese Hilfe",
         "",
@@ -309,6 +306,25 @@ async function executeCommand(rawInput, pager, configRef) {
       }
     }
 
+    case "about":
+      return [
+        `${SITE_NAME} — HX29 Terminal`,
+        "═".repeat(40),
+        "",
+        "Ein WordPress-Theme mit terminalbasierter",
+        "Oberfläche auf Basis von React (wp-element).",
+        "",
+        "Befehle:",
+        "  ls posts / ls pages   Inhalte auflisten",
+        "  read <n> / r <n>      Artikel lesen",
+        "  cat <slug>            Artikel per Slug öffnen",
+        "  config                Einstellungen",
+        "  clear                 Terminal leeren",
+        "",
+        "Schrift: Glass TTY VT220 (Public Domain)",
+        "Farben:  VT100 Phosphorgrün",
+      ];
+
     case "config": {
       const cfg = { ...configRef.current };
       if (!args.length) {
@@ -339,15 +355,6 @@ async function executeCommand(rawInput, pager, configRef) {
       }
       return ["Unbekannte Option. Versuche: config --font 22 --posts 10"];
     }
-
-    case "whoami":
-      return [
-        AUTHOR,
-        `uid=1000(${AUTHOR}) gid=1000(writers) groups=1000(writers),4(adm)`,
-      ];
-
-    case "date":
-      return [new Date().toString()];
 
     case "clear":
       return "__CLEAR__";

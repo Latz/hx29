@@ -111,6 +111,10 @@ html, body {
     font-size: var(--fsize) !important;
 }
 
+.react-terminal-input[data-terminal-prompt]:before {
+    margin-right: 0.25em !important;
+}
+
 .react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
     background: var(--fg) !important;
     background-image: repeating-linear-gradient(
