@@ -6,7 +6,11 @@
     { "text": "ATDT 049-89-35840",                 "delay": 800 },
     { "text": null,                                "delay": 1200 },
     { "text": "CONNECT 2400",                      "delay": 500 },
-    { "text": null,                                "delay": 900 },
+    { "__phases": [
+        { "text": "Routing via secure node...",  "hold": 0 },
+        { "text": "Routing via secure node... OK", "hold": 0 }
+      ], "delay": 400 },
+    { "text": null,                                "delay": 500 },
     { "text": "LOGON: IBM 3270  --  MVS/XA 2.1.3  --  JES2", "delay": 700 },
     { "text": null,                                "delay": 600 },
     { "text": "HASP254 SUBMITTING JES2 STARTUP PROC",         "delay": 400 },
@@ -34,7 +38,10 @@
     { "text": "Executing Kernel Override...",       "delay": 800 },
     { "text": "[ OK ] Injecting payload into ring-0 memory space... SUCCESS",        "delay": 500 },
     { "text": "[ OK ] Forging root token credentials... SUCCESS",                    "delay": 400 },
-    { "text": "[ OK ] Establishing low-level socket (RAW_SOCK_V6)... ESTABLISHED",   "delay": 700 },
+    { "__phases": [
+        { "text": "[ OK ] Establishing low-level socket (RAW_SOCK_V6)...",             "hold": 0 },
+        { "text": "[ OK ] Establishing low-level socket (RAW_SOCK_V6)... ESTABLISHED", "hold": 0 }
+      ], "delay": 700 },
     { "text": "",                                  "delay": 400 },
     { "text": "--------------------------------------------------------------------------------", "delay": 200 },
     { "text": "                  P R O J E C T :   D A R K   M A T T E R",          "delay": 300 },
