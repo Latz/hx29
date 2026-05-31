@@ -178,6 +178,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "  ls pages          – alle Seiten anzeigen",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
+        "  search <…>        – Posts durchsuchen",
         "  comments <n>      – Kommentare zu Beitrag n anzeigen",
         "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
         "  about             – über dieses Terminal",
@@ -351,6 +352,30 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           "",
           ...lines,
           "",
+        ];
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+    }
+
+    case "search": {
+      if (!args.length) return ["Verwendung: search <suchbegriff>"];
+      const term = args.join(" ");
+      const ps = configRef.current.posts;
+      try {
+        const res = await apiFetch(`/posts?search=${encodeURIComponent(term)}&per_page=${ps}&_fields=id,slug,title,date`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+        const posts = await res.json();
+        if (!posts.length) return [`Keine Ergebnisse für "${term}".`];
+        const slugMap = {};
+        posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id }; });
+        pager.current = { type: "posts", page: 1, total, slugMap };
+        const cols = getLineWidth();
+        return [
+          `${total} Treffer für "${term}":`,
+          "",
+          ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
         ];
       } catch (e) {
         return [`Fehler: ${e.message}`];
