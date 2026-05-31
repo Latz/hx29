@@ -54,6 +54,23 @@ function saveConfig(cfg) {
   document.cookie = `hx29_config=${encodeURIComponent(JSON.stringify(cfg))}; expires=${exp}; path=/; SameSite=Lax`;
 }
 
+function loadHistory() {
+  const c = document.cookie.split('; ').find(r => r.startsWith('hx29_history='));
+  if (!c) return [];
+  try { return JSON.parse(decodeURIComponent(c.split('=').slice(1).join('='))); }
+  catch { return []; }
+}
+
+function pushHistory(historyRef, cmd) {
+  const h = historyRef.current;
+  const idx = h.indexOf(cmd);
+  if (idx !== -1) h.splice(idx, 1);
+  h.unshift(cmd);
+  if (h.length > 25) h.length = 25;
+  const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
+  document.cookie = `hx29_history=${encodeURIComponent(JSON.stringify(h))}; expires=${exp}; path=/; SameSite=Lax`;
+}
+
 function applyConfig(cfg) {
   document.documentElement.style.setProperty('--fsize', cfg.font + 'px');
 }
@@ -119,7 +136,7 @@ function wrapLines(rawLines, width) {
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
-async function executeCommand(rawInput, pager, configRef) {
+async function executeCommand(rawInput, pager, configRef, historyRef) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -134,6 +151,7 @@ async function executeCommand(rawInput, pager, configRef) {
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
         "  about             – über dieses Terminal",
+        "  history           – Befehlshistorie anzeigen",
         "  status            – Systemstatus prüfen",
         "  config            – Einstellungen anzeigen / ändern",
         "  clear             – Terminal leeren",
@@ -307,6 +325,16 @@ async function executeCommand(rawInput, pager, configRef) {
       }
     }
 
+    case "history": {
+      const h = historyRef.current;
+      if (!h.length) return ["Keine Befehlshistorie."];
+      return [
+        "Befehlshistorie:",
+        "",
+        ...h.slice().reverse().map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`),
+      ];
+    }
+
     case "status": {
       const lines = ["Systemstatus...", ""];
       const check = async (label, fn) => {
@@ -437,6 +465,7 @@ function WPTerminal() {
   const [printing, setPrinting] = useState(false);
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
+  const historyRef = useRef(loadHistory());
 
   useEffect(() => { applyConfig(configRef.current); }, []);
   useEffect(() => {
@@ -453,7 +482,8 @@ function WPTerminal() {
 
     if (!raw) return;
 
-    const result = await executeCommand(raw, pager, configRef);
+    pushHistory(historyRef, raw);
+    const result = await executeCommand(raw, pager, configRef, historyRef);
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
