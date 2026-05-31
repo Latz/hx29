@@ -94,7 +94,7 @@ function parseBodyWithLinks(html, width) {
 }
 
 // ─── User config (cookie) ─────────────────────────────────────────────────────
-const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: 'a' };
+const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: 'a', order: 'desc' };
 
 function loadConfig() {
   const c = document.cookie.split('; ').find(r => r.startsWith('hx29_config='));
@@ -135,8 +135,8 @@ function applyConfig(cfg) {
 }
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
-async function fetchPosts(page = 1, pageSize = 10) {
-  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&_fields=id,slug,title,date,link`);
+async function fetchPosts(page = 1, pageSize = 10, order = 'desc') {
+  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&orderby=date&order=${order}&_fields=id,slug,title,date,link`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
@@ -270,7 +270,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       return [
         "Verfügbare Befehle:",
         "",
-        "  ls posts          – alle Blogposts anzeigen",
+        "  ls posts [asc|desc]  – alle Blogposts anzeigen",
         "  ls pages          – alle Seiten anzeigen",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
@@ -294,14 +294,14 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const { type, page, total, slugMap } = pager.current;
 
       if (type === "article") {
-        const { lines, offset, slugMap: articleSlugMap, footnotes: articleFootnotes } = pager.current;
+        const { lines, offset, slugMap: articleSlugMap, footnotes: articleFootnotes, slug: articleSlug } = pager.current;
         const pageLines = getPageLines();
         const slice = lines.slice(offset, offset + pageLines);
         const nextOffset = offset + pageLines;
         const hasMore = nextOffset < lines.length;
         pager.current = hasMore
-          ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap, footnotes: articleFootnotes }
-          : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes: articleFootnotes };
+          ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap, footnotes: articleFootnotes, slug: articleSlug }
+          : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes: articleFootnotes, slug: articleSlug };
         if (hasMore) {
           const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
           return [...slice, "", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
@@ -331,11 +331,12 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const offset = page * ps;
       try {
         if (type === "posts") {
-          const { posts, total: t } = await fetchPosts(nextPage, ps);
+          const ord = pager.current.order || 'desc';
+          const { posts, total: t } = await fetchPosts(nextPage, ps, ord);
           const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, order: ord } : null;
           const cols = getLineWidth();
           return [
             ...posts.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
@@ -366,13 +367,15 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const cols = getLineWidth();
       const target = args[0]?.toLowerCase();
       if (!target || target === "posts") {
+        const orderArg = args[1]?.toLowerCase();
+        const order = (orderArg === 'asc' || orderArg === 'desc') ? orderArg : configRef.current.order;
         try {
-          const { posts, total } = await fetchPosts(1, ps);
+          const { posts, total } = await fetchPosts(1, ps, order);
           if (!posts.length) return ["Keine Posts gefunden."];
           const hasMore = total > ps;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = { type: "posts", page: 1, total, slugMap };
+          pager.current = { type: "posts", page: 1, total, slugMap, order };
           return [
             `${total} Posts gefunden:`,
             "",
@@ -445,8 +448,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         const hasMore = allLines.length > pageLines;
         const slice = allLines.slice(0, pageLines);
         pager.current = hasMore
-          ? { type: "article", lines: allLines, offset: pageLines, slugMap: savedSlugMap, footnotes }
-          : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes };
+          ? { type: "article", lines: allLines, offset: pageLines, slugMap: savedSlugMap, footnotes, slug }
+          : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes, slug };
         let more = [];
         if (hasMore) {
           const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + l.length, 0);
@@ -723,8 +726,9 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           `  --font   ${cfg.font}px`,
           `  --posts  ${cfg.posts}`,
           `  --theme  ${cfg.theme}  (a=grün, b=dunkel, c=lila, d=hell)`,
+          `  --order  ${cfg.order}  (asc=älteste zuerst, desc=neueste zuerst)`,
           "",
-          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d>",
+          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d> --order <asc|desc>",
         ];
       }
       let changed = false;
@@ -738,6 +742,9 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         } else if (args[i] === '--theme' && args[i + 1]) {
           const v = args[++i];
           if (['a', 'b', 'c', 'd'].includes(v)) { cfg.theme = v; changed = true; }
+        } else if (args[i] === '--order' && args[i + 1]) {
+          const v = args[++i];
+          if (['asc', 'desc'].includes(v)) { cfg.order = v; changed = true; }
         }
       }
       if (changed) {
@@ -746,7 +753,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         applyConfig(cfg);
         return ["Konfiguration gespeichert."];
       }
-      return ["Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a"];
+      return ["Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a --order desc"];
     }
 
     case "clear":
