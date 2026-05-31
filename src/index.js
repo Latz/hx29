@@ -6,6 +6,7 @@ import {
   createRoot,
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
+import { getIntro } from "./intros";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
 const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
@@ -410,6 +411,17 @@ function fmtLine(n, title, date, cols) {
   return num + t.padEnd(titleW) + '  ' + date;
 }
 
+function batchFmtLineEls(items, cols) {
+  const maxLen = Math.max(...items.map(it => it.title.length));
+  const cap = (cols || LINE_W) - NUM_W - DATE_W - 5;
+  const titleW = Math.min(maxLen, cap) + 5;
+  return items.map(({ n, title, date }) => {
+    const num = String(n).padStart(NUM_W - 1) + ' ';
+    const t = title.length > titleW - 5 ? title.slice(0, titleW - 6) + '…' : title;
+    return num + t.padEnd(titleW) + date;
+  });
+}
+
 function breakToken(token, width) {
   // Split at natural break chars (preserving delimiter), then hard-break remainder
   const parts = token.split(/([-/_])/);
@@ -544,7 +556,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, searchTerm } : null;
           const cols = getLineWidth();
           return [
-            ...posts.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
             ...(hasMore ? ["", `[m]ore  (${(total ?? t) - shown} weitere)`] : [""]),
           ];
         }
@@ -557,7 +569,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, order: ord } : null;
           const cols = getLineWidth();
           return [
-            ...posts.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -569,7 +581,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
           const cols = getLineWidth();
           return [
-            ...pages.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), '', cols)),
+            ...batchFmtLineEls(pages.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: '' })), cols),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -597,7 +609,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           return [
             `${total} Posts gefunden:`,
             "",
-            ...posts.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -615,7 +627,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           return [
             `${total} Seiten:`,
             "",
-            ...pages.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), '', cols)),
+            ...batchFmtLineEls(pages.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: '' })), cols),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -723,7 +735,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         return [
           `${total} Treffer für "${term}":`,
           "",
-          ...posts.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+          ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
           ...(hasMore ? ["", `[m]ore  (${total - ps} weitere)`] : []),
         ];
       } catch (e) {
@@ -952,17 +964,35 @@ function getLineWidth() {
 
 // ─── Haupt-Komponente ─────────────────────────────────────────────────────────
 function WPTerminal() {
-  const [terminalLines, setTerminalLines] = useState([
-    <TerminalOutput key="welcome">{`Willkommen auf ${SITE_NAME}`}</TerminalOutput>,
-    <TerminalOutput key="hint">Tippe 'help' für verfügbare Befehle.</TerminalOutput>,
-  ]);
+  const [terminalLines, setTerminalLines] = useState([]);
   const [printing, setPrinting] = useState(false);
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
   const historyRef = useRef(loadHistory());
   const historyPosRef = useRef(-1);
+  const [introPlaying, setIntroPlaying] = useState(true);
 
   useEffect(() => { applyConfig(configRef.current); }, []);
+
+  useEffect(() => {
+    const INTRO = getIntro(SITE_NAME);
+    let cancelled = false;
+    let t = 0;
+    INTRO.forEach(({ text, delay }, i) => {
+      t += delay;
+      setTimeout(() => {
+        if (cancelled) return;
+        if (text !== null) {
+          setTerminalLines((prev) => [...prev, <TerminalOutput key={`intro-${i}`}>{text}</TerminalOutput>]);
+        }
+        if (i === INTRO.length - 1) {
+          setIntroPlaying(false);
+          setTimeout(() => document.querySelector('.terminal-hidden-input')?.focus(), 50);
+        }
+      }, t);
+    });
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     scrollTerminal();
   }, [terminalLines]);
@@ -976,7 +1006,7 @@ function WPTerminal() {
     };
 
     const onKeyDown = (e) => {
-      if (printing) return;
+      if (printing || introPlaying) return;
       const el = e.currentTarget;
       if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -1019,6 +1049,7 @@ function WPTerminal() {
   }, [printing]);
 
   const handleInput = useCallback(async (input) => {
+    if (introPlaying) return;
     const raw = input.trim();
 
     setTerminalLines((prev) => [
@@ -1099,7 +1130,7 @@ function WPTerminal() {
       prompt={`guest@${SITE_NAME}:~$`}
       colorMode={ColorMode.Dark}
       height="100%"
-      onInput={printing ? null : handleInput}
+      onInput={printing || introPlaying ? null : handleInput}
       TopButtonsPanel={() => null}
     >
       {terminalLines}
