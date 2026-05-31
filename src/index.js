@@ -134,6 +134,7 @@ async function executeCommand(rawInput, pager, configRef) {
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
         "  about             – über dieses Terminal",
+        "  status            – Systemstatus prüfen",
         "  config            – Einstellungen anzeigen / ändern",
         "  clear             – Terminal leeren",
         "  help              – diese Hilfe",
@@ -304,6 +305,42 @@ async function executeCommand(rawInput, pager, configRef) {
       } catch (e) {
         return [`Fehler: ${e.message}`];
       }
+    }
+
+    case "status": {
+      const lines = ["Systemstatus...", ""];
+      const check = async (label, fn) => {
+        try {
+          const result = await fn();
+          lines.push(`  [✓] ${label}${result ? ": " + result : ""}`);
+        } catch (e) {
+          lines.push(`  [✗] ${label}: ${e.message}`);
+        }
+      };
+      await check("WordPress REST API", async () => {
+        const res = await fetch(HX29.rest_root || "/wp-json/");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return "erreichbar";
+      });
+      await check("Authentifizierung", async () => {
+        if (!NONCE) throw new Error("kein Nonce");
+        return "Nonce vorhanden";
+      });
+      await check("Beiträge", async () => {
+        const { total } = await fetchPosts(1, 1);
+        return `${total} veröffentlicht`;
+      });
+      await check("Seiten", async () => {
+        const { total } = await fetchPages(1, 1);
+        return `${total} veröffentlicht`;
+      });
+      await check("Schrift", async () => {
+        const fonts = document.fonts ? [...document.fonts].map(f => f.family) : [];
+        if (fonts.some(f => f.includes("GlassTTY"))) return "Glass TTY VT220 geladen";
+        throw new Error("nicht geladen");
+      });
+      lines.push("", "Alle Systeme betriebsbereit.");
+      return lines;
     }
 
     case "about":
