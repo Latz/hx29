@@ -207,18 +207,48 @@ function fmtLine(n, title, date, cols) {
   return num + t.padEnd(titleW) + '  ' + date;
 }
 
+function breakToken(token, width) {
+  // Split at natural break chars (preserving delimiter), then hard-break remainder
+  const parts = token.split(/([-/_])/);
+  const segments = [];
+  let current = '';
+  for (const part of parts) {
+    if ((current + part).length <= width) {
+      current += part;
+    } else {
+      if (current) segments.push(current);
+      current = part;
+    }
+  }
+  if (current) segments.push(current);
+  // Hard-break any segment still too long
+  const result = [];
+  for (const seg of segments) {
+    let s = seg;
+    while (s.length > width) {
+      result.push(s.slice(0, width - 1) + '-');
+      s = s.slice(width - 1);
+    }
+    if (s) result.push(s);
+  }
+  return result;
+}
+
 function wordWrap(text, width) {
   const words = text.split(' ');
   const lines = [];
   let current = '';
   for (const word of words) {
-    if (!current) {
-      current = word;
-    } else if (current.length + 1 + word.length <= width) {
-      current += ' ' + word;
-    } else {
-      lines.push(current);
-      current = word;
+    const tokens = word.length > width ? breakToken(word, width) : [word];
+    for (const token of tokens) {
+      if (!current) {
+        current = token;
+      } else if (current.length + 1 + token.length <= width) {
+        current += ' ' + token;
+      } else {
+        lines.push(current);
+        current = token;
+      }
     }
   }
   if (current) lines.push(current);
