@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   createRoot,
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
@@ -40,10 +41,14 @@ function stripHtml(html) {
 }
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
-async function fetchPosts() {
-  const res = await apiFetch(`/posts?per_page=20&_fields=id,slug,title,date,excerpt`);
+const PAGE_SIZE = 10;
+
+async function fetchPosts(page = 1) {
+  const res = await apiFetch(`/posts?per_page=${PAGE_SIZE}&page=${page}&_fields=id,slug,title,date`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const posts = await res.json();
+  return { posts, total };
 }
 
 async function fetchPostBySlug(slug) {
@@ -54,14 +59,28 @@ async function fetchPostBySlug(slug) {
   return posts[0];
 }
 
-async function fetchPages() {
-  const res = await apiFetch(`/pages?per_page=20&_fields=slug,title`);
+async function fetchPages(page = 1) {
+  const res = await apiFetch(`/pages?per_page=${PAGE_SIZE}&page=${page}&_fields=slug,title`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const pages = await res.json();
+  return { pages, total };
+}
+
+// ─── Formatting ───────────────────────────────────────────────────────────────
+const LINE_W  = 72;
+const DATE_W  = 12;
+const NUM_W   = 4;
+const TITLE_W = LINE_W - DATE_W - NUM_W - 2;
+
+function fmtLine(n, title, date) {
+  const num = String(n).padStart(NUM_W - 1) + ' ';
+  const t = title.length > TITLE_W ? title.slice(0, TITLE_W - 1) + '…' : title;
+  return num + t.padEnd(TITLE_W) + '  ' + date;
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
-async function executeCommand(rawInput) {
+async function executeCommand(rawInput, pager) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -73,6 +92,7 @@ async function executeCommand(rawInput) {
         "",
         "  ls posts          – alle Blogposts anzeigen",
         "  ls pages          – alle Seiten anzeigen",
+        "  m                 – weitere Einträge laden",
         "  cat <slug>        – Post/Seite öffnen",
         "  whoami            – Über den Autor",
         "  date              – aktuelles Datum",
@@ -82,16 +102,57 @@ async function executeCommand(rawInput) {
         "Tipp: Pfeil-Tasten ↑↓ für Befehlshistorie",
       ];
 
+    case "m": {
+      if (!pager.current) return ["Kein aktiver Pager."];
+      const { type, page, total, slugMap } = pager.current;
+      const nextPage = page + 1;
+      const offset = page * PAGE_SIZE;
+      try {
+        if (type === "posts") {
+          const { posts, total: t } = await fetchPosts(nextPage);
+          const shown = nextPage * PAGE_SIZE;
+          const hasMore = shown < (total ?? t);
+          posts.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          return [
+            ...posts.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date))),
+            ...(hasMore ? ["", "[m]ore"] : [""]),
+          ];
+        }
+        if (type === "pages") {
+          const { pages, total: t } = await fetchPages(nextPage);
+          const shown = nextPage * PAGE_SIZE;
+          const hasMore = shown < (total ?? t);
+          pages.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          return [
+            ...pages.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), '')),
+            ...(hasMore ? ["", "[m]ore"] : [""]),
+          ];
+        }
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+      return [];
+    }
+
     case "ls": {
+      pager.current = null;
       const target = args[0]?.toLowerCase();
       if (!target || target === "posts") {
         try {
-          const posts = await fetchPosts();
+          const { posts, total } = await fetchPosts(1);
           if (!posts.length) return ["Keine Posts gefunden."];
+          const hasMore = total > PAGE_SIZE;
+          const slugMap = {};
+          posts.forEach((p, i) => { slugMap[i + 1] = p.slug; });
+          if (hasMore) pager.current = { type: "posts", page: 1, total, slugMap };
+          else pager.current = { type: "posts", page: 1, total, slugMap };
           return [
-            `${posts.length} Posts gefunden:`,
+            `${total} Posts gefunden:`,
             "",
-            ...posts.map((p) => `  ${p.slug.padEnd(35)} ${formatDate(p.date)}  ${stripHtml(p.title.rendered)}`),
+            ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date))),
+            ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
           return [`Fehler: ${e.message}`];
@@ -99,12 +160,18 @@ async function executeCommand(rawInput) {
       }
       if (target === "pages") {
         try {
-          const pages = await fetchPages();
+          const { pages, total } = await fetchPages(1);
           if (!pages.length) return ["Keine Seiten gefunden."];
+          const hasMore = total > PAGE_SIZE;
+          const slugMap = {};
+          pages.forEach((p, i) => { slugMap[i + 1] = p.slug; });
+          if (hasMore) pager.current = { type: "pages", page: 1, total, slugMap };
+          else pager.current = { type: "pages", page: 1, total, slugMap };
           return [
-            `${pages.length} Seiten:`,
+            `${total} Seiten:`,
             "",
-            ...pages.map((p) => `  ${p.slug.padEnd(35)} ${stripHtml(p.title.rendered)}`),
+            ...pages.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), '')),
+            ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
           return [`Fehler: ${e.message}`];
@@ -114,8 +181,12 @@ async function executeCommand(rawInput) {
     }
 
     case "cat": {
-      const slug = args[0];
-      if (!slug) return ["Verwendung: cat <slug>"];
+      let slug = args[0];
+      if (!slug) return ["Verwendung: cat <slug> oder cat <nummer>"];
+      const num = parseInt(slug, 10);
+      if (!isNaN(num) && pager.current?.slugMap?.[num]) {
+        slug = pager.current.slugMap[num];
+      }
       try {
         const post = await fetchPostBySlug(slug);
         if (!post) return [`cat: ${slug}: Kein Post gefunden`];
@@ -167,6 +238,7 @@ function WPTerminal() {
     <TerminalOutput key="hint">Tippe 'help' für verfügbare Befehle.</TerminalOutput>,
   ]);
   const [printing, setPrinting] = useState(false);
+  const pager = useRef(null);
 
   useEffect(() => {
     scrollTerminal();
@@ -182,7 +254,7 @@ function WPTerminal() {
 
     if (!raw) return;
 
-    const result = await executeCommand(raw);
+    const result = await executeCommand(raw, pager);
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
