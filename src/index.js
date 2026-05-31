@@ -100,6 +100,34 @@ async function fetchPages(page = 1, pageSize = 10) {
   return { pages, total };
 }
 
+async function fetchComments(postId, perPage = 20) {
+  const res = await apiFetch(`/comments?post=${postId}&per_page=${perPage}&_fields=id,author_name,date,content`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function postComment(postId, authorName, content) {
+  const res = await fetch(`${WP_API}/comments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(NONCE ? { "X-WP-Nonce": NONCE } : {}),
+    },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      post: postId,
+      author_name: authorName,
+      author_email: `${authorName}@hx29.local`,
+      content,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 // ─── Formatting ───────────────────────────────────────────────────────────────
 const LINE_W  = 72;
 const DATE_W  = 12;
@@ -150,6 +178,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "  ls pages          – alle Seiten anzeigen",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
+        "  comments <n>      – Kommentare zu Beitrag n anzeigen",
+        "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
         "  about             – über dieses Terminal",
         "  history           – Befehlshistorie anzeigen",
         "  status            – Systemstatus prüfen",
@@ -188,7 +218,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           const { posts, total: t } = await fetchPosts(nextPage, ps);
           const shown = nextPage * ps;
           const hasMore = shown < (total ?? t);
-          posts.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
+          posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id }; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
           const cols = getLineWidth();
           return [
@@ -225,7 +255,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           if (!posts.length) return ["Keine Posts gefunden."];
           const hasMore = total > ps;
           const slugMap = {};
-          posts.forEach((p, i) => { slugMap[i + 1] = p.slug; });
+          posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id }; });
           pager.current = { type: "posts", page: 1, total, slugMap };
           return [
             `${total} Posts gefunden:`,
@@ -265,7 +295,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const num = parseInt(slug, 10);
       const savedSlugMap = pager.current?.slugMap || {};
       if (!isNaN(num) && savedSlugMap[num]) {
-        slug = savedSlugMap[num];
+        const entry = savedSlugMap[num];
+        slug = typeof entry === "object" ? entry.slug : entry;
       }
       try {
         const post = await fetchPostBySlug(slug);
@@ -304,7 +335,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       if (!slug) return ["Verwendung: cat <slug> oder cat <nummer>"];
       const num = parseInt(slug, 10);
       if (!isNaN(num) && pager.current?.slugMap?.[num]) {
-        slug = pager.current.slugMap[num];
+        const entry = pager.current.slugMap[num];
+        slug = typeof entry === "object" ? entry.slug : entry;
       }
       try {
         const post = await fetchPostBySlug(slug);
@@ -320,6 +352,52 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           ...lines,
           "",
         ];
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+    }
+
+    case "comments": {
+      const n = parseInt(args[0], 10);
+      if (isNaN(n)) return ["Verwendung: comments <nummer>"];
+      const entry = pager.current?.slugMap?.[n];
+      if (!entry) return [`Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`];
+      const id = typeof entry === "object" ? entry.id : null;
+      if (!id) return ["Post-ID nicht verfügbar."];
+      try {
+        const list = await fetchComments(id);
+        if (!list.length) return ["Keine Kommentare."];
+        const cols = getLineWidth();
+        const out = [""];
+        list.forEach((c, i) => {
+          const name = (c.author_name || "anonym").padEnd(16);
+          const date = formatDate(c.date);
+          out.push(`[${i + 1}] ${name} ${date}`);
+          wrapLines(
+            stripHtml(c.content.rendered).split("\n").filter(l => l.trim()),
+            cols - 4
+          ).forEach(l => out.push("    " + l));
+          out.push("");
+        });
+        return out;
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+    }
+
+    case "c":
+    case "comment": {
+      const n = parseInt(args[0], 10);
+      if (isNaN(n) || args.length < 2) return ["Verwendung: comment <nummer> <text>"];
+      const text = args.slice(1).join(" ").trim();
+      if (!text) return ["Kein Kommentartext angegeben."];
+      const entry = pager.current?.slugMap?.[n];
+      if (!entry) return [`Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`];
+      const id = typeof entry === "object" ? entry.id : null;
+      if (!id) return ["Post-ID nicht verfügbar."];
+      try {
+        await postComment(id, HX29.uid || "guest", text);
+        return ["Kommentar gespeichert."];
       } catch (e) {
         return [`Fehler: ${e.message}`];
       }
