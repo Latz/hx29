@@ -38,7 +38,7 @@ function hx29_get_or_create_uid(): string {
 // ── Enqueue React bundle ──────────────────────────────────────────
 
 function hx29_enqueue_scripts() {
-    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], '4.0.0');
+    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], '4.0.1');
 
     $asset_path = get_template_directory() . '/build/index.asset.php';
     if (!file_exists($asset_path)) {

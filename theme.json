@@ -23,7 +23,7 @@
       "fontFamilies": [
         {
           "slug": "monospace",
-          "fontFamily": "Consolas, Monaco, 'Courier New', monospace",
+          "fontFamily": "GlassTTY, 'Courier New', monospace",
           "name": "Monospace"
         }
       ]
@@ -37,7 +37,7 @@
     "typography": {
       "fontSize": "1rem",
       "lineHeight": "1.4",
-      "fontFamily": "Consolas, Monaco, 'Courier New', monospace"
+      "fontFamily": "GlassTTY, 'Courier New', monospace"
     }
   },
   "templateParts": [

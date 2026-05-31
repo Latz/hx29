@@ -1,99 +1,24 @@
 import {
   useState,
   useEffect,
-  useRef,
   useCallback,
   createRoot,
 } from "@wordpress/element";
+import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
-// Eigene Site, relativ — von functions.php via wp_localize_script geliefert.
 const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
 const WP_API = (HX29.rest_root || "/wp-json/").replace(/\/$/, "") + "/wp/v2";
 const NONCE = HX29.nonce || "";
 const SITE_NAME = HX29.site_name || "my-terminal";
 const AUTHOR = HX29.author || "Admin";
 
-// Same-Origin-Requests an die WP-REST-API; Nonce für authentifizierte Anfragen.
 function apiFetch(path) {
   return fetch(`${WP_API}${path}`, {
     headers: NONCE ? { "X-WP-Nonce": NONCE } : {},
     credentials: "same-origin",
   });
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = {
-  wrapper: {
-    width: "100%",
-    height: "100%",
-    minHeight: "100vh",
-    backgroundColor: "#0d0d0d",
-    color: "#00ff41",
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: "14px",
-    lineHeight: "1.5",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-    cursor: "text",
-  },
-  output: {
-    flex: 1,
-    overflowY: "auto",
-    padding: "16px",
-    scrollbarWidth: "none",
-  },
-  line: {
-    margin: "0",
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-  },
-  prompt: {
-    color: "#00ff41",
-  },
-  command: {
-    color: "#c0c0c0",
-  },
-  error: {
-    color: "#ff4444",
-  },
-  info: {
-    color: "#00aaff",
-  },
-  muted: {
-    color: "#555",
-  },
-  success: {
-    color: "#00ff41",
-  },
-  inputLine: {
-    display: "flex",
-    alignItems: "center",
-    margin: "0",
-    whiteSpace: "pre",
-  },
-  promptLabel: {
-    color: "#00ff41",
-    flexShrink: 0,
-  },
-  hiddenInput: {
-    position: "absolute",
-    opacity: 0,
-    pointerEvents: "none",
-    width: "1px",
-    height: "1px",
-  },
-  cursor: {
-    display: "inline-block",
-    width: "0.6em",
-    height: "1.1em",
-    backgroundColor: "#00ff41",
-    verticalAlign: "text-bottom",
-    animation: "blink 1s step-end infinite",
-  },
-};
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 function formatDate(iso) {
@@ -116,17 +41,13 @@ function stripHtml(html) {
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
 async function fetchPosts() {
-  const res = await apiFetch(
-    `/posts?per_page=20&_fields=id,slug,title,date,excerpt`
-  );
+  const res = await apiFetch(`/posts?per_page=20&_fields=id,slug,title,date,excerpt`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 async function fetchPostBySlug(slug) {
-  const res = await apiFetch(
-    `/posts?slug=${encodeURIComponent(slug)}&_fields=title,date,content,author`
-  );
+  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_fields=title,date,content,author`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const posts = await res.json();
   if (!posts.length) return null;
@@ -148,17 +69,17 @@ async function executeCommand(rawInput) {
   switch (cmd) {
     case "help":
       return [
-        { text: "Verfügbare Befehle:", style: "info" },
-        { text: "" },
-        { text: "  ls posts          – alle Blogposts anzeigen", style: "success" },
-        { text: "  ls pages          – alle Seiten anzeigen", style: "success" },
-        { text: "  cat <slug>        – Post/Seite öffnen", style: "success" },
-        { text: "  whoami            – Über den Autor", style: "success" },
-        { text: "  date              – aktuelles Datum", style: "success" },
-        { text: "  clear             – Terminal leeren", style: "success" },
-        { text: "  help              – diese Hilfe", style: "success" },
-        { text: "" },
-        { text: "Tipp: Pfeil-Tasten ↑↓ für Befehlshistorie", style: "muted" },
+        "Verfügbare Befehle:",
+        "",
+        "  ls posts          – alle Blogposts anzeigen",
+        "  ls pages          – alle Seiten anzeigen",
+        "  cat <slug>        – Post/Seite öffnen",
+        "  whoami            – Über den Autor",
+        "  date              – aktuelles Datum",
+        "  clear             – Terminal leeren",
+        "  help              – diese Hilfe",
+        "",
+        "Tipp: Pfeil-Tasten ↑↓ für Befehlshistorie",
       ];
 
     case "ls": {
@@ -166,68 +87,62 @@ async function executeCommand(rawInput) {
       if (!target || target === "posts") {
         try {
           const posts = await fetchPosts();
-          if (!posts.length) return [{ text: "Keine Posts gefunden.", style: "muted" }];
+          if (!posts.length) return ["Keine Posts gefunden."];
           return [
-            { text: `${posts.length} Posts gefunden:`, style: "info" },
-            { text: "" },
-            ...posts.map((p) => ({
-              text: `  ${p.slug.padEnd(35)} ${formatDate(p.date)}  ${stripHtml(p.title.rendered)}`,
-              style: "success",
-            })),
+            `${posts.length} Posts gefunden:`,
+            "",
+            ...posts.map((p) => `  ${p.slug.padEnd(35)} ${formatDate(p.date)}  ${stripHtml(p.title.rendered)}`),
           ];
         } catch (e) {
-          return [{ text: `Fehler: ${e.message}`, style: "error" }];
+          return [`Fehler: ${e.message}`];
         }
       }
       if (target === "pages") {
         try {
           const pages = await fetchPages();
-          if (!pages.length) return [{ text: "Keine Seiten gefunden.", style: "muted" }];
+          if (!pages.length) return ["Keine Seiten gefunden."];
           return [
-            { text: `${pages.length} Seiten:`, style: "info" },
-            { text: "" },
-            ...pages.map((p) => ({
-              text: `  ${p.slug.padEnd(35)} ${stripHtml(p.title.rendered)}`,
-              style: "success",
-            })),
+            `${pages.length} Seiten:`,
+            "",
+            ...pages.map((p) => `  ${p.slug.padEnd(35)} ${stripHtml(p.title.rendered)}`),
           ];
         } catch (e) {
-          return [{ text: `Fehler: ${e.message}`, style: "error" }];
+          return [`Fehler: ${e.message}`];
         }
       }
-      return [{ text: `ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`, style: "error" }];
+      return [`ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`];
     }
 
     case "cat": {
       const slug = args[0];
-      if (!slug) return [{ text: "Verwendung: cat <slug>", style: "error" }];
+      if (!slug) return ["Verwendung: cat <slug>"];
       try {
         const post = await fetchPostBySlug(slug);
-        if (!post) return [{ text: `cat: ${slug}: Kein Post gefunden`, style: "error" }];
+        if (!post) return [`cat: ${slug}: Kein Post gefunden`];
         const body = stripHtml(post.content.rendered);
         const lines = body.split("\n").filter((l) => l.trim());
         return [
-          { text: "─".repeat(60), style: "muted" },
-          { text: stripHtml(post.title.rendered), style: "info" },
-          { text: `Veröffentlicht: ${formatDate(post.date)}`, style: "muted" },
-          { text: "─".repeat(60), style: "muted" },
-          { text: "" },
-          ...lines.map((l) => ({ text: l, style: "command" })),
-          { text: "" },
+          "─".repeat(60),
+          stripHtml(post.title.rendered),
+          `Veröffentlicht: ${formatDate(post.date)}`,
+          "─".repeat(60),
+          "",
+          ...lines,
+          "",
         ];
       } catch (e) {
-        return [{ text: `Fehler: ${e.message}`, style: "error" }];
+        return [`Fehler: ${e.message}`];
       }
     }
 
     case "whoami":
       return [
-        { text: AUTHOR, style: "success" },
-        { text: `uid=1000(${AUTHOR}) gid=1000(writers) groups=1000(writers),4(adm)`, style: "muted" },
+        AUTHOR,
+        `uid=1000(${AUTHOR}) gid=1000(writers) groups=1000(writers),4(adm)`,
       ];
 
     case "date":
-      return [{ text: new Date().toString(), style: "success" }];
+      return [new Date().toString()];
 
     case "clear":
       return "__CLEAR__";
@@ -236,147 +151,97 @@ async function executeCommand(rawInput) {
       return [];
 
     default:
-      return [
-        { text: `${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`, style: "error" },
-      ];
+      return [`${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`];
   }
 }
 
-// ─── Blink-Keyframe ───────────────────────────────────────────────────────────
-if (typeof document !== "undefined" && !document.getElementById("vt-blink")) {
-  const s = document.createElement("style");
-  s.id = "vt-blink";
-  s.textContent = "@keyframes blink { 50% { opacity: 0; } }";
-  document.head.appendChild(s);
+function scrollTerminal() {
+  const el = document.querySelector(".react-terminal");
+  if (el) el.scrollTop = el.scrollHeight;
 }
-
-const PROMPT = `guest@${SITE_NAME}:~$ `;
 
 // ─── Haupt-Komponente ─────────────────────────────────────────────────────────
 function WPTerminal() {
-  const [lines, setLines] = useState([
-    { text: `Willkommen auf ${SITE_NAME}`, style: "success" },
-    { text: `Tippe 'help' für verfügbare Befehle.`, style: "muted" },
-    { text: "" },
+  const [terminalLines, setTerminalLines] = useState([
+    <TerminalOutput key="welcome">{`Willkommen auf ${SITE_NAME}`}</TerminalOutput>,
+    <TerminalOutput key="hint">Tippe 'help' für verfügbare Befehle.</TerminalOutput>,
   ]);
-  const [input, setInput] = useState("");
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [loading, setLoading] = useState(false);
-
-  const outputRef = useRef(null);
-  const inputRef = useRef(null);
-  const wrapperRef = useRef(null);
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
-    if (!wrapperRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const width = entry.contentRect.width;
-        const size = Math.max(11, Math.min(16, Math.floor(width / 60)));
-        wrapperRef.current.style.fontSize = `${size}px`;
-      }
-    });
-    observer.observe(wrapperRef.current);
-    return () => observer.disconnect();
-  }, []);
+    scrollTerminal();
+  }, [terminalLines]);
 
-  useEffect(() => {
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  }, [lines, input, loading]);
-
-  const handleWrapperClick = useCallback(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  const addLines = useCallback((newLines) => {
-    setLines((prev) => [...prev, ...newLines]);
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
+  const handleInput = useCallback(async (input) => {
     const raw = input.trim();
-    setInput("");
-    setHistoryIndex(-1);
 
-    setLines((prev) => [
+    setTerminalLines((prev) => [
       ...prev,
-      { text: `${PROMPT}${raw}`, style: "prompt" },
+      <TerminalInput key={`in-${Date.now()}`}>{raw}</TerminalInput>,
     ]);
 
     if (!raw) return;
 
-    setHistory((prev) => [raw, ...prev.slice(0, 49)]);
-
-    setLoading(true);
     const result = await executeCommand(raw);
-    setLoading(false);
 
     if (result === "__CLEAR__") {
-      setLines([]);
+      setTerminalLines([]);
       return;
     }
-    addLines(result);
-  }, [input, addLines]);
 
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        handleSubmit();
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setHistoryIndex((prev) => {
-          const next = Math.min(prev + 1, history.length - 1);
-          setInput(history[next] ?? "");
-          return next;
-        });
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setHistoryIndex((prev) => {
-          const next = Math.max(prev - 1, -1);
-          setInput(next === -1 ? "" : history[next] ?? "");
-          return next;
-        });
+    const charDelay = () => Math.random() < 0.03 ? 15 + Math.random() * 20 : 0;
+    const LINE_DELAY = 8;
+
+    setPrinting(true);
+    for (let i = 0; i < result.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, LINE_DELAY));
+      const text = result[i];
+      const key = `out-${Date.now()}-${i}`;
+
+      if (!text) {
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{" "}</TerminalOutput>]);
+        continue;
       }
-    },
-    [handleSubmit, history]
-  );
+
+      await new Promise((resolve) => {
+        let charIndex = 0;
+        const tick = () => {
+          charIndex++;
+          const partial = text.slice(0, charIndex);
+          setTerminalLines((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last?.key === key) {
+              next[next.length - 1] = <TerminalOutput key={key}>{partial}</TerminalOutput>;
+            } else {
+              next.push(<TerminalOutput key={key}>{partial}</TerminalOutput>);
+            }
+            return next;
+          });
+          if (charIndex < text.length) {
+            setTimeout(tick, charDelay());
+          } else {
+            resolve();
+          }
+        };
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>]);
+        setTimeout(tick, charDelay());
+      });
+    }
+    setPrinting(false);
+  }, []);
 
   return (
-    <div ref={wrapperRef} style={styles.wrapper} onClick={handleWrapperClick}>
-      <div ref={outputRef} style={styles.output}>
-        {lines.map((line, i) => (
-          <div key={i} style={{ ...styles.line, ...styles[line.style || "command"] }}>
-            {line.text}
-          </div>
-        ))}
-
-        {loading ? (
-          <div style={{ ...styles.line, ...styles.muted }}>{PROMPT}</div>
-        ) : (
-          <div style={styles.inputLine}>
-            <span style={styles.promptLabel}>{PROMPT}</span>
-            <span style={{ color: "#c0c0c0" }}>{input}</span>
-            <span style={styles.cursor} />
-          </div>
-        )}
-      </div>
-
-      <input
-        ref={inputRef}
-        style={styles.hiddenInput}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        autoFocus
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        aria-label="Terminal-Eingabe"
-      />
-    </div>
+    <Terminal
+      name=""
+      prompt={`guest@${SITE_NAME}:~$`}
+      colorMode={ColorMode.Dark}
+      height="100%"
+      onInput={printing ? null : handleInput}
+      TopButtonsPanel={() => null}
+    >
+      {terminalLines}
+    </Terminal>
   );
 }
 

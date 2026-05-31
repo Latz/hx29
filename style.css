@@ -7,14 +7,23 @@ License: GNU General Public License v2 or later
 Text Domain: hx29
 */
 
+/* ── VT323 self-hosted font ──────────────────────────────────────── */
+@font-face {
+    font-family: 'GlassTTY';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('assets/fonts/glasstty.ttf') format('truetype');
+}
+
 /* ── Theme variables (default: VT100 green) ─────────────────────── */
 :root {
     --bg:     #000000;
     --fg:     #00ff00;
     --dim:    #008800;
     --accent: #00ff00;
-    --font:   'Courier New', Courier, monospace;
-    --fsize:  14px;
+    --font:   'GlassTTY', 'Courier New', Courier, monospace;
+    --fsize:  22px;
 }
 
 [data-theme="b"] {
@@ -87,6 +96,40 @@ html, body {
 #hx29-root > * {
     flex: 1;
     min-height: 0;
+}
+
+/* ── react-terminal-ui overrides ─────────────────────────────────── */
+.react-terminal-wrapper,
+.react-terminal {
+    background: var(--bg) !important;
+    color: var(--fg) !important;
+}
+
+.react-terminal-line {
+    color: var(--fg) !important;
+    font-family: var(--font) !important;
+    font-size: var(--fsize) !important;
+}
+
+.react-terminal-wrapper {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 45px 45px 0 !important;
+    border-radius: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.react-terminal {
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow-y: scroll !important;
+    scrollbar-width: none !important;
+}
+
+.react-terminal::-webkit-scrollbar {
+    display: none !important;
 }
 
 /* ── Terminal container (legacy / no-JS fallback) ────────────────── */
