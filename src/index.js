@@ -73,10 +73,11 @@ const DATE_W  = 12;
 const NUM_W   = 4;
 const TITLE_W = LINE_W - DATE_W - NUM_W - 2;
 
-function fmtLine(n, title, date) {
+function fmtLine(n, title, date, cols) {
+  const titleW = (cols || LINE_W) - DATE_W - NUM_W - 2;
   const num = String(n).padStart(NUM_W - 1) + ' ';
-  const t = title.length > TITLE_W ? title.slice(0, TITLE_W - 1) + '…' : title;
-  return num + t.padEnd(TITLE_W) + '  ' + date;
+  const t = title.length > titleW ? title.slice(0, titleW - 1) + '…' : title;
+  return num + t.padEnd(titleW) + '  ' + date;
 }
 
 function wordWrap(text, width) {
@@ -130,13 +131,20 @@ async function executeCommand(rawInput, pager) {
       const { type, page, total, slugMap } = pager.current;
 
       if (type === "article") {
-        const { lines, offset } = pager.current;
+        const { lines, offset, slugMap: articleSlugMap } = pager.current;
         const pageLines = getPageLines();
         const slice = lines.slice(offset, offset + pageLines);
         const nextOffset = offset + pageLines;
         const hasMore = nextOffset < lines.length;
-        pager.current = hasMore ? { type: "article", lines, offset: nextOffset } : null;
-        return [...slice, ...(hasMore ? ["", "[m]ore"] : [""])];
+        pager.current = hasMore
+          ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap }
+          : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap };
+        let more = [""];
+        if (hasMore) {
+          const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + l.length, 0);
+          more = ["", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
+        }
+        return [...slice, ...more];
       }
       const nextPage = page + 1;
       const offset = page * PAGE_SIZE;
@@ -147,8 +155,9 @@ async function executeCommand(rawInput, pager) {
           const hasMore = shown < (total ?? t);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          const cols = getLineWidth();
           return [
-            ...posts.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date))),
+            ...posts.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -158,8 +167,9 @@ async function executeCommand(rawInput, pager) {
           const hasMore = shown < (total ?? t);
           pages.forEach((p, i) => { slugMap[offset + i + 1] = p.slug; });
           pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          const cols = getLineWidth();
           return [
-            ...pages.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), '')),
+            ...pages.map((p, i) => fmtLine(offset + i + 1, stripHtml(p.title.rendered), '', cols)),
             ...(hasMore ? ["", "[m]ore"] : [""]),
           ];
         }
@@ -171,6 +181,7 @@ async function executeCommand(rawInput, pager) {
 
     case "ls": {
       pager.current = null;
+      const cols = getLineWidth();
       const target = args[0]?.toLowerCase();
       if (!target || target === "posts") {
         try {
@@ -179,12 +190,11 @@ async function executeCommand(rawInput, pager) {
           const hasMore = total > PAGE_SIZE;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = p.slug; });
-          if (hasMore) pager.current = { type: "posts", page: 1, total, slugMap };
-          else pager.current = { type: "posts", page: 1, total, slugMap };
+          pager.current = { type: "posts", page: 1, total, slugMap };
           return [
             `${total} Posts gefunden:`,
             "",
-            ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date))),
+            ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -198,12 +208,11 @@ async function executeCommand(rawInput, pager) {
           const hasMore = total > PAGE_SIZE;
           const slugMap = {};
           pages.forEach((p, i) => { slugMap[i + 1] = p.slug; });
-          if (hasMore) pager.current = { type: "pages", page: 1, total, slugMap };
-          else pager.current = { type: "pages", page: 1, total, slugMap };
+          pager.current = { type: "pages", page: 1, total, slugMap };
           return [
             `${total} Seiten:`,
             "",
-            ...pages.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), '')),
+            ...pages.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), '', cols)),
             ...(hasMore ? ["", "[m]ore"] : []),
           ];
         } catch (e) {
@@ -218,19 +227,21 @@ async function executeCommand(rawInput, pager) {
       let slug = args[0];
       if (!slug) return ["Verwendung: read <nummer> oder r <nummer>"];
       const num = parseInt(slug, 10);
-      if (!isNaN(num) && pager.current?.slugMap?.[num]) {
-        slug = pager.current.slugMap[num];
+      const savedSlugMap = pager.current?.slugMap || {};
+      if (!isNaN(num) && savedSlugMap[num]) {
+        slug = savedSlugMap[num];
       }
       try {
         const post = await fetchPostBySlug(slug);
         if (!post) return [`read: ${slug}: Kein Post gefunden`];
+        const cols = getLineWidth();
         const body = stripHtml(post.content.rendered);
-        const bodyLines = wrapLines(body.split("\n").filter((l) => l.trim()), LINE_W);
+        const bodyLines = wrapLines(body.split("\n").filter((l) => l.trim()), cols);
         const allLines = [
-          "─".repeat(LINE_W),
-          ...wordWrap(stripHtml(post.title.rendered), LINE_W),
+          "─".repeat(cols),
+          ...wordWrap(stripHtml(post.title.rendered), cols),
           `Veröffentlicht: ${formatDate(post.date)}`,
-          "─".repeat(LINE_W),
+          "─".repeat(cols),
           "",
           ...bodyLines,
           "",
@@ -239,9 +250,14 @@ async function executeCommand(rawInput, pager) {
         const hasMore = allLines.length > pageLines;
         const slice = allLines.slice(0, pageLines);
         pager.current = hasMore
-          ? { ...(pager.current || {}), type: "article", lines: allLines, offset: pageLines }
-          : pager.current;
-        return [...slice, ...(hasMore ? ["", "[m]ore"] : [])];
+          ? { type: "article", lines: allLines, offset: pageLines, slugMap: savedSlugMap }
+          : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap };
+        let more = [];
+        if (hasMore) {
+          const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + l.length, 0);
+          more = ["", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
+        }
+        return [...slice, ...more];
       } catch (e) {
         return [`Fehler: ${e.message}`];
       }
@@ -303,6 +319,18 @@ function getPageLines() {
   if (!el) return 20;
   const lineH = parseFloat(getComputedStyle(el).fontSize) * 1.4;
   return Math.max(5, Math.floor(el.clientHeight / lineH) - 3);
+}
+
+function getLineWidth() {
+  const el = document.querySelector(".react-terminal");
+  if (!el) return LINE_W;
+  const span = document.createElement("span");
+  span.style.cssText = "position:absolute;visibility:hidden;font-family:var(--font,monospace);font-size:var(--fsize,22px);white-space:pre";
+  span.textContent = "M";
+  el.appendChild(span);
+  const charW = span.getBoundingClientRect().width;
+  el.removeChild(span);
+  return charW > 0 ? Math.floor(el.clientWidth / charW) : LINE_W;
 }
 
 // ─── Haupt-Komponente ─────────────────────────────────────────────────────────
