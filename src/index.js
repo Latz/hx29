@@ -40,7 +40,7 @@ function stripHtml(html) {
 }
 
 // ─── User config (cookie) ─────────────────────────────────────────────────────
-const CONFIG_DEFAULTS = { font: 22, posts: 10 };
+const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: 'a' };
 
 function loadConfig() {
   const c = document.cookie.split('; ').find(r => r.startsWith('hx29_config='));
@@ -73,6 +73,11 @@ function pushHistory(historyRef, cmd) {
 
 function applyConfig(cfg) {
   document.documentElement.style.setProperty('--fsize', cfg.font + 'px');
+  if (cfg.theme && cfg.theme !== 'a') {
+    document.documentElement.setAttribute('data-theme', cfg.theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
 }
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
@@ -590,8 +595,9 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           "",
           `  --font   ${cfg.font}px`,
           `  --posts  ${cfg.posts}`,
+          `  --theme  ${cfg.theme}  (a=grün, b=dunkel, c=lila, d=hell)`,
           "",
-          "Verwendung: config --font <px> --posts <n>",
+          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d>",
         ];
       }
       let changed = false;
@@ -602,6 +608,9 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         } else if (args[i] === '--posts' && args[i + 1]) {
           const v = parseInt(args[++i], 10);
           if (v > 0) { cfg.posts = v; changed = true; }
+        } else if (args[i] === '--theme' && args[i + 1]) {
+          const v = args[++i];
+          if (['a', 'b', 'c', 'd'].includes(v)) { cfg.theme = v; changed = true; }
         }
       }
       if (changed) {
@@ -610,7 +619,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         applyConfig(cfg);
         return ["Konfiguration gespeichert."];
       }
-      return ["Unbekannte Option. Versuche: config --font 22 --posts 10"];
+      return ["Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a"];
     }
 
     case "clear":
