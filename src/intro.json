@@ -55,5 +55,29 @@
     { "text": "[SYS_READY] Execution stack cleared. Intercepting I/O streams.",      "delay": 500 },
     { "text": "",                                  "delay": 300 },
     { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+  ],
+  [
+    { "text": "WELCOME TO ROBCO INDUSTRIES (TM) TERMLINK", "delay": 600 },
+    { "text": "",                                          "delay": 200 },
+    { "text": "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",      "delay": 400 },
+    { "text": "- PRIVILEGE 4 -",                           "delay": 500 },
+    { "text": "",                                          "delay": 300 },
+    { "text": "SYS VERSION 11.4.2",                        "delay": 300 },
+    { "text": "RESERVED MEMORY: 128KB",                    "delay": 250 },
+    { "text": "VIRTUAL CORE READY.",                       "delay": 600 },
+    { "text": "",                                          "delay": 400 },
+    { "text": "> SET TERMINAL/ANNOUNCE",                   "delay": 500 },
+    { "text": "> INITIALIZING HACK-DEFENSE PROTOCOL...",   "delay": 900 },
+    { "text": "> ENTER PASSWORD: [ ********* ]",           "delay": 1200 },
+    { "text": "",                                          "delay": 400 },
+    { "text": "================================================================", "delay": 300 },
+    { "text": "A C C E S S   G R A N T E D",              "delay": 500 },
+    { "text": "================================================================", "delay": 600 },
+    { "text": "",                                          "delay": 400 },
+    { "text": "[File: Vault-111 Security Logs]",           "delay": 300 },
+    { "text": "[File: Cryo-Pod Telemetry]",                "delay": 300 },
+    { "text": "[System: Cycle Air Purifiers]",             "delay": 500 },
+    { "text": "",                                          "delay": 300 },
+    { "text": "Tippe 'help' für verfügbare Befehle.",      "delay": 0 }
   ]
 ]

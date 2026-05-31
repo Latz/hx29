@@ -7,6 +7,7 @@ import {
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getIntro } from "./intros";
+import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
 const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
@@ -970,6 +971,9 @@ function WPTerminal() {
   const configRef = useRef(loadConfig());
   const historyRef = useRef(loadHistory());
   const historyPosRef = useRef(-1);
+  const timerRef = useRef(null);
+  const introPlayingRef = useRef(true);
+  const printingRef = useRef(false);
   const [introPlaying, setIntroPlaying] = useState(true);
 
   useEffect(() => { applyConfig(configRef.current); }, []);
@@ -987,12 +991,29 @@ function WPTerminal() {
         }
         if (i === INTRO.length - 1) {
           setIntroPlaying(false);
+          introPlayingRef.current = false;
           setTimeout(() => document.querySelector('.terminal-hidden-input')?.focus(), 50);
         }
       }, t);
     });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const schedule = () => {
+      const delay = 90000 + Math.random() * 60000;
+      return setTimeout(() => {
+        if (!introPlayingRef.current && !printingRef.current) {
+          const msg = glitches[Math.floor(Math.random() * glitches.length)];
+          setTerminalLines((prev) => [...prev, <TerminalOutput key={`glitch-${Date.now()}`}>{msg}</TerminalOutput>]);
+        }
+        timerRef.current = schedule();
+      }, delay);
+    };
+    timerRef.current = schedule();
+    return () => clearTimeout(timerRef.current);
+  }, []);
+
   useEffect(() => {
     scrollTerminal();
   }, [terminalLines]);
@@ -1049,7 +1070,7 @@ function WPTerminal() {
   }, [printing]);
 
   const handleInput = useCallback(async (input) => {
-    if (introPlaying) return;
+    if (introPlayingRef.current) return;
     const raw = input.trim();
 
     setTerminalLines((prev) => [
@@ -1073,6 +1094,7 @@ function WPTerminal() {
     const LINE_DELAY = 8;
 
     setPrinting(true);
+    printingRef.current = true;
     for (let i = 0; i < result.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, LINE_DELAY));
       const text = result[i];
@@ -1122,6 +1144,7 @@ function WPTerminal() {
       });
     }
     setPrinting(false);
+    printingRef.current = false;
   }, []);
 
   return (
