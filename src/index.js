@@ -531,6 +531,22 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const nextPage = page + 1;
       const offset = page * ps;
       try {
+        if (type === "search") {
+          const { searchTerm } = pager.current;
+          const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const t = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+          const posts = await res.json();
+          const shown = nextPage * ps;
+          const hasMore = shown < (total ?? t);
+          posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, searchTerm } : null;
+          const cols = getLineWidth();
+          return [
+            ...posts.map((p, i) => fmtLineEl(offset + i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+            ...(hasMore ? ["", `[m]ore  (${(total ?? t) - shown} weitere)`] : [""]),
+          ];
+        }
         if (type === "posts") {
           const ord = pager.current.order || 'desc';
           const { posts, total: t } = await fetchPosts(nextPage, ps, ord);
@@ -693,19 +709,21 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const term = args.join(" ");
       const ps = configRef.current.posts;
       try {
-        const res = await apiFetch(`/posts?search=${encodeURIComponent(term)}&per_page=${ps}&_fields=id,slug,title,date`);
+        const res = await apiFetch(`/posts?search=${encodeURIComponent(term)}&per_page=${ps}&_fields=id,slug,title,date,link`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
         const posts = await res.json();
         if (!posts.length) return [`Keine Ergebnisse für "${term}".`];
+        const hasMore = total > ps;
         const slugMap = {};
-        posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id }; });
-        pager.current = { type: "posts", page: 1, total, slugMap };
+        posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
+        pager.current = hasMore ? { type: "search", page: 1, total, slugMap, searchTerm: term } : null;
         const cols = getLineWidth();
         return [
           `${total} Treffer für "${term}":`,
           "",
-          ...posts.map((p, i) => fmtLine(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+          ...posts.map((p, i) => fmtLineEl(i + 1, stripHtml(p.title.rendered), formatDate(p.date), cols)),
+          ...(hasMore ? ["", `[m]ore  (${total - ps} weitere)`] : []),
         ];
       } catch (e) {
         return [`Fehler: ${e.message}`];
