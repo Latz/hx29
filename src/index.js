@@ -30,24 +30,20 @@ function formatDate(iso) {
 }
 
 function stripHtml(html) {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .trim();
+  const txt = document.createElement("textarea");
+  txt.innerHTML = html.replace(/<[^>]*>/g, "");
+  return txt.value.trim();
 }
 
 // Parse HTML body into an array of lines (strings or React elements),
 // with <a> links rendered as underlined text + footnote number.
-// Returns { lines: [...], footnotes: ["[1] url", ...] }
+// Returns { lines: [...], footerLines: [...], footnotes: [url, ...] }
 function parseBodyWithLinks(html, width) {
   const footnotes = [];
   const urlIndex = {};
 
-  // Replace <a href="url">text</a> with a placeholder __LINK_n__text__END__
-  const withPlaceholders = html.replace(
+  // Step 1: replace <a> tags with "text «n»" in plain HTML so it word-wraps naturally
+  const marked = html.replace(
     /<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
     (_, url, text) => {
       const t = stripHtml(text);
@@ -55,30 +51,31 @@ function parseBodyWithLinks(html, width) {
         footnotes.push(url);
         urlIndex[url] = footnotes.length;
       }
-      return `\x00LINK${urlIndex[url]}\x01${t}\x02`;
+      // Use rare Unicode brackets as markers that survive stripHtml & word-wrap
+      return `«${t}»​${urlIndex[url]}‌`;
     }
   );
 
-  const plainText = stripHtml(withPlaceholders);
-  const rawLines = plainText.split("\n").filter(l => l.trim());
+  // Step 2: strip remaining HTML tags, decode entities
+  const plain = stripHtml(marked);
+  const rawLines = plain.split("\n").filter(l => l.trim());
   const wrapped = wrapLines(rawLines, width);
 
-  // Convert each wrapped line to a React element if it contains link markers
-  const linkRe = /\x00LINK(\d+)\x01([^\x02]*)\x02/g;
+  // Step 3: convert marker sequences to React elements with underline
+  // Marker format: «text»​n‌  (U+00AB text U+00BB U+200B digit(s) U+200C)
+  const markerRe = /«([^»]*)»​(\d+)‌/g;
   const lines = wrapped.map((line, li) => {
-    if (!line.includes('\x00')) return line;
+    if (!line.includes('«')) return line;
     const parts = [];
     let last = 0;
     let m;
-    linkRe.lastIndex = 0;
-    while ((m = linkRe.exec(line)) !== null) {
+    markerRe.lastIndex = 0;
+    while ((m = markerRe.exec(line)) !== null) {
       if (m.index > last) parts.push(line.slice(last, m.index));
-      const num = m[1];
-      const txt = m[2];
       parts.push(
-        <span key={`lnk-${li}-${num}`} style={{textDecoration: "underline"}}>{txt}</span>
+        <span key={`lnk-${li}-${m[2]}`} style={{textDecoration: "underline"}}>{m[1]}</span>
       );
-      parts.push(` [${num}]`);
+      parts.push(` [${m[2]}]`);
       last = m.index + m[0].length;
     }
     if (last < line.length) parts.push(line.slice(last));
@@ -86,7 +83,11 @@ function parseBodyWithLinks(html, width) {
   });
 
   const footerLines = footnotes.length
-    ? ["", "─".repeat(Math.min(width, 40)), ...footnotes.map((u, i) => `[${i + 1}] ${u}`)]
+    ? (() => {
+        const entries = footnotes.map((u, i) => `[${i + 1}] ${u}`);
+        const sepW = Math.min(Math.max(...entries.map(e => e.length)), width);
+        return ["", "-".repeat(sepW), ...entries];
+      })()
     : [];
 
   return { lines, footerLines, footnotes };
@@ -193,14 +194,10 @@ const NUM_W   = 4;
 const TITLE_W = LINE_W - DATE_W - NUM_W - 2;
 
 function fmtLineEl(n, title, date, cols) {
-  const base = fmtLine(n, title, date, cols);
-  return (
-    <span key={n}>
-      {base}
-      {"  "}
-      <span style={{textDecoration:"underline"}}>{`link [${n}]`}</span>
-    </span>
-  );
+  return {
+    __animText: fmtLine(n, title, date, cols) + "  ",
+    __suffix: <span style={{textDecoration:"underline"}}>{`link [${n}]`}</span>,
+  };
 }
 
 function fmtLine(n, title, date, cols) {
@@ -388,15 +385,27 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         slug = typeof entry === "object" ? entry.slug : entry;
       }
       try {
-        const post = await fetchPostBySlug(slug);
+        let post = isNaN(num) ? await fetchPostBySlug(slug) : null;
+        if (!post && !isNaN(num)) {
+          // No slugMap entry — fetch by ordinal position
+          const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_fields=id,slug,title,date,content,link`);
+          if (res.ok) {
+            const posts = await res.json();
+            if (posts.length) post = posts[0];
+          }
+        }
+        if (!post && isNaN(num)) post = await fetchPostBySlug(slug);
         if (!post) return [`read: ${slug}: Kein Post gefunden`];
         const cols = getLineWidth();
         const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
+        const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
+        const dateLine = `Veröffentlicht: ${formatDate(post.date)}`;
+        const headerW = Math.max(...titleLines.map(l => l.length), dateLine.length);
         const allLines = [
-          "─".repeat(cols),
-          ...wordWrap(stripHtml(post.title.rendered), cols),
-          `Veröffentlicht: ${formatDate(post.date)}`,
-          "─".repeat(cols),
+          "-".repeat(headerW),
+          ...titleLines,
+          dateLine,
+          "-".repeat(headerW),
           "",
           ...bodyLines,
           ...footerLines,
@@ -848,29 +857,34 @@ function WPTerminal() {
       }
 
       // React elements (e.g. highlighted grep lines) — render instantly
-      if (typeof text !== "string") {
+      if (typeof text !== "string" && !text?.__animText) {
         setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{text}</TerminalOutput>]);
         continue;
       }
+
+      // Animated text with optional React suffix (e.g. fmtLineEl underlined link)
+      const animText = text?.__animText ?? text;
+      const suffix = text?.__suffix ?? null;
 
       await new Promise((resolve) => {
         let charIndex = 0;
         const tick = () => {
           charIndex++;
           // skip over whitespace runs instantly
-          while (charIndex < text.length && text[charIndex] === ' ') charIndex++;
-          const partial = text.slice(0, charIndex);
+          while (charIndex < animText.length && animText[charIndex] === ' ') charIndex++;
+          const partial = animText.slice(0, charIndex);
+          const isDone = charIndex >= animText.length;
           setTerminalLines((prev) => {
             const next = [...prev];
             const last = next[next.length - 1];
             if (last?.key === key) {
-              next[next.length - 1] = <TerminalOutput key={key}>{partial}</TerminalOutput>;
+              next[next.length - 1] = <TerminalOutput key={key}>{isDone && suffix ? <>{partial}{suffix}</> : partial}</TerminalOutput>;
             } else {
               next.push(<TerminalOutput key={key}>{partial}</TerminalOutput>);
             }
             return next;
           });
-          if (charIndex < text.length) {
+          if (charIndex < animText.length) {
             setTimeout(tick, charDelay());
           } else {
             resolve();
