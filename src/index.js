@@ -273,15 +273,13 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "  ls posts [asc|desc]  – alle Blogposts anzeigen",
         "  ls pages          – alle Seiten anzeigen",
         "  read <n>, r <n>   – Artikel nach Nummer lesen",
-        "  cat <slug>        – Post/Seite öffnen",
         "  link <n>, l <n>   – Post im Browser öffnen",
         "  search <…>        – Posts durchsuchen",
         "  grep <…>          – Volltext in Posts durchsuchen",
         "  comments <n>      – Kommentare zu Beitrag n anzeigen",
         "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
-        "  about             – über dieses Terminal",
         "  history           – Befehlshistorie anzeigen",
-        "  status            – Systemstatus prüfen",
+
         "  config            – Einstellungen anzeigen / ändern",
         "  clear             – Terminal leeren",
         "  help              – diese Hilfe",
@@ -461,32 +459,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       }
     }
 
-    case "cat": {
-      let slug = args[0];
-      if (!slug) return ["Verwendung: cat <slug> oder cat <nummer>"];
-      const num = parseInt(slug, 10);
-      if (!isNaN(num) && pager.current?.slugMap?.[num]) {
-        const entry = pager.current.slugMap[num];
-        slug = typeof entry === "object" ? entry.slug : entry;
-      }
-      try {
-        const post = await fetchPostBySlug(slug);
-        if (!post) return [`cat: ${slug}: Kein Post gefunden`];
-        const body = stripHtml(post.content.rendered);
-        const lines = body.split("\n").filter((l) => l.trim());
-        return [
-          "─".repeat(60),
-          stripHtml(post.title.rendered),
-          `Veröffentlicht: ${formatDate(post.date)}`,
-          "─".repeat(60),
-          "",
-          ...lines,
-          "",
-        ];
-      } catch (e) {
-        return [`Fehler: ${e.message}`];
-      }
-    }
+    case "cat":
+      return executeCommand('read ' + args.join(' '), pager, configRef, historyRef);
 
     case "l":
     case "link": {
@@ -662,60 +636,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       ];
     }
 
-    case "status": {
-      const lines = ["Systemstatus...", ""];
-      const check = async (label, fn) => {
-        try {
-          const result = await fn();
-          lines.push(`  [✓] ${label}${result ? ": " + result : ""}`);
-        } catch (e) {
-          lines.push(`  [✗] ${label}: ${e.message}`);
-        }
-      };
-      await check("WordPress REST API", async () => {
-        const res = await fetch(HX29.rest_root || "/wp-json/");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return "erreichbar";
-      });
-      await check("Authentifizierung", async () => {
-        if (!NONCE) throw new Error("kein Nonce");
-        return "Nonce vorhanden";
-      });
-      await check("Beiträge", async () => {
-        const { total } = await fetchPosts(1, 1);
-        return `${total} veröffentlicht`;
-      });
-      await check("Seiten", async () => {
-        const { total } = await fetchPages(1, 1);
-        return `${total} veröffentlicht`;
-      });
-      await check("Schrift", async () => {
-        const fonts = document.fonts ? [...document.fonts].map(f => f.family) : [];
-        if (fonts.some(f => f.includes("GlassTTY"))) return "Glass TTY VT220 geladen";
-        throw new Error("nicht geladen");
-      });
-      lines.push("", "Alle Systeme betriebsbereit.");
-      return lines;
-    }
 
-    case "about":
-      return [
-        `${SITE_NAME} — HX29 Terminal`,
-        "═".repeat(40),
-        "",
-        "Ein WordPress-Theme mit terminalbasierter",
-        "Oberfläche auf Basis von React (wp-element).",
-        "",
-        "Befehle:",
-        "  ls posts / ls pages   Inhalte auflisten",
-        "  read <n> / r <n>      Artikel lesen",
-        "  cat <slug>            Artikel per Slug öffnen",
-        "  config                Einstellungen",
-        "  clear                 Terminal leeren",
-        "",
-        "Schrift: Glass TTY VT220 (Public Domain)",
-        "Farben:  VT100 Phosphorgrün",
-      ];
 
     case "config": {
       const cfg = { ...configRef.current };
