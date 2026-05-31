@@ -79,6 +79,28 @@ function fmtLine(n, title, date) {
   return num + t.padEnd(TITLE_W) + '  ' + date;
 }
 
+function wordWrap(text, width) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    if (!current) {
+      current = word;
+    } else if (current.length + 1 + word.length <= width) {
+      current += ' ' + word;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function wrapLines(rawLines, width) {
+  return rawLines.flatMap((l) => l.length <= width ? [l] : wordWrap(l, width));
+}
+
 // ─── Command-Handler ──────────────────────────────────────────────────────────
 async function executeCommand(rawInput, pager) {
   const parts = rawInput.trim().split(/\s+/);
@@ -92,7 +114,8 @@ async function executeCommand(rawInput, pager) {
         "",
         "  ls posts          – alle Blogposts anzeigen",
         "  ls pages          – alle Seiten anzeigen",
-        "  m                 – weitere Einträge laden",
+        "  m                 – weitere Einträge / nächste Seite",
+        "  read <n>, r <n>   – Artikel nach Nummer lesen",
         "  cat <slug>        – Post/Seite öffnen",
         "  whoami            – Über den Autor",
         "  date              – aktuelles Datum",
@@ -105,6 +128,16 @@ async function executeCommand(rawInput, pager) {
     case "m": {
       if (!pager.current) return ["Kein aktiver Pager."];
       const { type, page, total, slugMap } = pager.current;
+
+      if (type === "article") {
+        const { lines, offset } = pager.current;
+        const pageLines = getPageLines();
+        const slice = lines.slice(offset, offset + pageLines);
+        const nextOffset = offset + pageLines;
+        const hasMore = nextOffset < lines.length;
+        pager.current = hasMore ? { type: "article", lines, offset: nextOffset } : null;
+        return [...slice, ...(hasMore ? ["", "[m]ore"] : [""])];
+      }
       const nextPage = page + 1;
       const offset = page * PAGE_SIZE;
       try {
@@ -180,6 +213,40 @@ async function executeCommand(rawInput, pager) {
       return [`ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`];
     }
 
+    case "read":
+    case "r": {
+      let slug = args[0];
+      if (!slug) return ["Verwendung: read <nummer> oder r <nummer>"];
+      const num = parseInt(slug, 10);
+      if (!isNaN(num) && pager.current?.slugMap?.[num]) {
+        slug = pager.current.slugMap[num];
+      }
+      try {
+        const post = await fetchPostBySlug(slug);
+        if (!post) return [`read: ${slug}: Kein Post gefunden`];
+        const body = stripHtml(post.content.rendered);
+        const bodyLines = wrapLines(body.split("\n").filter((l) => l.trim()), LINE_W);
+        const allLines = [
+          "─".repeat(LINE_W),
+          ...wordWrap(stripHtml(post.title.rendered), LINE_W),
+          `Veröffentlicht: ${formatDate(post.date)}`,
+          "─".repeat(LINE_W),
+          "",
+          ...bodyLines,
+          "",
+        ];
+        const pageLines = getPageLines();
+        const hasMore = allLines.length > pageLines;
+        const slice = allLines.slice(0, pageLines);
+        pager.current = hasMore
+          ? { ...(pager.current || {}), type: "article", lines: allLines, offset: pageLines }
+          : pager.current;
+        return [...slice, ...(hasMore ? ["", "[m]ore"] : [])];
+      } catch (e) {
+        return [`Fehler: ${e.message}`];
+      }
+    }
+
     case "cat": {
       let slug = args[0];
       if (!slug) return ["Verwendung: cat <slug> oder cat <nummer>"];
@@ -229,6 +296,13 @@ async function executeCommand(rawInput, pager) {
 function scrollTerminal() {
   const el = document.querySelector(".react-terminal");
   if (el) el.scrollTop = el.scrollHeight;
+}
+
+function getPageLines() {
+  const el = document.querySelector(".react-terminal");
+  if (!el) return 20;
+  const lineH = parseFloat(getComputedStyle(el).fontSize) * 1.4;
+  return Math.max(5, Math.floor(el.clientHeight / lineH) - 3);
 }
 
 // ─── Haupt-Komponente ─────────────────────────────────────────────────────────
