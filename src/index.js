@@ -977,6 +977,8 @@ function WPTerminal() {
   const timerRef = useRef(null);
   const introPlayingRef = useRef(true);
   const printingRef = useRef(false);
+  const idleTimerRef = useRef(null);
+  const idleActiveRef = useRef(false);
   const [introPlaying, setIntroPlaying] = useState(true);
 
   useEffect(() => { applyConfig(configRef.current); }, []);
@@ -1073,6 +1075,118 @@ function WPTerminal() {
   }, []);
 
   useEffect(() => {
+    const IDLE_MS = 5 * 60 * 1000;
+    const SYSTEM_USER = ['Lars', 'Admin', 'User', 'Johannes', 'Max'][Math.floor(Math.random() * 5)];
+
+    const runIdleSequence = async () => {
+      if (introPlayingRef.current || printingRef.current) {
+        scheduleIdle();
+        return;
+      }
+      idleActiveRef.current = true;
+
+      const key = (suffix) => `idle-${Date.now()}-${suffix}`;
+      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      const append = (k, text) => setTerminalLines((prev) => [...prev, <TerminalOutput key={k}>{text}</TerminalOutput>]);
+      const update = (k, text) => setTerminalLines((prev) => {
+        const arr = [...prev];
+        const i = arr.findIndex(l => l?.key === k);
+        if (i !== -1) arr[i] = <TerminalOutput key={k}>{text}</TerminalOutput>;
+        return arr;
+      });
+
+      append(key('l1'), '[!] TIMEOUT: Operator heartbeat lost.');
+      await wait(400);
+      append(key('l2'), '[!] Initiating automatic memory dump to prevent data loss.');
+      await wait(700);
+      append(key('l3'), '');
+      await wait(300);
+
+      const file1 = `C:/Users/${SYSTEM_USER}/Documents/Personal_Vault.rar`;
+      append(key('l4'), `> Uploading '${file1}' -> Tor-Node #4`);
+      await wait(300);
+
+      // Animated progress bar
+      const barKey = key('bar');
+      let pct = 0;
+      const FILLED = '▓';
+      const PARTIAL = ['░', '▒'];
+      const BAR_W = 45;
+
+      const renderBar = (p, speed) => {
+        const filled = Math.floor(p / 100 * BAR_W);
+        const bar = FILLED.repeat(filled) + PARTIAL[Math.floor(Math.random() * 2)].repeat(BAR_W - filled);
+        return `  [${bar}] ${p}% (${speed} MB/s)`;
+      };
+
+      append(barKey, renderBar(0, '0.0'));
+
+      while (pct < 100 && idleActiveRef.current) {
+        await wait(80 + Math.random() * 220);
+        if (!idleActiveRef.current) break;
+        pct = Math.min(100, pct + Math.floor(1 + Math.random() * 7));
+        const speed = (8 + Math.random() * 12).toFixed(1);
+        update(barKey, renderBar(pct, speed));
+        scrollTerminal();
+      }
+
+      if (!idleActiveRef.current) {
+        append(key('abort'), '');
+        append(key('abort2'), '*** UPLINK ABORTED BY OPERATOR ***');
+        scrollTerminal();
+        scheduleIdle();
+        return;
+      }
+
+      await wait(300);
+      append(key('l5'), '');
+      append(key('l6'), `> Next in queue: Chrome_Saved_Passwords.db (Target: Public Ledger)`);
+      await wait(500);
+      append(key('l7'), '');
+      append(key('warn'), '*** PRESS ANY KEY TO ABORT UPLINK IMMEDIATELY ***');
+      scrollTerminal();
+
+      // Wait for keypress to abort
+      await new Promise((res) => {
+        const onKey = () => {
+          document.removeEventListener('keydown', onKey, true);
+          idleActiveRef.current = false;
+          res();
+        };
+        document.addEventListener('keydown', onKey, true);
+      });
+
+      setTerminalLines((prev) => {
+        const arr = [...prev];
+        const i = arr.findIndex(l => l?.key === key('warn'));
+        if (i !== -1) arr[i] = <TerminalOutput key={key('warn2')}>{'*** UPLINK ABORTED BY OPERATOR ***'}</TerminalOutput>;
+        return arr;
+      });
+      append(key('done'), '');
+      scrollTerminal();
+      scheduleIdle();
+    };
+
+    const scheduleIdle = () => {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(runIdleSequence, IDLE_MS);
+    };
+
+    scheduleIdle();
+
+    const resetIdle = () => {
+      if (idleActiveRef.current) return;
+      scheduleIdle();
+    };
+    document.addEventListener('keydown', resetIdle, true);
+
+    return () => {
+      clearTimeout(idleTimerRef.current);
+      document.removeEventListener('keydown', resetIdle, true);
+    };
+  }, []);
+
+  useEffect(() => {
     scrollTerminal();
   }, [terminalLines]);
 
@@ -1129,6 +1243,7 @@ function WPTerminal() {
 
   const handleInput = useCallback(async (input) => {
     if (introPlayingRef.current) return;
+    idleActiveRef.current = false;
     const raw = input.trim();
 
     setTerminalLines((prev) => [
