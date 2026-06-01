@@ -41,6 +41,12 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 |---|---|
 | `ls posts [asc\|desc]` | List blog posts (newest first by default) |
 | `ls pages` | List all static pages |
+| `ls categories` / `ls cats` | List all categories |
+| `ls tags` | List all tags |
+| `ls <sub> --help` | Inline help for any `ls` subcommand |
+| `cd <slug>` | Enter a category or tag filter context |
+| `cd ..` / `cd /` | Return to root (remove filter) |
+| `cd` | Show current filter context |
 | `read <n>` / `r <n>` | Open article by number from the last list |
 | `m` | Next page — more list results or next article page |
 | `link <n>` / `l <n>` | Open link number n in a new tab |
@@ -63,6 +69,57 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 
 Example: `c 1 Ada: Great article!`
 
+### Browsing by Category and Tag
+
+`cd` sets a persistent filter context — all subsequent `ls posts` calls are automatically filtered to that category or tag. The shell prompt reflects the active context.
+
+```
+guest@aeon-gateway:~$ ls categories
+10 categories:
+   1  System Logs
+   2  Zero-Day
+   3  Signal Noise
+   ...
+
+guest@aeon-gateway:~$ cd system-logs
+Entered category context: System Logs
+Tip: ls posts <tag-slug> additionally filters by tag
+
+guest@aeon-gateway:~/system-logs$ ls posts
+6 posts found:
+   1  Der VT100: Ein Terminal wird zur Legende      2026-01-14
+   2  Warum das Terminal immer noch gewinnt         2026-01-10
+   ...
+
+guest@aeon-gateway:~/system-logs$ ls posts exploit
+2 posts found:
+   1  Zero-Day im Kernel                            2026-02-01
+   2  Buffer Overflow: Eine Analyse                 2026-01-22
+
+guest@aeon-gateway:~/system-logs$ cd ..
+Back to root — no filter active.
+
+guest@aeon-gateway:~$ cd zero-trust
+Entered tag context: zero-trust
+
+guest@aeon-gateway:~/zero-trust$ ls posts
+4 posts found:
+   1  Hardened Systems                              2026-03-05
+   ...
+
+guest@aeon-gateway:~/zero-trust$ cd /
+Back to root — no filter active.
+```
+
+**Combining category and tag:** `cd` into a category, then pass a tag slug as the first argument to `ls posts`. The two filters stack — only posts matching both are returned.
+
+**`ls` inline help:** every subcommand accepts `--help`:
+```
+ls posts --help
+ls categories --help
+ls tags --help
+```
+
 ### Utilities
 
 | Command | Description |
@@ -72,6 +129,20 @@ Example: `c 1 Ada: Great article!`
 | `man <command>` | Detailed help page for a command |
 | `clear` | Clear the terminal |
 | `help` | Brief command overview |
+| `<command> --help` | Inline help (supported by `ls` subcommands) |
+
+---
+
+## Language
+
+The UI language is detected automatically from the browser's `navigator.language` setting at page load. No configuration required.
+
+| Browser language | UI language |
+|---|---|
+| `de`, `de-DE`, `de-AT`, … | German |
+| anything else | English |
+
+Locale strings live in `src/i18n/de.js` and `src/i18n/en.js`. To add a new language, copy one of those files, translate the values, and update `src/i18n/index.js` with the new locale code. Intro sequences and idle animations are always in English.
 
 ---
 
@@ -214,9 +285,10 @@ Every 90–150 seconds the terminal inserts a random system error message (kerne
 - `hx29_visits` — visit counter (increments only after 1h gap)
 - `hx29_last_visit` — ISO timestamp of last visit
 
-**Pager system** — four types:
+**Pager system** — six types:
 - `article` — paginated by terminal height (character-count based)
 - `posts` / `pages` — paginated by configured posts-per-page
+- `categories` / `tags` — paginated taxonomy term listings
 - `search` — like posts, but filtered by search term across pages
 - `grep` — paginated by whole match-blocks
 
