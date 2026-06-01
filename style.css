@@ -268,9 +268,9 @@ a { color: var(--accent); }
     background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 2px,
-        rgba(0, 0, 0, 0.35) 2px,
-        rgba(0, 0, 0, 0.35) 4px
+        transparent 3px,
+        rgba(0, 0, 0, 0.12) 3px,
+        rgba(0, 0, 0, 0.12) 4px
     );
 }
 
