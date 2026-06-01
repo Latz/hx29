@@ -258,21 +258,6 @@ a { color: var(--accent); }
     font-size: 12px;
 }
 
-/* ── CRT scanlines ───────────────────────────────────────────────── */
-#hx29-root::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 9999;
-    background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 3px,
-        rgba(0, 0, 0, 0.12) 3px,
-        rgba(0, 0, 0, 0.12) 4px
-    );
-}
 
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 768px) {
