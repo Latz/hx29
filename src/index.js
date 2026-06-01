@@ -1209,7 +1209,7 @@ function WPTerminal() {
     const charDelay = (ch, nextCh) => {
       const base = 6 + Math.random() * 4;
       const midWord = ch !== ' ' && nextCh && nextCh !== ' ';
-      if (midWord && Math.random() < 0.02) return base + 100 + Math.random() * 150;
+      if (midWord && Math.random() < 0.02) return base + 200 + Math.random() * 300;
       return base;
     };
     const LINE_DELAY = 8;
