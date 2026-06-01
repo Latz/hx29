@@ -1335,15 +1335,6 @@ function WPTerminal() {
       });
 
       maybeSyncTear();
-
-      // 1% chance of a glitch line after each output line
-      if (Math.random() < 0.01) {
-        const gkey = `glitch-inline-${Date.now()}`;
-        const gmsg = glitches[Math.floor(Math.random() * glitches.length)];
-        setTerminalLines((prev) => [...prev, <TerminalOutput key={gkey}>{gmsg}</TerminalOutput>]);
-        await new Promise((resolve) => setTimeout(resolve, 80));
-        scrollTerminal();
-      }
     }
     setPrinting(false);
     printingRef.current = false;
