@@ -297,7 +297,7 @@ function wrapLines(rawLines, width) {
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
-async function executeCommand(rawInput, pager, configRef, contextRef, historyRef, setCtxDisplay) {
+async function executeCommand(rawInput, pager, configRef, contextRef, historyRef, setCtxDisplay, pendingRef) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -902,18 +902,40 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
       // resolve slug/name against categories then tags
       try {
         const { cats } = await fetchCategories(1, 100);
+        const { tags } = await fetchTags(1, 100);
+        // exact match (slug or full name)
         const cat = cats.find(c => c.slug === target || c.name.toLowerCase() === target.toLowerCase());
         if (cat) {
           contextRef.current = { type: 'category', id: cat.id, name: cat.name };
           setCtxDisplay({ type: 'category', name: cat.slug });
           return [t.cd_now_in(cat.name, 'category'), t.cd_hint_combine];
         }
-        const { tags } = await fetchTags(1, 100);
         const tag = tags.find(tg => tg.slug === target || tg.name.toLowerCase() === target.toLowerCase());
         if (tag) {
           contextRef.current = { type: 'tag', id: tag.id, name: tag.name };
           setCtxDisplay({ type: 'tag', name: tag.slug });
           return [t.cd_now_in(tag.name, 'tag')];
+        }
+        // partial match (substring)
+        const candidates = [
+          ...cats.filter(c => c.slug.includes(target) || c.name.toLowerCase().includes(target)).map(c => ({ ...c, type: 'category' })),
+          ...tags.filter(tg => tg.slug.includes(target) || tg.name.toLowerCase().includes(target)).map(tg => ({ ...tg, type: 'tag' })),
+        ];
+        if (candidates.length === 1) {
+          const pick = candidates[0];
+          contextRef.current = { type: pick.type, id: pick.id, name: pick.name };
+          setCtxDisplay({ type: pick.type, name: pick.slug });
+          const lines = [t.cd_now_in(pick.name, pick.type)];
+          if (pick.type === 'category') lines.push(t.cd_hint_combine);
+          return lines;
+        }
+        if (candidates.length > 1) {
+          if (pendingRef) pendingRef.current = { candidates };
+          return [
+            t.cd_matches_found,
+            "",
+            ...candidates.map((c, i) => t.cd_match_item(i + 1, c.name, c.type)),
+          ];
         }
         return [t.cd_not_found(target)];
       } catch (e) {
@@ -989,9 +1011,11 @@ function WPTerminal() {
   const configRef = useRef(loadConfig());
   const contextRef = useRef({ type: null, id: null, name: null });
   const [ctxDisplay, setCtxDisplay] = useState(null);
+  const [pendingPrompt, setPendingPrompt] = useState(null);
   const historyRef = useRef(loadHistory());
   const historyPosRef = useRef(-1);
   const timerRef = useRef(null);
+  const pendingRef = useRef(null);
   const introPlayingRef = useRef(true);
   const printingRef = useRef(false);
   const idleTimerRef = useRef(null);
@@ -1254,8 +1278,30 @@ function WPTerminal() {
 
     if (!raw) return;
 
+    // Handle pending cd disambiguation
+    if (pendingRef.current) {
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      setPendingPrompt(null);
+      const n = parseInt(raw, 10);
+      if (!isNaN(n) && pending.candidates[n - 1]) {
+        const pick = pending.candidates[n - 1];
+        contextRef.current = { type: pick.type, id: pick.id, name: pick.name };
+        setCtxDisplay({ type: pick.type, name: pick.slug });
+        const lines = [t.cd_now_in(pick.name, pick.type)];
+        if (pick.type === 'category') lines.push(t.cd_hint_combine);
+        setTerminalLines((prev) => [
+          ...prev,
+          ...lines.map((line, i) => <TerminalOutput key={`cd-pick-${Date.now()}-${i}`}>{line}</TerminalOutput>),
+        ]);
+      } else {
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={`cd-cancel-${Date.now()}`}>{t.cd_cancelled}</TerminalOutput>]);
+      }
+      return;
+    }
+
     pushHistory(historyRef, raw);
-    const result = await executeCommand(raw, pager, configRef, contextRef, historyRef, setCtxDisplay);
+    const result = await executeCommand(raw, pager, configRef, contextRef, historyRef, setCtxDisplay, pendingRef);
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
@@ -1347,12 +1393,13 @@ function WPTerminal() {
     }
     setPrinting(false);
     printingRef.current = false;
+    if (pendingRef.current) setPendingPrompt(t.cd_select_prompt);
   }, []);
 
   return (
     <Terminal
       name=""
-      prompt={(() => {
+      prompt={pendingPrompt ?? (() => {
         const base = [
           `guest@aeon-gateway:~$`,
           `intruder@aeon-gateway:#`,

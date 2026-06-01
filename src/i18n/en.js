@@ -33,6 +33,10 @@ export default {
   cd_no_context:     "No context active. Use: cd <category-or-tag-slug>",
   cd_not_found:      (s) => `cd: '${s}': no matching category or tag found`,
   cd_hint_combine:   "Tip: ls posts <tag-slug> additionally filters by tag",
+  cd_matches_found:  "Multiple matches — enter number to select:",
+  cd_match_item:     (n, name, type) => `  ${n}  ${name.padEnd(24)} [${type}]`,
+  cd_cancelled:      "Cancelled.",
+  cd_select_prompt:  "Enter number to select:",
 
   // ls
   ls_no_posts:      "No posts found.",
