@@ -1144,7 +1144,7 @@ function WPTerminal() {
       const el = e.currentTarget;
 
       // Key-bounce simulation: 100% chance (testing) a printable key double-fires
-      if (e.key.length === 1 && Math.random() < 1.0) {
+      if (e.key.length === 1 && Math.random() < 0.005) {
         setTimeout(() => {
           const before = el.value;
           const pos = el.selectionStart ?? before.length;
