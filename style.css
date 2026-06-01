@@ -259,8 +259,12 @@ a { color: var(--accent); }
 
 /* ── 50Hz mains hum bar ──────────────────────────────────────────── */
 @keyframes hum-bar {
-    0%   { transform: translateY(-100%); }
+    0%   { transform: translateY(-100px); }
     100% { transform: translateY(100vh); }
+}
+
+.hum-bar-active #hx29-root::after {
+    animation: hum-bar 3s linear forwards;
 }
 
 #hx29-root::after {
@@ -279,7 +283,7 @@ a { color: var(--accent); }
         rgba(255,255,255,0.06) 60%,
         rgba(255,255,255,0) 100%
     );
-    animation: hum-bar 30s linear infinite;
+    animation: none;
 }
 
 /* ── Horizontal sync tear ────────────────────────────────────────── */

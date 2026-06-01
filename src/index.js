@@ -1083,6 +1083,16 @@ function WPTerminal() {
   }, []);
 
   useEffect(() => {
+    const runHumBar = () => {
+      document.documentElement.classList.add('hum-bar-active');
+      setTimeout(() => document.documentElement.classList.remove('hum-bar-active'), 3100);
+      setTimeout(runHumBar, 60000 + Math.random() * 60000);
+    };
+    const t = setTimeout(runHumBar, 60000 + Math.random() * 60000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
     const schedule = () => {
       const delay = 90000 + Math.random() * 60000;
       return setTimeout(() => {
