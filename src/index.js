@@ -1077,9 +1077,10 @@ function WPTerminal() {
   useEffect(() => {
     const IDLE_MS = 20 * 1000;
     const SEQUENCE_LOADERS = [
-      () => import(/* webpackChunkName: "idle-neon"   */ "./idle/neonFlicker").then(m => m.default),
-      () => import(/* webpackChunkName: "idle-vortex" */ "./idle/vortex").then(m => m.default),
-      () => import(/* webpackChunkName: "idle-melt"   */ "./idle/bufferMelt").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-neon"      */ "./idle/neonFlicker").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-vortex"    */ "./idle/vortex").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-melt"      */ "./idle/bufferMelt").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-cyberdeck" */ "./idle/cyberdeck").then(m => m.default),
     ];
     let lastSeq = -1;
 
