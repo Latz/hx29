@@ -7,6 +7,7 @@ import {
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
+import { idleNeonFlicker, idleMemoryDump } from "./idle";
 import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
@@ -1076,6 +1077,8 @@ function WPTerminal() {
 
   useEffect(() => {
     const IDLE_MS = 20 * 1000;
+    const SEQUENCES = [idleNeonFlicker, idleMemoryDump];
+    let lastSeq = -1;
 
     const runIdleSequence = async () => {
       if (introPlayingRef.current || printingRef.current) {
@@ -1084,7 +1087,12 @@ function WPTerminal() {
       }
       idleActiveRef.current = true;
 
-      const key = (suffix) => `idle-${Date.now()}-${suffix}`;
+      let pick;
+      do { pick = Math.floor(Math.random() * SEQUENCES.length); } while (pick === lastSeq && SEQUENCES.length > 1);
+      lastSeq = pick;
+
+      const ts = Date.now();
+      const key = (suffix) => `idle-${ts}-${suffix}`;
       const wait = (ms) => new Promise((res) => setTimeout(res, ms));
       const append = (k, text) => setTerminalLines((prev) => [...prev, <TerminalOutput key={k}>{text}</TerminalOutput>]);
       const update = (k, text) => setTerminalLines((prev) => {
@@ -1094,71 +1102,7 @@ function WPTerminal() {
         return arr;
       });
 
-      const FRAME_A = '   N E O N  -  N E X U S  ::  O N L I N E';
-      const GLITCH  = '▒░█▓╬╪╫╗╝╚╔║═╠╣▐▌▄▀■';
-      const corrupt = (t) => t.split('').map(ch =>
-        ch !== ' ' && Math.random() < 0.45
-          ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : ch
-      ).join('');
-      const SEP = '======================================================================';
-
-      const drop = Math.floor(30 + Math.random() * 25);
-      append(key('l1'), `> SYSTEM IDLE LOOP DETECTED // VOLTAGE DROP: ${drop}%`);
-      await wait(400);
-      append(key('l2'), '');
-      await wait(200);
-      append(key('sep1'), SEP);
-      const signKey = key('sign');
-      append(signKey, FRAME_A);
-      append(key('sep2'), SEP);
-      await wait(500);
-
-      // Flicker loop: alternate between clean and corrupted frame
-      const FLICKERS = 6 + Math.floor(Math.random() * 6);
-      for (let f = 0; f < FLICKERS && idleActiveRef.current; f++) {
-        // Frame B — corrupt flash
-        update(signKey, corrupt(FRAME_A));
-        scrollTerminal();
-        await wait(40 + Math.random() * 80);
-        if (!idleActiveRef.current) break;
-        // Frame A — stable
-        update(signKey, FRAME_A);
-        await wait(200 + Math.random() * 400);
-      }
-
-      if (!idleActiveRef.current) return;
-
-      append(key('l3'), '');
-      await wait(300);
-      append(key('l4'), '[!] ALERT: Backlight inverter failing.');
-      await wait(300);
-      append(key('l5'), '[!] Power grid stuttering in District 9...');
-      await wait(500);
-      append(key('l6'), '');
-      append(key('warn'), '*** TOUCH THE DECK TO STABILIZE THE PHOTON STREAM ***');
-      scrollTerminal();
-
-      // Wait for keypress
-      await new Promise((res) => {
-        const onKey = () => {
-          document.removeEventListener('keydown', onKey, true);
-          idleActiveRef.current = false;
-          res();
-        };
-        document.addEventListener('keydown', onKey, true);
-      });
-
-      update(signKey, FRAME_A);
-      setTerminalLines((prev) => {
-        const arr = [...prev];
-        const i = arr.findIndex(l => l?.key === key('warn'));
-        if (i !== -1) arr[i] = <TerminalOutput key={key('stable')}>{'*** PHOTON STREAM STABILIZED ***'}</TerminalOutput>;
-        return arr;
-      });
-      append(key('done'), '');
-      scrollTerminal();
-
-      idleActiveRef.current = false;
+      await SEQUENCES[pick]({ key, wait, append, update, scrollTerminal, idleActiveRef });
       // no reschedule — timer only restarts after user input (handleInput)
     };
 
