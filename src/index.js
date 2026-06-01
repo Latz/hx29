@@ -7,7 +7,7 @@ import {
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
-import { idleNeonFlicker, idleVortex } from "./idle";
+import { idleNeonFlicker, idleVortex, idleBufferMelt } from "./idle";
 import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
@@ -1077,7 +1077,7 @@ function WPTerminal() {
 
   useEffect(() => {
     const IDLE_MS = 20 * 1000;
-    const SEQUENCES = [idleNeonFlicker, idleVortex];
+    const SEQUENCES = [idleNeonFlicker, idleVortex, idleBufferMelt];
     let lastSeq = -1;
 
     const runIdleSequence = async () => {
