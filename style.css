@@ -275,7 +275,7 @@ a { color: var(--accent); }
         rgba(255,255,255,0) 100%
     );
     background-size: 100% 400px;
-    animation: hum-bar 10s linear infinite;
+    animation: hum-bar 30s linear infinite;
 }
 
 /* ── Horizontal sync tear ────────────────────────────────────────── */
