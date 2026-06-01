@@ -100,6 +100,36 @@ export default {
   time_hours_ago:   (n) => `${n} hours ago`,
   time_days_ago:    (n) => `${n} days ago`,
 
+  // ls subcommand --help blocks
+  ls_help: {
+    posts: [
+      "ls posts [asc|desc]  – list all blog posts",
+      "",
+      "  (no arg)   newest first (respects config --order)",
+      "  asc        oldest first",
+      "  desc       newest first",
+      "",
+      "  Numbers can be used with: read, link, comments",
+      "  Use [m]ore to paginate.",
+    ],
+    pages: [
+      "ls pages  – list all static pages",
+      "",
+      "  Numbers can be used with: read, link",
+      "  Use [m]ore to paginate.",
+    ],
+    categories: [
+      "ls categories  – list all categories  (alias: ls cats)",
+      "",
+      "  Use [m]ore to paginate.",
+    ],
+    tags: [
+      "ls tags  – list all tags",
+      "",
+      "  Use [m]ore to paginate.",
+    ],
+  },
+
   // man pages
   man_pages: {
     ls: [

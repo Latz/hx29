@@ -437,6 +437,10 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const ps = configRef.current.posts;
       const cols = getLineWidth();
       const target = args[0]?.toLowerCase();
+      if (args.includes('--help')) {
+        const key = target === 'cats' ? 'categories' : target;
+        return t.ls_help[key] ?? t.man_pages.ls;
+      }
       if (!target || target === "posts") {
         const orderArg = args[1]?.toLowerCase();
         const order = (orderArg === 'asc' || orderArg === 'desc') ? orderArg : configRef.current.order;

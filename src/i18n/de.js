@@ -100,6 +100,36 @@ export default {
   time_hours_ago:   (n) => `vor ${n} Stunden`,
   time_days_ago:    (n) => `vor ${n} Tagen`,
 
+  // ls subcommand --help blocks
+  ls_help: {
+    posts: [
+      "ls posts [asc|desc]  – alle Blogposts auflisten",
+      "",
+      "  (kein Arg)  neueste zuerst (gemäß config --order)",
+      "  asc         älteste zuerst",
+      "  desc        neueste zuerst",
+      "",
+      "  Nummern verwendbar mit: read, link, comments",
+      "  Mit [m]ore weiterblättern.",
+    ],
+    pages: [
+      "ls pages  – alle statischen Seiten auflisten",
+      "",
+      "  Nummern verwendbar mit: read, link",
+      "  Mit [m]ore weiterblättern.",
+    ],
+    categories: [
+      "ls categories  – alle Kategorien auflisten  (Alias: ls cats)",
+      "",
+      "  Mit [m]ore weiterblättern.",
+    ],
+    tags: [
+      "ls tags  – alle Tags auflisten",
+      "",
+      "  Mit [m]ore weiterblättern.",
+    ],
+  },
+
   // man pages
   man_pages: {
     ls: [
