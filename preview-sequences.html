@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Idle Sequence Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: #00ff00;
+    font-family: 'Courier New', Courier, monospace; font-size: 16px; line-height: 1.4; }
+  #terminal { padding: 32px; white-space: pre; }
+  .dim { color: #008800; }
+  .header { color: #00ffff; border-bottom: 1px solid #008800; margin-bottom: 8px; padding-bottom: 4px; }
+</style>
+</head>
+<body>
+<div id="terminal"></div>
+<script>
+// ── Primitives ────────────────────────────────────────────────────────────────
+const term = document.getElementById('terminal');
+const lineMap = {};
+
+let ts = 0;
+function key(suffix) { return `k-${ts}-${suffix}`; }
+
+function append(k, text) {
+  const el = document.createElement('div');
+  el.id = k;
+  el.textContent = text;
+  lineMap[k] = el;
+  term.appendChild(el);
+}
+
+function update(k, text) {
+  if (lineMap[k]) lineMap[k].textContent = text;
+}
+
+function scrollTerminal() {
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// Auto-resolve keypress prompts after a delay so the preview keeps rolling
+const AUTO_RESOLVE_MS = 3000;
+function waitForKey() {
+  return new Promise(res => {
+    const t = setTimeout(res, AUTO_RESOLVE_MS);
+    const onKey = () => { clearTimeout(t); document.removeEventListener('keydown', onKey, true); res(); };
+    document.addEventListener('keydown', onKey, true);
+  });
+}
+
+// idleActiveRef shim — always "active" during preview; sequences set .current=false on resolve
+function makeActiveRef() { return { current: true }; }
+
+// ── Helpers shared across sequences ──────────────────────────────────────────
+const GLITCH = '▒░█▓╬╪╫╗╝╚╔║═╠╣▐▌▄▀■';
+function corrupt(t) {
+  return t.split('').map(ch =>
+    ch !== ' ' && Math.random() < 0.45
+      ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : ch
+  ).join('');
+}
+
+// ── Sequences ─────────────────────────────────────────────────────────────────
+
+async function idleNeonFlicker(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const FRAME_A = '   N E O N  -  N E X U S  ::  O N L I N E';
+  const SEP = '======================================================================';
+  const drop = Math.floor(30 + Math.random() * 25);
+  append(key('l1'), `> SYSTEM IDLE LOOP DETECTED // VOLTAGE DROP: ${drop}%`);
+  await wait(400);
+  append(key('l2'), '');
+  await wait(200);
+  append(key('sep1'), SEP);
+  const signKey = key('sign');
+  append(signKey, FRAME_A);
+  append(key('sep2'), SEP);
+  await wait(500);
+  const FLICKERS = 6 + Math.floor(Math.random() * 6);
+  for (let f = 0; f < FLICKERS; f++) {
+    update(signKey, corrupt(FRAME_A));
+    scrollTerminal();
+    await wait(40 + Math.random() * 80);
+    update(signKey, FRAME_A);
+    await wait(200 + Math.random() * 400);
+  }
+  append(key('l3'), '');
+  await wait(300);
+  append(key('l4'), '[!] ALERT: Backlight inverter failing.');
+  await wait(300);
+  append(key('l5'), '[!] Power grid stuttering in District 9...');
+  await wait(500);
+  append(key('l6'), '');
+  const warnKey = key('warn');
+  append(warnKey, '*** TOUCH THE DECK TO STABILIZE THE PHOTON STREAM ***');
+  scrollTerminal();
+  await waitForKey();
+  idleActiveRef.current = false;
+  update(signKey, FRAME_A);
+  update(warnKey, '*** PHOTON STREAM STABILIZED ***');
+  await wait(300);
+  append(key('l7'), '[ OK ] Voltage restored. Carrier signal nominal.');
+  append(key('l8'), '[ OK ] District 9 grid back online. All systems green.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleVortex(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const SPINNERS = ['|', '/', '-', '\\'];
+  const VORTEX_FRAMES = [
+    ['        / \\ ', '       /   \\    ', '       \\   /    ', '        \\ / '],
+    ['        | | ', '       |   |    ', '       |   |    ', '        | | '],
+    ['        \\ / ', '       \\   /    ', '       /   \\    ', '        / \\ '],
+    ['        - - ', '       -   -    ', '       -   -    ', '        - - '],
+  ];
+  append(key('l1'), '[!] NOTICE: Neural pipeline sitting idle.');
+  await wait(400);
+  append(key('l2'), '[!] Routing ambient background noise into the vortex...');
+  await wait(600);
+  append(key('l3'), '');
+  await wait(200);
+  const vk = [key('v0'), key('v1'), key('v2'), key('v3')];
+  const statusKey = key('status');
+  const threadKey = key('thread');
+  VORTEX_FRAMES[0].forEach((line, i) => append(vk[i], line));
+  append(statusKey, '');
+  append(threadKey, '');
+  scrollTerminal();
+  let frame = 0, buf = 0, aborted = false;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    frame = (frame + 1) % 4;
+    buf = Math.min(100, buf + Math.floor(1 + Math.random() * 4));
+    const spinner = SPINNERS[frame];
+    VORTEX_FRAMES[frame].forEach((line, i) => update(vk[i], line));
+    update(statusKey, `       [   ${spinner}   ]  CYCLING DATA PORT_FALLBACK    Buffer fill: ${buf}%`);
+    if (buf > 30 && frame % 2 === 0) {
+      const thread = Math.floor(Math.random() * 16).toString().padStart(2, '0');
+      update(threadKey, `> Thread #${thread} spinning out of sync...`);
+    }
+    scrollTerminal();
+    await wait(100);
+  }
+  idleActiveRef.current = false;
+  update(vk[0], '        * * ');
+  update(vk[1], '       *   *    [ VORTEX COLLAPSED ]');
+  update(vk[2], '       *   *    ');
+  update(vk[3], '        * * ');
+  update(statusKey, '');
+  update(threadKey, '');
+  await wait(300);
+  append(key('l4'), '');
+  append(key('l5'), '[ OK ] Vortex dissipated. Ambient noise rerouted to /dev/null.');
+  append(key('l6'), '[ OK ] Neural pipeline flushed. Thread synchronization restored.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleBufferMelt(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const DROPS = ['░', '▒', '█', '▓'];
+  const ORIGIN = 'GRID_STATUS: STABLE_CONNECTIVITY_ESTABLISHED';
+  const melt = (chars, intensity) => {
+    const out = [...chars];
+    const candidates = out.reduce((acc, ch, i) => {
+      if (ch !== ' ' && !DROPS.includes(ch)) acc.push(i); return acc;
+    }, []);
+    const count = Math.min(3 + Math.floor(Math.random() * (intensity + 2)), candidates.length);
+    for (let n = 0; n < count; n++) {
+      const idx = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
+      out[idx] = DROPS[Math.floor(Math.random() * DROPS.length)];
+    }
+    return out;
+  };
+  append(key('l1'), '> CRITICAL: Sub-net barrier degrading.');
+  await wait(400);
+  append(key('l2'), '> Terminal buffer memory is leaking down the grid...');
+  await wait(600);
+  append(key('l3'), '');
+  await wait(300);
+  const lineKey = key('melt');
+  let chars = ORIGIN.split('');
+  append(lineKey, chars.join(''));
+  await wait(500);
+  append(key('l4'), '');
+  append(key('warn'), '[!] Connection drowning in raw entropy.');
+  await wait(400);
+  append(key('l5'), '');
+  const ctaKey = key('cta');
+  append(ctaKey, '*** STRIKE KEYBOARD TO DRY THE BUFFER ***');
+  scrollTerminal();
+  let aborted = false, frame = 0;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    await wait(150);
+    chars = melt(chars, Math.floor(frame / 3));
+    update(lineKey, chars.join(''));
+    scrollTerminal();
+    frame++;
+  }
+  idleActiveRef.current = false;
+  update(lineKey, ORIGIN);
+  update(ctaKey, '*** BUFFER DRIED — GRID RESTORED ***');
+  await wait(200);
+  append(key('l6'), '');
+  append(key('l7'), '[ OK ] Buffer dried. Grid connectivity re-established.');
+  append(key('l8'), '[ OK ] Sub-net barrier integrity restored.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleCyberdeck(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const BAR_W = 24;
+  const WAVE = [60, 66, 72, 78, 84, 78, 72, 66, 60, 60];
+  const renderBar = (pct) => {
+    const filled = Math.round(pct / 100 * BAR_W);
+    const bar = '█'.repeat(filled) + '░'.repeat(BAR_W - filled);
+    const level = pct >= 80 ? 'CRITICAL!!' : pct >= 70 ? 'WARNING   ' : 'ELEVATED  ';
+    return `CORE-TEMP: [${bar}] ${pct}% // ${level}`;
+  };
+  const renderSep = (pct) => pct >= 80
+    ? '=================================================='
+    : '--------------------------------------------------';
+  append(key('l1'), '[!] OVERHEATING PROTOCOL ENGAGED [!]');
+  await wait(500);
+  append(key('l2'), '');
+  await wait(200);
+  const barKey = key('bar');
+  const sepKey = key('sep');
+  append(barKey, renderBar(WAVE[0]));
+  append(sepKey, renderSep(WAVE[0]));
+  await wait(400);
+  append(key('l3'), '');
+  append(key('l4'), "> System breathing rate is syncing with your deck's capacitor...");
+  await wait(500);
+  append(key('l5'), '');
+  const ctaKey = key('cta');
+  append(ctaKey, '*** TAP ANY KEY TO DISCHARGE THE CYBERDECK ***');
+  scrollTerminal();
+  let aborted = false, waveIdx = 0;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    waveIdx = (waveIdx + 1) % WAVE.length;
+    const pct = WAVE[waveIdx];
+    update(barKey, renderBar(pct));
+    update(sepKey, renderSep(pct));
+    scrollTerminal();
+    await wait(pct >= 84 || pct <= 60 ? 300 : 150);
+  }
+  idleActiveRef.current = false;
+  update(barKey, `CORE-TEMP: [${'█'.repeat(BAR_W)}] 100% // DISCHARGED`);
+  update(sepKey, '--------------------------------------------------');
+  update(ctaKey, '*** CYBERDECK DISCHARGED — THERMAL EQUILIBRIUM RESTORED ***');
+  await wait(300);
+  append(key('l6'), '');
+  append(key('l7'), '[ OK ] Core temperature nominal. Capacitors flushed.');
+  append(key('l8'), '[ OK ] Thermal throttle released. All cores online.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleOverheat(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const BAR_W = 43;
+  const FRAMES = [
+    { pct: 58, filled: Math.round(58 / 100 * BAR_W) },
+    { pct: 46, filled: Math.round(46 / 100 * BAR_W) },
+    { pct: 69, filled: Math.round(69 / 100 * BAR_W) },
+  ];
+  const renderBar = ({ pct, filled }) =>
+    `  [${'█'.repeat(filled)}${'░'.repeat(BAR_W - filled)}] ${pct}% VOLTAGE DUMP`;
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  append(key('l1'), '[!] NEURAL-LINK WARNING: Idle loop detected in primary processing deck.');
+  await wait(400);
+  append(key('l2'), '[!] STATUS: Liquid nitrogen pump stalled. Core temperature rising.');
+  await wait(600);
+  append(key('l3'), '');
+  await wait(200);
+  const tempKey = key('temp'), barKey = key('bar'), ctaKey = key('cta');
+  append(tempKey, `> [ ${now} ] - THERMAL CRITICAL: 93°C (Limit: 105°C)`);
+  await wait(200);
+  append(key('core'), '> Core #01 status: MELTING RISK');
+  await wait(200);
+  append(key('ram'), '> Shifting active RAM sectors to volatile flash cache to prevent burnout.');
+  await wait(300);
+  append(key('l4'), '');
+  append(barKey, renderBar(FRAMES[0]));
+  await wait(300);
+  append(key('l5'), '');
+  append(ctaKey, '*** VENTING HEAT... TOUCH KEYBOARD TO TRIGGER MANUAL EMERGENCY COOLING ***');
+  scrollTerminal();
+  let aborted = false, frameIdx = 0, tick = 0;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    await wait(150);
+    tick++;
+    const temp = 93 + Math.floor(Math.random() * 5);
+    update(tempKey, `> [ ${now} ] - THERMAL CRITICAL: ${temp}°C (Limit: 105°C)`);
+    if (tick % 2 === 0) { frameIdx = (frameIdx + 1) % FRAMES.length; update(barKey, renderBar(FRAMES[frameIdx])); }
+    scrollTerminal();
+  }
+  idleActiveRef.current = false;
+  update(barKey, `  [${'█'.repeat(BAR_W)}] 100% VOLTAGE DUMP`);
+  update(ctaKey, '*** EMERGENCY COOLING TRIGGERED — CORE TEMPERATURE DROPPING ***');
+  await wait(300);
+  append(key('l6'), '');
+  append(key('l7'), '[ OK ] Liquid nitrogen pump restarted. Thermal threshold cleared.');
+  append(key('l8'), '[ OK ] RAM sectors restored from volatile cache.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleGridGlitch(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const HEX_VALS = ['FF', 'AA', '3C', 'D4', 'B7', '0E', 'F2', '91'];
+  const CODES = ['404_SUBNET_MAPPED', 'GATE_WAY_ERR', 'NULL_POINTER', 'SEG_FAULT_0x9', 'OVERFLOW_TTY'];
+  const TICKER = 'Neon-District billboards switching to mainframe override...';
+  const randGlitch = (len) => Array.from({ length: len }, () => GLITCH[Math.floor(Math.random() * GLITCH.length)]).join('');
+  append(key('l1'), '> CRITICAL: Sub-net barrier degrading due to operator inactivity.');
+  await wait(400);
+  append(key('l2'), '> Raw Grid-Noise is leaking into local TTY stream...');
+  await wait(600);
+  append(key('l3'), '');
+  await wait(200);
+  const hexKey = key('hex'), tickerKey = key('ticker'), codeKey = key('code');
+  append(hexKey,    `  \\x00\\xFF --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
+  await wait(200);
+  append(tickerKey, `  [${new Date().toTimeString().slice(0,8)}] INTERCEPT: "${TICKER.slice(0, 40)}"`);
+  await wait(200);
+  append(codeKey,   `  \\x09\\x12 [GLITCH] █▓▒░░ ${CODES[0]} ░░▒▓█`);
+  await wait(300);
+  append(key('l4'), '');
+  append(key('l5'), '> Terminal interface drowning in raw telemetry packets.');
+  await wait(200);
+  append(key('l6'), '> Dropping unhandled data packets to buffer_0x7...');
+  await wait(400);
+  append(key('l7'), '');
+  const ctaKey = key('cta');
+  append(ctaKey, '*** TOUCH INPUT TO RE-INITIALIZE THE FIREWALL RECEPTORS ***');
+  scrollTerminal();
+  let aborted = false, tickerOffset = 0, tick = 0;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    await wait(100);
+    tick++;
+    const h1 = HEX_VALS[Math.floor(Math.random() * HEX_VALS.length)];
+    update(hexKey, `  \\x00\\x${h1} --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
+    tickerOffset = (tickerOffset + 1) % TICKER.length;
+    const scrolled = (TICKER + TICKER).slice(tickerOffset, tickerOffset + 40);
+    update(tickerKey, `  [${new Date().toTimeString().slice(0,8)}] INTERCEPT: "${scrolled}"`);
+    if (tick % 3 === 0) {
+      const code = CODES[Math.floor(Math.random() * CODES.length)];
+      update(codeKey, `  \\x09\\x12 [GLITCH] ${randGlitch(5)} ${code} ${randGlitch(5)}`);
+    }
+    scrollTerminal();
+  }
+  idleActiveRef.current = false;
+  update(codeKey, '  \\x09\\x12 [GLITCH] █████ FIREWALL_RESTORED █████');
+  update(ctaKey, '*** FIREWALL RECEPTORS ONLINE — GRID NOISE FILTERED ***');
+  await wait(300);
+  append(key('l8'), '');
+  append(key('l9'), '[ OK ] Sub-net barrier restored. TTY stream clean.');
+  append(key('l10'), '[ OK ] Telemetry packets routed to /dev/null.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleSynapseDesync(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const BRACKET = '[ C H R O M A T I C   A B E R R A T I O N   E N A B L E D ]';
+  const JITTER = ['', ' ', '  '];
+  append(key('l1'), '[!] ALERT: Neural-Link feedback loop stalling.');
+  await wait(400);
+  append(key('l2'), '[!] Biosensor status: Brainwave frequency dropping into deep delta-state.');
+  await wait(600);
+  append(key('l3'), '');
+  await wait(200);
+  append(key('l4'), "> Shifting Cyberware-Interface from 'Active Uplink' to 'Coma-Safe'");
+  await wait(300);
+  const syncKey = key('sync'), jitterKey = key('jitter'), ctaKey = key('cta');
+  let sync = 98;
+  append(syncKey, `> Sync-Rate: ${sync}% ... [SIGNAL DEGRADATION]`);
+  await wait(200);
+  append(key('l5'), '> Visual overlay losing chromatic alignment...');
+  await wait(300);
+  append(key('l6'), '');
+  append(jitterKey, BRACKET);
+  await wait(400);
+  append(key('l7'), '');
+  append(ctaKey, '*** WARNING: Neural desync imminent. Tap any key to recalibrate the bio-link. ***');
+  scrollTerminal();
+  let aborted = false, jitterIdx = 0, lastSyncDrop = Date.now();
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  const end = Date.now() + AUTO_RESOLVE_MS;
+  while (!aborted && Date.now() < end) {
+    await wait(80);
+    jitterIdx = (jitterIdx + 1) % JITTER.length;
+    update(jitterKey, JITTER[jitterIdx] + BRACKET);
+    if (Date.now() - lastSyncDrop >= 2000 && sync > 0) {
+      sync = Math.max(0, sync - Math.floor(20 + Math.random() * 15));
+      lastSyncDrop = Date.now();
+      update(syncKey, `> Sync-Rate: ${sync}% ... [SIGNAL DEGRADATION]`);
+    }
+    scrollTerminal();
+  }
+  idleActiveRef.current = false;
+  update(syncKey, '> Sync-Rate: 100% ... [SIGNAL RESTORED]');
+  update(jitterKey, BRACKET);
+  update(ctaKey, '*** BIO-LINK RECALIBRATED — NEURAL SYNC RESTORED ***');
+  await wait(300);
+  append(key('l8'), '');
+  append(key('l9'), '[ OK ] Brainwave frequency stabilized. Active Uplink resumed.');
+  append(key('l10'), '[ OK ] Chromatic overlay realigned. Visual feed nominal.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+async function idleMemoryLeak(ctx) {
+  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const FILES = [
+    'neon_glow_render_effects.dll',
+    'local_proxy_mask.bin',
+    'neural_uplink_cache.dat',
+    'cyberware_api_bridge.so',
+    'grid_texture_atlas_v2.pak',
+  ];
+  const BAR_W = 10;
+  const renderProgress = (destroyed, total) => {
+    const filled = Math.round(destroyed / total * BAR_W);
+    return `[${'▒'.repeat(filled)}${'░'.repeat(BAR_W - filled)}]`;
+  };
+  append(key('l1'), '[!] NOTICE: Operator heartbeat timeout. Reclaiming unallocated cyber-deck memory.');
+  await wait(400);
+  append(key('l2'), "[!] Initiating forced RAM-purge via 'Neon-Shredder' v4.9");
+  await wait(600);
+  append(key('l3'), '');
+  await wait(200);
+  append(key('l4'), '> Dissolving interface assets...');
+  await wait(400);
+  const fileKey = key('file'), barKey = key('bar'), ctaKey = key('cta');
+  append(fileKey, '');
+  append(barKey, '');
+  await wait(200);
+  append(key('l5'), '');
+  append(key('l6'), '> If memory allocation hits 0%, the session will collapse into cyber-space.');
+  await wait(400);
+  append(key('l7'), '');
+  append(ctaKey, '*** STRIKE KEYBOARD TO HALT THE DIGITAL GARBAGE COLLECTOR ***');
+  scrollTerminal();
+  let aborted = false;
+  const done = waitForKey(); done.then(() => { aborted = true; });
+  for (const file of FILES) {
+    if (aborted) break;
+    update(fileKey, `  [PURGING]: ${file}`);
+    update(barKey,  `  [STATUS ]: ${renderProgress(0, file.length)}`);
+    scrollTerminal();
+    await wait(600);
+    let destroyed = 0;
+    while (destroyed < file.length && !aborted) {
+      await wait(50);
+      destroyed = Math.min(file.length, destroyed + Math.floor(1 + Math.random() * 3));
+      update(fileKey, `  [PURGING]: ${file.slice(0, file.length - destroyed)}${'#'.repeat(destroyed)}`);
+      update(barKey,  `  [STATUS ]: ${renderProgress(destroyed, file.length)}`);
+      scrollTerminal();
+    }
+    if (aborted) break;
+    update(fileKey, `  [PURGING]: [ WIPED FROM RAM ]`);
+    update(barKey,  `  [STATUS ]: ${'█'.repeat(BAR_W)} CLEARED`);
+    scrollTerminal();
+    await wait(400);
+  }
+  idleActiveRef.current = false;
+  update(ctaKey, '*** GARBAGE COLLECTOR HALTED — MEMORY SECTORS SEALED ***');
+  await wait(300);
+  append(key('l8'), '');
+  append(key('l9'), '[ OK ] RAM-purge aborted. Interface assets preserved.');
+  append(key('l10'), '[ OK ] Neon-Shredder v4.9 suspended. Session integrity intact.');
+  append(key('done'), '');
+  scrollTerminal();
+}
+
+// ── Runner ────────────────────────────────────────────────────────────────────
+const SEQUENCES = [
+  ['idleNeonFlicker',  idleNeonFlicker],
+  ['idleVortex',       idleVortex],
+  ['idleBufferMelt',   idleBufferMelt],
+  ['idleCyberdeck',    idleCyberdeck],
+  ['idleOverheat',     idleOverheat],
+  ['idleGridGlitch',   idleGridGlitch],
+  ['idleSynapseDesync',idleSynapseDesync],
+  ['idleMemoryLeak',   idleMemoryLeak],
+];
+
+(async () => {
+  for (let i = 0; i < SEQUENCES.length; i++) {
+    const [name, fn] = SEQUENCES[i];
+
+    // Section header
+    const hdr = document.createElement('div');
+    hdr.className = 'header';
+    hdr.textContent = `\n─── [${i + 1}/${SEQUENCES.length}] ${name} ${'─'.repeat(Math.max(0, 50 - name.length))}`;
+    term.appendChild(hdr);
+    scrollTerminal();
+
+    // Fresh key namespace per sequence
+    ts = Date.now();
+
+    const idleActiveRef = makeActiveRef();
+    const ctx = { key, wait, append, update, scrollTerminal, idleActiveRef };
+    await fn(ctx);
+    await wait(1500);
+  }
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.className = 'header';
+  footer.textContent = '\n─── ALL SEQUENCES COMPLETE ───────────────────────────────';
+  term.appendChild(footer);
+  scrollTerminal();
+})();
+</script>
+</body>
+</html>
