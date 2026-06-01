@@ -6,7 +6,7 @@ import {
   createRoot,
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
-import { getIntro } from "./intros";
+import { getSessionIntro } from "./intros";
 import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
@@ -967,6 +967,7 @@ function getLineWidth() {
 function WPTerminal() {
   const [terminalLines, setTerminalLines] = useState([]);
   const [printing, setPrinting] = useState(false);
+  const [visitStage] = useState(() => Math.min(parseInt(localStorage.getItem('hx29_visits') || '0', 10) + 1, 4));
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
   const historyRef = useRef(loadHistory());
@@ -979,7 +980,7 @@ function WPTerminal() {
   useEffect(() => { applyConfig(configRef.current); }, []);
 
   useEffect(() => {
-    const INTRO = getIntro(SITE_NAME);
+    const INTRO = getSessionIntro(SITE_NAME);
     let cancelled = false;
     const charDelay = () => Math.random() < 0.03 ? 15 + Math.random() * 20 : 0;
 
@@ -1236,7 +1237,12 @@ function WPTerminal() {
   return (
     <Terminal
       name=""
-      prompt={`guest@${SITE_NAME}:~$`}
+      prompt={[
+        `guest@aeon-gateway:~$`,
+        `intruder@aeon-gateway:#`,
+        `anon@apex-mainframe:#`,
+        `operator@aeon-core:#`,
+      ][visitStage - 1]}
       colorMode={ColorMode.Dark}
       height="100%"
       onInput={printing || introPlaying ? null : handleInput}

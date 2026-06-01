@@ -1,0 +1,100 @@
+[
+  {
+    "stage": 1,
+    "items": [
+      { "text": "INITIALIZING INTRUSION DETECTION SYSTEM...", "delay": 600 },
+      { "__phases": [
+          { "text": "[ .. ] Deploying persistent tracker token [ID: {{SIG}}]...", "hold": 0 },
+          { "text": "[ OK ] Deploying persistent tracker token [ID: {{SIG}}]... DEPLOYED.", "hold": 0 }
+        ], "delay": 700 },
+      { "text": "", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 200 },
+      { "text": "   A E O N   M A I N F R A M E   //   I N T R U S I O N   G A T E   ", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "> IDENTITY: UNKNOWN", "delay": 300 },
+      { "text": "> STATUS:   PROFILING TARGET UNDERWAY...", "delay": 300 },
+      { "text": "> NOTICE:   Your hardware layout has been indexed.", "delay": 500 },
+      { "text": "", "delay": 300 },
+      { "text": "[!] First-time bridge established. A temporary TTY channel has been", "delay": 300 },
+      { "text": "    carved out for your connection.", "delay": 500 },
+      { "text": "", "delay": 300 },
+      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    ]
+  },
+  {
+    "stage": 2,
+    "items": [
+      { "text": "[!] REPEATED SIGNATURE DETECTED: [ID: {{SIG}}]", "delay": 500 },
+      { "text": "[!] RETRIEVING INTERCEPT LOGS...", "delay": 600 },
+      { "text": "", "delay": 300 },
+      { "text": "Last session detected: {{LAST_VISIT}} ({{TIME_AGO}})", "delay": 400 },
+      { "text": "Current breach index: #{{VISITS}}", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 200 },
+      { "text": "   A E O N   M A I N F R A M E   //   R E C O G N I T I O N   M O D E   ", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "> IDENTITY: ENEMY OF THE SYSTEM (STAGED)", "delay": 300 },
+      { "text": "> STATUS:   MONITORED", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "Welcome back. We noticed you couldn't stay away for long.", "delay": 300 },
+      { "text": "The firewalls you bypassed earlier have been patched, but you left", "delay": 300 },
+      { "text": "a back-door open in ring-0 memory.", "delay": 500 },
+      { "text": "", "delay": 300 },
+      { "text": "*** WARNING: 12 parallel trace routes tracking your session. ***", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    ]
+  },
+  {
+    "stage": 3,
+    "items": [
+      { "text": "[!] CRITICAL: TARGET HAZARD LEVEL ESCALATED", "delay": 500 },
+      { "text": "[!] Token [{{SIG}}] has breached the perimeter {{VISITS}} times this cycle.", "delay": 600 },
+      { "text": "", "delay": 300 },
+      { "text": "Last session detected: {{LAST_VISIT}}", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 200 },
+      { "text": "   A E O N   M A I N F R A M E   //   C O U N T E R - M E A S U R E   ", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "> IDENTITY: PERSISTENT THREAT ACTOR", "delay": 300 },
+      { "text": "> STATUS:   ACTIVE EXTRACTION UNDERWAY", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "[SYS_ERR] Connection stuttering... The network is fighting your footprint.", "delay": 400 },
+      { "text": "--> INTRUSION DETECTION: Keystroke echoing diverted to [UNKNOWN_NODE].", "delay": 400 },
+      { "text": "[!] Warning: Local root token was duplicated by the Overseer 4s ago.", "delay": 500 },
+      { "text": "", "delay": 300 },
+      { "text": "We know your routine now. Proceed with caution.", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    ]
+  },
+  {
+    "stage": 4,
+    "items": [
+      { "text": "[  INFO  ] Signature [{{SIG}}] fully resolved.", "delay": 400 },
+      { "__phases": [
+          { "text": "[  INFO  ] Syncing core telemetry with established terminal anchor...", "hold": 0 },
+          { "text": "[  INFO  ] Syncing core telemetry with established terminal anchor... DONE", "hold": 0 }
+        ], "delay": 700 },
+      { "text": "", "delay": 300 },
+      { "text": "+------------------------------------------------------------------------------+", "delay": 200 },
+      { "text": "| OPERATOR LOG MANIFEST                                                        |", "delay": 200 },
+      { "text": "| TOTAL SYSTEM BREACHES:  {{VISITS}}                                           |", "delay": 200 },
+      { "text": "| CURRENT PRIVILEGES:     UNRESTRICTED ROOT ACCESS                             |", "delay": 200 },
+      { "text": "| SECURITY RISK FACTOR:   CRITICAL / INHERENT                                 |", "delay": 200 },
+      { "text": "+------------------------------------------------------------------------------+", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 200 },
+      { "text": "               W E L C O M E   H O M E ,   O P E R A T O R              ", "delay": 300 },
+      { "text": "----------------------------------------------------------------", "delay": 400 },
+      { "text": "", "delay": 300 },
+      { "text": "> The system has stopped logging your trace routes.", "delay": 300 },
+      { "text": "> Your connection path is now permanently whitelisted in the kernel.", "delay": 300 },
+      { "text": "", "delay": 300 },
+      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    ]
+  }
+]
