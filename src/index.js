@@ -1130,39 +1130,7 @@ function WPTerminal() {
         scrollTerminal();
       }
 
-      if (!idleActiveRef.current) {
-        append(key('abort'), '');
-        append(key('abort2'), '*** UPLINK ABORTED BY OPERATOR ***');
-        scrollTerminal();
-        return;
-      }
-
-      await wait(300);
-      append(key('l5'), '');
-      append(key('l6'), `> Next in queue: Chrome_Saved_Passwords.db (Target: Public Ledger)`);
-      await wait(500);
-      append(key('l7'), '');
-      append(key('warn'), '*** PRESS ANY KEY TO ABORT UPLINK IMMEDIATELY ***');
-      scrollTerminal();
-
-      // Wait for keypress to abort
-      await new Promise((res) => {
-        const onKey = () => {
-          document.removeEventListener('keydown', onKey, true);
-          idleActiveRef.current = false;
-          res();
-        };
-        document.addEventListener('keydown', onKey, true);
-      });
-
-      setTerminalLines((prev) => {
-        const arr = [...prev];
-        const i = arr.findIndex(l => l?.key === key('warn'));
-        if (i !== -1) arr[i] = <TerminalOutput key={key('warn2')}>{'*** UPLINK ABORTED BY OPERATOR ***'}</TerminalOutput>;
-        return arr;
-      });
-      append(key('done'), '');
-      scrollTerminal();
+      idleActiveRef.current = false;
       // no reschedule — timer only restarts after user input (handleInput)
     };
 
