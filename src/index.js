@@ -166,6 +166,22 @@ async function fetchPages(page = 1, pageSize = 10) {
   return { pages, total };
 }
 
+async function fetchCategories(page = 1, pageSize = 10) {
+  const res = await apiFetch(`/categories?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const cats = await res.json();
+  return { cats, total };
+}
+
+async function fetchTags(page = 1, pageSize = 10) {
+  const res = await apiFetch(`/tags?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const tags = await res.json();
+  return { tags, total };
+}
+
 async function fetchComments(postId, perPage = 20) {
   const res = await apiFetch(`/comments?post=${postId}&per_page=${perPage}&_fields=id,author_name,date,content`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -290,6 +306,8 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         "",
         t.help_ls_posts,
         t.help_ls_pages,
+        t.help_ls_categories,
+        t.help_ls_tags,
         t.help_read,
         t.help_link,
         t.help_search,
@@ -387,6 +405,30 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
             ...(hasMore ? ["", t.more] : [""]),
           ];
         }
+        if (type === "categories") {
+          const { cats, total: fetchedTotal } = await fetchCategories(nextPage, ps);
+          const shown = nextPage * ps;
+          const hasMore = shown < (total ?? fetchedTotal);
+          cats.forEach((c, i) => { slugMap[offset + i + 1] = { slug: c.slug, id: c.id, url: c.link }; });
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
+          const cols = getLineWidth();
+          return [
+            ...batchFmtLineEls(cats.map((c, i) => ({ n: offset + i + 1, title: c.name, date: '' })), cols),
+            ...(hasMore ? ["", t.more] : [""]),
+          ];
+        }
+        if (type === "tags") {
+          const { tags, total: fetchedTotal } = await fetchTags(nextPage, ps);
+          const shown = nextPage * ps;
+          const hasMore = shown < (total ?? fetchedTotal);
+          tags.forEach((tg, i) => { slugMap[offset + i + 1] = { slug: tg.slug, id: tg.id, url: tg.link }; });
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
+          const cols = getLineWidth();
+          return [
+            ...batchFmtLineEls(tags.map((tg, i) => ({ n: offset + i + 1, title: tg.name, date: '' })), cols),
+            ...(hasMore ? ["", t.more] : [""]),
+          ];
+        }
       } catch (e) {
         return [t.error(e.message)];
       }
@@ -430,6 +472,42 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
             t.ls_pages_found(total),
             "",
             ...batchFmtLineEls(pages.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: '' })), cols),
+            ...(hasMore ? ["", t.more] : []),
+          ];
+        } catch (e) {
+          return [t.error(e.message)];
+        }
+      }
+      if (target === "categories" || target === "cats") {
+        try {
+          const { cats, total } = await fetchCategories(1, ps);
+          if (!cats.length) return [t.ls_no_categories];
+          const hasMore = total > ps;
+          const slugMap = {};
+          cats.forEach((c, i) => { slugMap[i + 1] = { slug: c.slug, id: c.id, url: c.link }; });
+          pager.current = { type: "categories", page: 1, total, slugMap };
+          return [
+            t.ls_categories_found(total),
+            "",
+            ...batchFmtLineEls(cats.map((c, i) => ({ n: i + 1, title: c.name, date: '' })), cols),
+            ...(hasMore ? ["", t.more] : []),
+          ];
+        } catch (e) {
+          return [t.error(e.message)];
+        }
+      }
+      if (target === "tags") {
+        try {
+          const { tags, total } = await fetchTags(1, ps);
+          if (!tags.length) return [t.ls_no_tags];
+          const hasMore = total > ps;
+          const slugMap = {};
+          tags.forEach((tg, i) => { slugMap[i + 1] = { slug: tg.slug, id: tg.id, url: tg.link }; });
+          pager.current = { type: "tags", page: 1, total, slugMap };
+          return [
+            t.ls_tags_found(total),
+            "",
+            ...batchFmtLineEls(tags.map((tg, i) => ({ n: i + 1, title: tg.name, date: '' })), cols),
             ...(hasMore ? ["", t.more] : []),
           ];
         } catch (e) {
