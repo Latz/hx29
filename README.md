@@ -44,7 +44,7 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 | `ls categories` / `ls cats` | List all categories |
 | `ls tags` | List all tags |
 | `ls <sub> --help` | Inline help for any `ls` subcommand |
-| `cd <slug>` | Enter a category or tag filter context |
+| `cd <slug or partial name>` | Enter a category or tag filter context; shows a numbered list on multiple matches |
 | `cd ..` / `cd /` | Return to root (remove filter) |
 | `cd` | Show current filter context |
 | `read <n>` / `r <n>` | Open article by number from the last list |
@@ -72,6 +72,19 @@ Example: `c 1 Ada: Great article!`
 ### Browsing by Category and Tag
 
 `cd` sets a persistent filter context — all subsequent `ls posts` calls are automatically filtered to that category or tag. The shell prompt reflects the active context.
+
+`cd` accepts a full slug, a full name, or a partial string. A single match enters the context directly. Multiple matches show a numbered list; the prompt changes to `Nummer eingeben:` / `Enter number to select:` so you type the number inline.
+
+```
+guest@aeon-gateway:~$ cd sys
+Multiple matches — enter number to select:
+
+  1  System Logs              [category]
+  2  Sysadmin                 [tag]
+
+Enter number to select: 1
+Entered category context: System Logs
+```
 
 ```
 guest@aeon-gateway:~$ ls categories
