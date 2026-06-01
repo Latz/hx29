@@ -985,10 +985,13 @@ function WPTerminal() {
 
     const animateLine = (key, text) => new Promise((resolve) => {
       let charIndex = 0;
+      const CHUNK = 4; // chars per tick
       const tick = () => {
         if (cancelled) { resolve(); return; }
-        charIndex++;
-        while (charIndex < text.length && text[charIndex] === ' ') charIndex++;
+        for (let c = 0; c < CHUNK && charIndex < text.length; c++) {
+          charIndex++;
+          while (charIndex < text.length && text[charIndex] === ' ') charIndex++;
+        }
         const partial = text.slice(0, charIndex);
         const isDone = charIndex >= text.length;
         setTerminalLines((prev) => {
@@ -998,11 +1001,11 @@ function WPTerminal() {
           else arr.push(<TerminalOutput key={key}>{partial}</TerminalOutput>);
           return arr;
         });
-        if (!isDone) setTimeout(tick, charDelay());
+        if (!isDone) setTimeout(tick, 0);
         else resolve();
       };
       setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>]);
-      setTimeout(tick, charDelay());
+      setTimeout(tick, 0);
     });
 
     const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1057,6 +1060,7 @@ function WPTerminal() {
         if (!introPlayingRef.current && !printingRef.current) {
           const msg = glitches[Math.floor(Math.random() * glitches.length)];
           setTerminalLines((prev) => [...prev, <TerminalOutput key={`glitch-${Date.now()}`}>{msg}</TerminalOutput>]);
+          setTimeout(scrollTerminal, 50);
         }
         timerRef.current = schedule();
       }, delay);
@@ -1215,6 +1219,15 @@ function WPTerminal() {
         setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>]);
         setTimeout(tick, charDelay());
       });
+
+      // 1% chance of a glitch line after each output line
+      if (Math.random() < 0.01) {
+        const gkey = `glitch-inline-${Date.now()}`;
+        const gmsg = glitches[Math.floor(Math.random() * glitches.length)];
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={gkey}>{gmsg}</TerminalOutput>]);
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        scrollTerminal();
+      }
     }
     setPrinting(false);
     printingRef.current = false;
