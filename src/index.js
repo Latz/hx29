@@ -324,6 +324,7 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         t.help_tip,
       ];
 
+    case "n":
     case "m": {
       if (!pager.current) return [t.no_active_pager];
       const { type, page, total, slugMap } = pager.current;
@@ -843,7 +844,18 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         t.man_not_found(topic),
         t.man_available_list + Object.keys(MAN_PAGES).join(", "),
       ];
-      return page;
+      const pageLines = getPageLines();
+      if (page.length <= pageLines) return page;
+      const charsLeft = page.slice(pageLines).reduce((s, l) => s + l.length, 0);
+      pager.current = {
+        type: "article",
+        lines: page,
+        offset: pageLines,
+        slugMap: pager.current?.slugMap ?? {},
+        footnotes: [],
+        slug: null,
+      };
+      return [...page.slice(0, pageLines), "", t.more_chars_left(charsLeft)];
     }
 
     case "config": {

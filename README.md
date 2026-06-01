@@ -8,7 +8,7 @@ A WordPress block theme that replaces the traditional blog interface with a full
 
 HX29 renders no PHP templates. Every post, page, and comment is fetched live from the WordPress REST API and displayed as terminal output. The UI is built with React (via `@wordpress/element`) and [react-terminal-ui](https://github.com/jonmbake/react-terminal-ui), styled with the Glass TTY VT220 bitmap font.
 
-Output is printed character-by-character. Links in articles become numbered footnotes. Long content paginates with `[m]ore`.
+Output is printed character-by-character. Links in articles become numbered footnotes. Long content paginates with `[n]ext`.
 
 ---
 
@@ -48,7 +48,7 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 | `cd ..` / `cd /` | Return to root (remove filter) |
 | `cd` | Show current filter context |
 | `read <n>` / `r <n>` | Open article by number from the last list |
-| `m` | Next page — more list results or next article page |
+| `n` / `m` | Next page — more list results or next article page |
 | `link <n>` / `l <n>` | Open link number n in a new tab |
 
 ### Search
