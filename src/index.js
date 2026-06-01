@@ -1142,6 +1142,30 @@ function WPTerminal() {
     const onKeyDown = (e) => {
       if (printing || introPlaying) return;
       const el = e.currentTarget;
+
+      // Key-bounce simulation: 100% chance (testing) a printable key double-fires
+      if (e.key.length === 1 && Math.random() < 1.0) {
+        setTimeout(() => {
+          const before = el.value;
+          const pos = el.selectionStart ?? before.length;
+          const doubled = before.slice(0, pos) + e.key + before.slice(pos);
+          setNativeValue(el, doubled);
+          // Show the bounce notice briefly
+          const notice = document.createElement('div');
+          notice.textContent = '[KEY_BOUNCE RECALIBRATED]';
+          notice.style.cssText = 'position:fixed;bottom:12px;right:16px;color:var(--dim);font-family:var(--font);font-size:12px;pointer-events:none;z-index:9999;opacity:1;transition:opacity 0.3s';
+          document.body.appendChild(notice);
+          // Auto-correct: remove the extra char after 120ms
+          setTimeout(() => {
+            const cur = el.value;
+            const p = el.selectionStart ?? cur.length;
+            if (p > 0) setNativeValue(el, cur.slice(0, p - 1) + cur.slice(p));
+            notice.style.opacity = '0';
+            setTimeout(() => notice.remove(), 320);
+          }, 120);
+        }, 0);
+      }
+
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopImmediatePropagation();
