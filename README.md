@@ -39,7 +39,7 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 
 | Command | Description |
 |---|---|
-| `ls posts [asc\|desc]` | List blog posts (newest first by default) |
+| `ls posts [asc\|desc]` | List blog posts; shows sort hint with command to flip order |
 | `ls pages` | List all static pages |
 | `ls categories` / `ls cats` | List all categories |
 | `ls tags` | List all tags |
@@ -112,6 +112,14 @@ Back to root — no filter active.
 ```
 
 **Combining category and tag:** `cd` into a category, then pass a tag slug as the first argument to `ls posts`. The two filters stack — only posts matching both are returned.
+
+**Sort order hint:** after every `ls posts` listing, a hint line shows the active sort order and the command to flip it:
+
+```
+  Sort: newest first  –  try: ls posts asc
+```
+
+The hint reflects the order in effect — whether set inline (`ls posts asc`) or via `config --order`.
 
 **`ls` inline help:** every subcommand accepts `--help`:
 ```
