@@ -19,7 +19,7 @@
       { "text": "[!] First-time bridge established. A temporary TTY channel has been", "delay": 300 },
       { "text": "    carved out for your connection.", "delay": 500 },
       { "text": "", "delay": 300 },
-      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+      { "text": "{{HELP_TIP}}", "delay": 0 }
     ]
   },
   {
@@ -44,7 +44,7 @@
       { "text": "", "delay": 300 },
       { "text": "*** WARNING: 12 parallel trace routes tracking your session. ***", "delay": 400 },
       { "text": "", "delay": 300 },
-      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+      { "text": "{{HELP_TIP}}", "delay": 0 }
     ]
   },
   {
@@ -68,7 +68,7 @@
       { "text": "", "delay": 300 },
       { "text": "We know your routine now. Proceed with caution.", "delay": 400 },
       { "text": "", "delay": 300 },
-      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+      { "text": "{{HELP_TIP}}", "delay": 0 }
     ]
   },
   {
@@ -94,7 +94,7 @@
       { "text": "> The system has stopped logging your trace routes.", "delay": 300 },
       { "text": "> Your connection path is now permanently whitelisted in the kernel.", "delay": 300 },
       { "text": "", "delay": 300 },
-      { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+      { "text": "{{HELP_TIP}}", "delay": 0 }
     ]
   }
 ]

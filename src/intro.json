@@ -24,7 +24,7 @@
     { "text": "TERMINAL TYPE: VT100 / ANSI",       "delay": 200 },
     { "text": "SESSION ACTIVE",                    "delay": 400 },
     { "text": "",                                  "delay": 300 },
-    { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    { "text": "{{HELP_TIP}}", "delay": 0 }
   ],
   [
     { "text": "================================================================================", "delay": 200 },
@@ -61,7 +61,7 @@
     { "text": "",                                  "delay": 400 },
     { "text": "[SYS_READY] Execution stack cleared. Intercepting I/O streams.",      "delay": 500 },
     { "text": "",                                  "delay": 300 },
-    { "text": "Tippe 'help' für verfügbare Befehle.", "delay": 0 }
+    { "text": "{{HELP_TIP}}", "delay": 0 }
   ],
   [
     { "text": "WELCOME TO ROBCO INDUSTRIES (TM) TERMLINK", "delay": 600 },
@@ -85,6 +85,6 @@
     { "text": "[File: Cryo-Pod Telemetry]",                "delay": 300 },
     { "text": "[System: Cycle Air Purifiers]",             "delay": 500 },
     { "text": "",                                          "delay": 300 },
-    { "text": "Tippe 'help' für verfügbare Befehle.",      "delay": 0 }
+    { "text": "{{HELP_TIP}}", "delay": 0 }
   ]
 ]

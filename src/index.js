@@ -8,6 +8,7 @@ import {
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
 import glitches from "./glitches.json";
+import { t } from "./i18n/index.js";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
 const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
@@ -26,7 +27,7 @@ function apiFetch(path) {
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("de-DE", {
+  return new Date(iso).toLocaleDateString(t.locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -100,208 +101,7 @@ function parseBodyWithLinks(html, width) {
 // ─── User config (cookie) ─────────────────────────────────────────────────────
 const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: 'a', order: 'desc' };
 
-const MAN_PAGES = {
-  ls: [
-    "NAME",
-    "  ls – Inhalte auflisten",
-    "",
-    "SYNTAX",
-    "  ls posts [asc|desc]",
-    "  ls pages",
-    "",
-    "BESCHREIBUNG",
-    "  Listet alle Blogposts oder Seiten auf.",
-    "  Jeder Eintrag erhält eine Nummer, die mit read / r verwendet werden kann.",
-    "",
-    "  ls posts        – neueste zuerst (Standard oder config-order)",
-    "  ls posts asc    – älteste zuerst",
-    "  ls posts desc   – neueste zuerst",
-    "  ls pages        – alle statischen Seiten",
-    "",
-    "PAGINIERUNG",
-    "  Nach der Liste erscheint [m]ore – weitere Einträge laden.",
-    "",
-    "VERWANDT",
-    "  read, config --order",
-  ],
-  read: [
-    "NAME",
-    "  read, r – Artikel lesen",
-    "",
-    "SYNTAX",
-    "  read <n>",
-    "  r <n>",
-    "",
-    "BESCHREIBUNG",
-    "  Öffnet den Artikel mit der Nummer n aus der letzten ls-Liste.",
-    "  Ohne vorherige ls-Liste wird Artikel n nach Datum (neueste zuerst) geladen.",
-    "",
-    "PAGINIERUNG",
-    "  Langer Text wird seitenweise ausgegeben.",
-    "  [m]ore zeigt die nächste Seite.",
-    "",
-    "LINKS",
-    "  Enthaltene Links werden als Fußnoten nummeriert.",
-    "  l <n> öffnet den n-ten Link im Browser.",
-    "",
-    "VERWANDT",
-    "  ls, l, link",
-  ],
-  search: [
-    "NAME",
-    "  search – Posts nach Titel durchsuchen",
-    "",
-    "SYNTAX",
-    "  search <suchbegriff>",
-    "",
-    "BESCHREIBUNG",
-    "  Durchsucht Post-Titel über die WordPress REST API.",
-    "  Gibt eine nummerierte Liste passender Beiträge aus.",
-    "  Die Nummern können mit read / r verwendet werden.",
-    "",
-    "VERWANDT",
-    "  grep, read",
-  ],
-  grep: [
-    "NAME",
-    "  grep – Volltext in Posts durchsuchen",
-    "",
-    "SYNTAX",
-    "  grep <suchbegriff>",
-    "",
-    "BESCHREIBUNG",
-    "  Durchsucht den Volltext aller Posts.",
-    "  Für jeden Treffer werden Post-Titel und passende Textauszüge angezeigt.",
-    "  Treffer im Text sind invers hervorgehoben.",
-    "",
-    "PAGINIERUNG",
-    "  [m]ore zeigt weitere Treffer blockweise.",
-    "",
-    "VERWANDT",
-    "  search",
-  ],
-  link: [
-    "NAME",
-    "  link, l – Link öffnen",
-    "",
-    "SYNTAX",
-    "  link <n>",
-    "  l <n>",
-    "",
-    "BESCHREIBUNG",
-    "  Öffnet Link Nummer n im Browser (neuer Tab).",
-    "  n bezieht sich auf die Fußnotenliste des aktuell gelesenen Artikels.",
-    "  Außerhalb eines Artikels öffnet l <n> den n-ten Post aus der ls-Liste.",
-    "",
-    "VERWANDT",
-    "  read",
-  ],
-  comments: [
-    "NAME",
-    "  comments – Kommentare anzeigen",
-    "",
-    "SYNTAX",
-    "  comments <n>",
-    "",
-    "BESCHREIBUNG",
-    "  Zeigt alle Kommentare zu Beitrag n an.",
-    "  n ist die Nummer aus der letzten ls posts-Liste.",
-    "",
-    "VERWANDT",
-    "  comment, c",
-  ],
-  comment: [
-    "NAME",
-    "  comment, c – Kommentar schreiben",
-    "",
-    "SYNTAX",
-    "  comment <n> <Name>: <Text>",
-    "  c <n> <Name>: <Text>",
-    "",
-    "BEISPIEL",
-    "  c 1 Ada: Toller Artikel!",
-    "",
-    "BESCHREIBUNG",
-    "  Schreibt einen Kommentar zu Beitrag n.",
-    "  Name und Text werden durch einen Doppelpunkt getrennt.",
-    "",
-    "VERWANDT",
-    "  comments",
-  ],
-  config: [
-    "NAME",
-    "  config – Einstellungen anzeigen und ändern",
-    "",
-    "SYNTAX",
-    "  config",
-    "  config --theme <a|b|c|d|e>",
-    "  config --font <px>",
-    "  config --posts <n>",
-    "  config --order <asc|desc>",
-    "",
-    "BESCHREIBUNG",
-    "  Ohne Argument: zeigt aktuelle Einstellungen.",
-    "",
-    "  --theme   Farbschema wechseln",
-    "            a = VT100 Grün  b = GitHub Dark",
-    "            c = Lila        d = Solarized Light",
-    "            e = Amber (orange Phosphor)",
-    "  --font    Schriftgröße in Pixeln (Standard: 22)",
-    "  --posts   Posts pro Seite (Standard: 10)",
-    "  --order   Sortierreihenfolge für ls posts",
-    "            asc = älteste zuerst, desc = neueste zuerst",
-    "",
-    "PERSISTENZ",
-    "  Einstellungen werden als Cookie gespeichert (1 Jahr).",
-  ],
-  history: [
-    "NAME",
-    "  history – Befehlshistorie anzeigen",
-    "",
-    "SYNTAX",
-    "  history",
-    "",
-    "BESCHREIBUNG",
-    "  Zeigt die zuletzt eingegebenen Befehle.",
-    "  Mit ↑ / ↓ kann durch die Historie navigiert werden.",
-  ],
-  clear: [
-    "NAME",
-    "  clear – Terminal leeren",
-    "",
-    "SYNTAX",
-    "  clear",
-    "",
-    "BESCHREIBUNG",
-    "  Löscht alle bisherigen Ausgaben im Terminal.",
-  ],
-  help: [
-    "NAME",
-    "  help – Befehlsübersicht",
-    "",
-    "SYNTAX",
-    "  help",
-    "",
-    "BESCHREIBUNG",
-    "  Zeigt eine kurze Liste aller verfügbaren Befehle.",
-    "  Für ausführliche Hilfe zu einem Befehl: man <befehl>",
-  ],
-  man: [
-    "NAME",
-    "  man – Handbuchseite anzeigen",
-    "",
-    "SYNTAX",
-    "  man <befehl>",
-    "",
-    "BESCHREIBUNG",
-    "  Zeigt eine ausführliche Beschreibung des angegebenen Befehls.",
-    "",
-    "BEISPIELE",
-    "  man ls",
-    "  man config",
-    "  man grep",
-  ],
-};
+const MAN_PAGES = t.man_pages;
 
 function loadConfig() {
   const c = document.cookie.split('; ').find(r => r.startsWith('hx29_config='));
@@ -486,28 +286,27 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
   switch (cmd) {
     case "help":
       return [
-        "Verfügbare Befehle:",
+        t.help_available_commands,
         "",
-        "  ls posts [asc|desc]  – alle Blogposts anzeigen",
-        "  ls pages          – alle Seiten anzeigen",
-        "  read <n>, r <n>   – Artikel nach Nummer lesen",
-        "  link <n>, l <n>   – Post im Browser öffnen",
-        "  search <…>        – Posts durchsuchen",
-        "  grep <…>          – Volltext in Posts durchsuchen",
-        "  comments <n>      – Kommentare zu Beitrag n anzeigen",
-        "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
-        "  history           – Befehlshistorie anzeigen",
-
-        "  config            – Einstellungen anzeigen / ändern",
-        "  clear             – Terminal leeren",
-        "  help              – diese Hilfe",
-        "  man <befehl>      – ausführliche Hilfe zu einem Befehl",
+        t.help_ls_posts,
+        t.help_ls_pages,
+        t.help_read,
+        t.help_link,
+        t.help_search,
+        t.help_grep,
+        t.help_comments,
+        t.help_comment,
+        t.help_history,
+        t.help_config,
+        t.help_clear,
+        t.help_help,
+        t.help_man,
         "",
-        "Tipp: Pfeil-Tasten ↑↓ für Befehlshistorie",
+        t.help_tip,
       ];
 
     case "m": {
-      if (!pager.current) return ["Kein aktiver Pager."];
+      if (!pager.current) return [t.no_active_pager];
       const { type, page, total, slugMap } = pager.current;
 
       if (type === "article") {
@@ -521,7 +320,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes: articleFootnotes, slug: articleSlug };
         if (hasMore) {
           const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
-          return [...slice, "", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
+          return [...slice, "", t.more_chars_left(charsLeft)];
         }
         return [...slice, ""];
       }
@@ -539,7 +338,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         const remaining = blocks.length - newShown;
         pager.current = { type: "grep", blocks, shownBlocks: newShown, slugMap: grepSlugMap };
         if (remaining > 0) {
-          return [...nextPage, `[m]ore  (${remaining} weitere Treffer)`];
+          return [...nextPage, t.more_results_left(remaining)];
         }
         return [...nextPage, ""];
       }
@@ -551,45 +350,45 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           const { searchTerm } = pager.current;
           const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const t = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+          const fetchedTotal = parseInt(res.headers.get("X-WP-Total") || "0", 10);
           const posts = await res.json();
           const shown = nextPage * ps;
-          const hasMore = shown < (total ?? t);
+          const hasMore = shown < (total ?? fetchedTotal);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, searchTerm } : null;
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, searchTerm } : null;
           const cols = getLineWidth();
           return [
             ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-            ...(hasMore ? ["", `[m]ore  (${(total ?? t) - shown} weitere)`] : [""]),
+            ...(hasMore ? ["", t.more_items_left((total ?? fetchedTotal) - shown)] : [""]),
           ];
         }
         if (type === "posts") {
           const ord = pager.current.order || 'desc';
-          const { posts, total: t } = await fetchPosts(nextPage, ps, ord);
+          const { posts, total: fetchedTotal } = await fetchPosts(nextPage, ps, ord);
           const shown = nextPage * ps;
-          const hasMore = shown < (total ?? t);
+          const hasMore = shown < (total ?? fetchedTotal);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap, order: ord } : null;
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, order: ord } : null;
           const cols = getLineWidth();
           return [
             ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-            ...(hasMore ? ["", "[m]ore"] : [""]),
+            ...(hasMore ? ["", t.more] : [""]),
           ];
         }
         if (type === "pages") {
-          const { pages, total: t } = await fetchPages(nextPage, ps);
+          const { pages, total: fetchedTotal } = await fetchPages(nextPage, ps);
           const shown = nextPage * ps;
-          const hasMore = shown < (total ?? t);
+          const hasMore = shown < (total ?? fetchedTotal);
           pages.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = hasMore ? { type, page: nextPage, total: total ?? t, slugMap } : null;
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
           const cols = getLineWidth();
           return [
             ...batchFmtLineEls(pages.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: '' })), cols),
-            ...(hasMore ? ["", "[m]ore"] : [""]),
+            ...(hasMore ? ["", t.more] : [""]),
           ];
         }
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
       return [];
     }
@@ -604,46 +403,46 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         const order = (orderArg === 'asc' || orderArg === 'desc') ? orderArg : configRef.current.order;
         try {
           const { posts, total } = await fetchPosts(1, ps, order);
-          if (!posts.length) return ["Keine Posts gefunden."];
+          if (!posts.length) return [t.ls_no_posts];
           const hasMore = total > ps;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "posts", page: 1, total, slugMap, order };
           return [
-            `${total} Posts gefunden:`,
+            t.ls_posts_found(total),
             "",
             ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-            ...(hasMore ? ["", "[m]ore"] : []),
+            ...(hasMore ? ["", t.more] : []),
           ];
         } catch (e) {
-          return [`Fehler: ${e.message}`];
+          return [t.error(e.message)];
         }
       }
       if (target === "pages") {
         try {
           const { pages, total } = await fetchPages(1, ps);
-          if (!pages.length) return ["Keine Seiten gefunden."];
+          if (!pages.length) return [t.ls_no_pages];
           const hasMore = total > ps;
           const slugMap = {};
           pages.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "pages", page: 1, total, slugMap };
           return [
-            `${total} Seiten:`,
+            t.ls_pages_found(total),
             "",
             ...batchFmtLineEls(pages.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: '' })), cols),
-            ...(hasMore ? ["", "[m]ore"] : []),
+            ...(hasMore ? ["", t.more] : []),
           ];
         } catch (e) {
-          return [`Fehler: ${e.message}`];
+          return [t.error(e.message)];
         }
       }
-      return [`ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`];
+      return [t.ls_not_found(target)];
     }
 
     case "read":
     case "r": {
       let slug = args[0];
-      if (!slug) return ["Verwendung: read <nummer> oder r <nummer>"];
+      if (!slug) return [t.read_usage];
       const num = parseInt(slug, 10);
       const savedSlugMap = pager.current?.slugMap || {};
       if (!isNaN(num) && savedSlugMap[num]) {
@@ -661,11 +460,11 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           }
         }
         if (!post && isNaN(num)) post = await fetchPostBySlug(slug);
-        if (!post) return [`read: ${slug}: Kein Post gefunden`];
+        if (!post) return [t.read_not_found(slug)];
         const cols = getLineWidth();
         const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
         const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
-        const dateLine = `Veröffentlicht: ${formatDate(post.date)}`;
+        const dateLine = t.read_published(formatDate(post.date));
         const headerW = Math.max(...titleLines.map(l => l.length), dateLine.length);
         const allLines = [
           "-".repeat(headerW),
@@ -686,11 +485,11 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         let more = [];
         if (hasMore) {
           const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + l.length, 0);
-          more = ["", `[m]ore  (${charsLeft} Zeichen verbleibend)`];
+          more = ["", t.more_chars_left(charsLeft)];
         }
         return [...slice, ...more];
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
     }
 
@@ -700,16 +499,16 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
     case "l":
     case "link": {
       const n = parseInt(args[0], 10);
-      if (isNaN(n)) return ["Verwendung: link <nummer>"];
+      if (isNaN(n)) return [t.link_usage];
       // Article footnotes take priority when reading an article
       const footnotes = pager.current?.footnotes;
       let url = footnotes && footnotes[n - 1] ? footnotes[n - 1] : null;
       if (!url) {
         const entry = pager.current?.slugMap?.[n];
-        if (!entry) return [`Nummer ${n} nicht bekannt.`];
+        if (!entry) return [t.link_unknown_num(n)];
         url = typeof entry === "object" ? entry.url : null;
       }
-      if (!url) return ["Keine URL verfügbar."];
+      if (!url) return [t.link_no_url];
       const a = document.createElement('a');
       a.href = url;
       a.target = '_blank';
@@ -717,11 +516,11 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      return [`Öffne: ${url}`];
+      return [t.link_opening(url)];
     }
 
     case "search": {
-      if (!args.length) return ["Verwendung: search <suchbegriff>"];
+      if (!args.length) return [t.search_usage];
       const term = args.join(" ");
       const ps = configRef.current.posts;
       try {
@@ -729,25 +528,25 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
         const posts = await res.json();
-        if (!posts.length) return [`Keine Ergebnisse für "${term}".`];
+        if (!posts.length) return [t.search_no_results(term)];
         const hasMore = total > ps;
         const slugMap = {};
         posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
         pager.current = hasMore ? { type: "search", page: 1, total, slugMap, searchTerm: term } : null;
         const cols = getLineWidth();
         return [
-          `${total} Treffer für "${term}":`,
+          t.search_found(total, term),
           "",
           ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-          ...(hasMore ? ["", `[m]ore  (${total - ps} weitere)`] : []),
+          ...(hasMore ? ["", t.more_items_left(total - ps)] : []),
         ];
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
     }
 
     case "grep": {
-      if (!args.length) return ["Verwendung: grep <suchbegriff>"];
+      if (!args.length) return [t.grep_usage];
       const term = args.join(" ");
       const termLower = term.toLowerCase();
       const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -789,7 +588,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
             "",
           ]);
         });
-        if (!blocks.length) return [`Keine Treffer für "${term}".`];
+        if (!blocks.length) return [t.grep_no_results(term)];
         const pageLines = getPageLines();
         // Fit as many whole blocks as possible into first page
         const firstPage = [];
@@ -806,27 +605,27 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
           shownBlocks,
           slugMap,
         };
-        const header = [`${blocks.length} Treffer für "${term}":`, ""];
+        const header = [t.grep_found(blocks.length, term), ""];
         if (remainingBlocks > 0) {
-          return [...header, ...firstPage, `[m]ore  (${remainingBlocks} weitere Treffer)`];
+          return [...header, ...firstPage, t.more_results_left(remainingBlocks)];
         }
         pager.current = { type: "grep", blocks: [], shownBlocks: blocks.length, slugMap };
         return [...header, ...firstPage];
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
     }
 
     case "comments": {
       const n = parseInt(args[0], 10);
-      if (isNaN(n)) return ["Verwendung: comments <nummer>"];
+      if (isNaN(n)) return [t.comments_usage];
       const entry = pager.current?.slugMap?.[n];
-      if (!entry) return [`Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`];
+      if (!entry) return [t.comments_unknown_num(n)];
       const id = typeof entry === "object" ? entry.id : null;
-      if (!id) return ["Post-ID nicht verfügbar."];
+      if (!id) return [t.comments_no_id];
       try {
         const list = await fetchComments(id);
-        if (!list.length) return ["Keine Kommentare."];
+        if (!list.length) return [t.comments_none];
         const cols = getLineWidth();
         const out = [""];
         list.forEach((c, i) => {
@@ -841,33 +640,33 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         });
         return out;
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
     }
 
     case "c":
     case "comment": {
       const n = parseInt(args[0], 10);
-      if (isNaN(n) || args.length < 2) return ["Verwendung: comment <nummer> <text>"];
+      if (isNaN(n) || args.length < 2) return [t.comment_usage];
       const text = args.slice(1).join(" ").trim();
-      if (!text) return ["Kein Kommentartext angegeben."];
+      if (!text) return [t.comment_no_text];
       const entry = pager.current?.slugMap?.[n];
-      if (!entry) return [`Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`];
+      if (!entry) return [t.comment_unknown_num(n)];
       const id = typeof entry === "object" ? entry.id : null;
-      if (!id) return ["Post-ID nicht verfügbar."];
+      if (!id) return [t.comment_no_id];
       try {
         await postComment(id, HX29.uid || "guest", text);
-        return ["Kommentar gespeichert."];
+        return [t.comment_saved];
       } catch (e) {
-        return [`Fehler: ${e.message}`];
+        return [t.error(e.message)];
       }
     }
 
     case "history": {
       const h = historyRef.current;
-      if (!h.length) return ["Keine Befehlshistorie."];
+      if (!h.length) return [t.history_empty];
       return [
-        "Befehlshistorie:",
+        t.history_title,
         "",
         ...h.slice().reverse().map((cmd, i) => `  ${String(i + 1).padStart(3)}  ${cmd}`),
       ];
@@ -878,15 +677,15 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
     case "man": {
       const topic = args[0]?.toLowerCase();
       if (!topic) return [
-        "Verwendung: man <befehl>",
-        "Verfügbare Handbuchseiten: " + Object.keys(MAN_PAGES).join(", "),
+        t.man_usage,
+        t.man_available + Object.keys(MAN_PAGES).join(", "),
       ];
       const aliases = { r: "read", l: "link", link: "link", c: "comment" };
       const resolved = aliases[topic] ?? topic;
       const page = MAN_PAGES[resolved];
       if (!page) return [
-        `Keine Handbuchseite für '${topic}'.`,
-        "Verfügbar: " + Object.keys(MAN_PAGES).join(", "),
+        t.man_not_found(topic),
+        t.man_available_list + Object.keys(MAN_PAGES).join(", "),
       ];
       return page;
     }
@@ -895,14 +694,14 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       const cfg = { ...configRef.current };
       if (!args.length) {
         return [
-          "Aktuelle Konfiguration:",
+          t.config_current_title,
           "",
-          `  --font   ${cfg.font}px`,
-          `  --posts  ${cfg.posts}`,
-          `  --theme  ${cfg.theme}  (a=grün, b=dunkel, c=lila, d=hell, e=amber)`,
-          `  --order  ${cfg.order}  (asc=älteste zuerst, desc=neueste zuerst)`,
+          t.config_font(cfg.font),
+          t.config_posts(cfg.posts),
+          t.config_theme(cfg.theme),
+          t.config_order(cfg.order),
           "",
-          "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc>",
+          t.config_usage,
         ];
       }
       let changed = false;
@@ -925,9 +724,9 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         configRef.current = cfg;
         saveConfig(cfg);
         applyConfig(cfg);
-        return ["Konfiguration gespeichert."];
+        return [t.config_saved];
       }
-      return ["Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a --order desc"];
+      return [t.config_unknown];
     }
 
     case "clear":
@@ -937,7 +736,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       return [];
 
     default:
-      return [`${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`];
+      return [t.unknown_command(cmd)];
   }
 }
 

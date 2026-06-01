@@ -1,5 +1,6 @@
 import intros from "./intro.json";
 import returning from "./returning.json";
+import { t } from "./i18n/index.js";
 
 const CORRUPT_CHARS = '▒░█▓╬╪╫╗╝╚╔║═╠╣╦╩╤╧▐▌▄▀■□▪▫◘◙';
 
@@ -53,10 +54,10 @@ function loadSession() {
 
 function timeAgo(isoStr) {
   const diff = Math.floor((Date.now() - new Date(isoStr)) / 1000);
-  if (diff < 60)    return `${diff} seconds ago`;
-  if (diff < 3600)  return `${Math.floor(diff / 60)} minutes ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
-  return `${Math.floor(diff / 86400)} days ago`;
+  if (diff < 60)    return t.time_seconds_ago(diff);
+  if (diff < 3600)  return t.time_minutes_ago(Math.floor(diff / 60));
+  if (diff < 86400) return t.time_hours_ago(Math.floor(diff / 3600));
+  return t.time_days_ago(Math.floor(diff / 86400));
 }
 
 function formatTs(isoStr) {
@@ -73,11 +74,12 @@ export function getSessionIntro(siteName) {
     SITE_NAME: siteName,
     LAST_VISIT: lastVisit ? formatTs(lastVisit) : '---',
     TIME_AGO: lastVisit ? timeAgo(lastVisit) : '---',
+    HELP_TIP: t.help_tip_boot,
   };
   return { stage, items: stageData.items.map(item => expandItem(item, vars)) };
 }
 
 export function getIntro(siteName) {
   const intro = intros[Math.floor(Math.random() * intros.length)];
-  return intro.map(item => expandItem(item, { SITE_NAME: siteName }));
+  return intro.map(item => expandItem(item, { SITE_NAME: siteName, HELP_TIP: t.help_tip_boot }));
 }
