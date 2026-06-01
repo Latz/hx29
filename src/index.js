@@ -7,7 +7,6 @@ import {
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
-import { idleNeonFlicker, idleVortex, idleBufferMelt } from "./idle";
 import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
@@ -1077,7 +1076,11 @@ function WPTerminal() {
 
   useEffect(() => {
     const IDLE_MS = 20 * 1000;
-    const SEQUENCES = [idleNeonFlicker, idleVortex, idleBufferMelt];
+    const SEQUENCE_LOADERS = [
+      () => import(/* webpackChunkName: "idle-neon"   */ "./idle/neonFlicker").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-vortex" */ "./idle/vortex").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-melt"   */ "./idle/bufferMelt").then(m => m.default),
+    ];
     let lastSeq = -1;
 
     const runIdleSequence = async () => {
@@ -1088,7 +1091,7 @@ function WPTerminal() {
       idleActiveRef.current = true;
 
       let pick;
-      do { pick = Math.floor(Math.random() * SEQUENCES.length); } while (pick === lastSeq && SEQUENCES.length > 1);
+      do { pick = Math.floor(Math.random() * SEQUENCE_LOADERS.length); } while (pick === lastSeq && SEQUENCE_LOADERS.length > 1);
       lastSeq = pick;
 
       const ts = Date.now();
@@ -1102,7 +1105,8 @@ function WPTerminal() {
         return arr;
       });
 
-      await SEQUENCES[pick]({ key, wait, append, update, scrollTerminal, idleActiveRef });
+      const seq = await SEQUENCE_LOADERS[pick]();
+      await seq({ key, wait, append, update, scrollTerminal, idleActiveRef });
       // no reschedule — timer only restarts after user input (handleInput)
     };
 
