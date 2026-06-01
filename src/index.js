@@ -6,7 +6,7 @@ import {
   createRoot,
 } from "@wordpress/element";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
-import { getIntro, getReturningIntro } from "./intros";
+import { getIntro } from "./intros";
 import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
@@ -311,18 +311,6 @@ function loadConfig() {
 function saveConfig(cfg) {
   const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
   document.cookie = `hx29_config=${encodeURIComponent(JSON.stringify(cfg))}; expires=${exp}; path=/; SameSite=Lax`;
-}
-
-function getVisitCount() {
-  const c = document.cookie.split('; ').find(r => r.startsWith('hx29_visits='));
-  return c ? parseInt(c.split('=')[1], 10) || 0 : 0;
-}
-
-function incrementVisitCount() {
-  const n = getVisitCount() + 1;
-  const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
-  document.cookie = `hx29_visits=${n}; expires=${exp}; path=/; SameSite=Lax`;
-  return n;
 }
 
 function loadHistory() {
@@ -991,8 +979,7 @@ function WPTerminal() {
   useEffect(() => { applyConfig(configRef.current); }, []);
 
   useEffect(() => {
-    const visits = incrementVisitCount();
-    const INTRO = visits > 1 ? getReturningIntro(SITE_NAME, visits) : getIntro(SITE_NAME);
+    const INTRO = getIntro(SITE_NAME);
     let cancelled = false;
     const charDelay = () => Math.random() < 0.03 ? 15 + Math.random() * 20 : 0;
 

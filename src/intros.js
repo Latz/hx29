@@ -1,5 +1,4 @@
 import intros from "./intro.json";
-import returning from "./returning.json";
 
 const CORRUPT_CHARS = '▒░█▓╬╪╫╗╝╚╔║═╠╣╦╩╤╧▐▌▄▀■□▪▫◘◙';
 
@@ -12,33 +11,24 @@ function corrupt(text) {
   }).join('');
 }
 
-function expandItem(item, vars) {
-  if (item.__phases) {
-    const first = item.__phases[0];
-    const last = item.__phases[item.__phases.length - 1];
-    return {
-      ...item,
-      __phases: [
-        { text: first.text, hold: 200 + Math.floor(Math.random() * 300) },
-        { text: corrupt(first.text), hold: 100 + Math.floor(Math.random() * 200) },
-        { text: last.text, hold: last.hold },
-      ],
-    };
-  }
-  if (!item.text) return item;
-  let text = item.text;
-  for (const [k, v] of Object.entries(vars)) {
-    text = text.replace(`{{${k}}}`, v);
-  }
-  return { ...item, text };
-}
-
 export function getIntro(siteName) {
   const intro = intros[Math.floor(Math.random() * intros.length)];
-  return intro.map((item) => expandItem(item, { SITE_NAME: siteName }));
-}
-
-export function getReturningIntro(siteName, visits) {
-  const intro = returning[Math.floor(Math.random() * returning.length)];
-  return intro.map((item) => expandItem(item, { SITE_NAME: siteName, VISITS: visits }));
+  return intro.map((item) => {
+    if (item.__phases) {
+      const first = item.__phases[0];
+      const last = item.__phases[item.__phases.length - 1];
+      return {
+        ...item,
+        __phases: [
+          { text: first.text, hold: 200 + Math.floor(Math.random() * 300) },
+          { text: corrupt(first.text), hold: 100 + Math.floor(Math.random() * 200) },
+          { text: last.text, hold: last.hold },
+        ],
+      };
+    }
+    return {
+      ...item,
+      text: item.text ? item.text.replace('{{SITE_NAME}}', siteName) : item.text,
+    };
+  });
 }
