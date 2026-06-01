@@ -1075,7 +1075,7 @@ function WPTerminal() {
   }, []);
 
   useEffect(() => {
-    const IDLE_MS = 20 * 1000;
+    const IDLE_MS = 5 * 60 * 1000;
     const SEQUENCE_LOADERS = [
       () => import(/* webpackChunkName: "idle-neon"      */ "./idle/neonFlicker").then(m => m.default),
       () => import(/* webpackChunkName: "idle-vortex"    */ "./idle/vortex").then(m => m.default),
@@ -1085,7 +1085,7 @@ function WPTerminal() {
       () => import(/* webpackChunkName: "idle-gridglitch"*/ "./idle/gridGlitch").then(m => m.default),
       () => import(/* webpackChunkName: "idle-synapse"   */ "./idle/synapseDesync").then(m => m.default),
       () => import(/* webpackChunkName: "idle-memleak"   */ "./idle/memoryLeak").then(m => m.default),
-    ].slice(-1); // TESTING: last sequence only
+    ];
     let lastSeq = -1;
 
     const runIdleSequence = async () => {
