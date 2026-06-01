@@ -73,7 +73,7 @@ Example: `c 1 Ada: Great article!`
 
 `cd` sets a persistent filter context — all subsequent `ls posts` calls are automatically filtered to that category or tag. The shell prompt reflects the active context.
 
-`cd` accepts a full slug, a full name, or a partial string. A single match enters the context directly. Multiple matches show a numbered list; the prompt changes to `Nummer eingeben:` / `Enter number to select:` so you type the number inline.
+`cd` accepts a full slug, a full name, or a partial string. A single match enters the context directly. Multiple matches show a numbered list; the prompt changes to `Enter number to select:` so you type the number inline. Any non-number input cancels. Use `man cd` for full details.
 
 ```
 guest@aeon-gateway:~$ cd sys
