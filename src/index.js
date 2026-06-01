@@ -154,7 +154,7 @@ async function fetchPosts(page = 1, pageSize = 10, order = 'desc', filter = {}) 
 }
 
 async function fetchPostBySlug(slug) {
-  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_fields=title,date,content,author&_embed=wp:term`);
+  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_embed=wp:term`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const posts = await res.json();
   if (!posts.length) return null;
@@ -591,7 +591,7 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         let post = isNaN(num) ? await fetchPostBySlug(slug) : null;
         if (!post && !isNaN(num)) {
           // No slugMap entry — fetch by ordinal position
-          const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_fields=id,slug,title,date,content,link&_embed=wp:term`);
+          const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_embed=wp:term`);
           if (res.ok) {
             const posts = await res.json();
             if (posts.length) post = posts[0];
