@@ -943,7 +943,17 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
 
 function scrollTerminal() {
   const el = document.querySelector(".react-terminal");
-  if (el) el.scrollTop = el.scrollHeight;
+  if (!el) return;
+  const wrapper = document.querySelector(".react-terminal-wrapper");
+  if (wrapper) {
+    wrapper.style.transition = "opacity 50ms linear";
+    wrapper.style.opacity = "0.85";
+    setTimeout(() => {
+      wrapper.style.transition = "opacity 120ms ease-out";
+      wrapper.style.opacity = "1";
+    }, 50);
+  }
+  el.scrollTop = el.scrollHeight;
 }
 
 function maybeSyncTear() {
