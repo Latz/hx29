@@ -117,6 +117,7 @@ html, body {
     font-family: var(--font) !important;
     font-size: var(--fsize) !important;
     transition: color 0.4s ease-out;
+    text-shadow: 0 0 6px var(--fg);
 }
 
 #hx29-root .react-terminal-input[data-terminal-prompt]:before {
@@ -268,8 +269,8 @@ a { color: var(--accent); }
         to bottom,
         transparent 0px,
         transparent 2px,
-        rgba(0, 0, 0, 0.18) 2px,
-        rgba(0, 0, 0, 0.18) 4px
+        rgba(0, 0, 0, 0.35) 2px,
+        rgba(0, 0, 0, 0.35) 4px
     );
 }
 
