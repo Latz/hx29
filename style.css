@@ -257,6 +257,19 @@ a { color: var(--accent); }
 }
 
 
+/* ── Horizontal sync tear ────────────────────────────────────────── */
+@keyframes sync-tear {
+    0%   { transform: none; clip-path: none; opacity: 1; }
+    20%  { transform: skewX(12deg) translateX(6px); clip-path: inset(0 0 40% 0); opacity: 0.85; }
+    50%  { transform: skewX(-8deg) translateX(-4px); clip-path: inset(30% 0 0 0); opacity: 0.9; }
+    80%  { transform: skewX(4deg) translateX(2px); clip-path: none; opacity: 1; }
+    100% { transform: none; clip-path: none; opacity: 1; }
+}
+
+.sync-tear {
+    animation: sync-tear 80ms linear forwards;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 768px) {
     #terminal-container { padding: 8px; }

@@ -946,6 +946,20 @@ function scrollTerminal() {
   if (el) el.scrollTop = el.scrollHeight;
 }
 
+function maybeSyncTear() {
+  if (Math.random() >= 0.03) return;
+  const lines = document.querySelectorAll(".react-terminal .react-terminal-line");
+  if (!lines.length) return;
+  const target = lines[lines.length - 1];
+  const duration = 40 + Math.random() * 40;
+  target.classList.add("sync-tear");
+  target.style.animationDuration = `${duration}ms`;
+  setTimeout(() => {
+    target.classList.remove("sync-tear");
+    target.style.animationDuration = "";
+  }, duration + 10);
+}
+
 function getPageLines() {
   const el = document.querySelector(".react-terminal");
   if (!el) return 20;
@@ -1309,6 +1323,8 @@ function WPTerminal() {
         setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>]);
         setTimeout(tick, charDelay());
       });
+
+      maybeSyncTear();
 
       // 1% chance of a glitch line after each output line
       if (Math.random() < 0.01) {
