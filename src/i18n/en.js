@@ -112,30 +112,34 @@ export default {
   // ls subcommand --help blocks
   ls_help: {
     posts: [
-      "ls posts [asc|desc]  – list all blog posts",
+      "ls posts [asc|desc] [--all]  – list blog posts",
       "",
       "  (no arg)   newest first (respects config --order)",
       "  asc        oldest first",
       "  desc       newest first",
+      "  --all      ignore item limit, show all posts",
       "",
       "  Numbers can be used with: read, link, comments",
-      "  Use [m]ore to paginate.",
+      "  Use [m]ore to paginate (without --all).",
     ],
     pages: [
-      "ls pages  – list all static pages",
+      "ls pages [--all]  – list all static pages",
       "",
+      "  --all      ignore item limit, show all pages",
       "  Numbers can be used with: read, link",
-      "  Use [m]ore to paginate.",
+      "  Use [m]ore to paginate (without --all).",
     ],
     categories: [
-      "ls categories  – list all categories  (alias: ls cats)",
+      "ls categories [--all]  – list all categories  (alias: ls cats)",
       "",
-      "  Use [m]ore to paginate.",
+      "  --all      ignore item limit, show all categories",
+      "  Use [m]ore to paginate (without --all).",
     ],
     tags: [
-      "ls tags  – list all tags",
+      "ls tags [--all]  – list all tags",
       "",
-      "  Use [m]ore to paginate.",
+      "  --all      ignore item limit, show all tags",
+      "  Use [m]ore to paginate (without --all).",
     ],
   },
 

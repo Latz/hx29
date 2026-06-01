@@ -112,30 +112,34 @@ export default {
   // ls subcommand --help blocks
   ls_help: {
     posts: [
-      "ls posts [asc|desc]  – alle Blogposts auflisten",
+      "ls posts [asc|desc] [--all]  – Blogposts auflisten",
       "",
       "  (kein Arg)  neueste zuerst (gemäß config --order)",
       "  asc         älteste zuerst",
       "  desc        neueste zuerst",
+      "  --all       Itemlimit ignorieren, alle Posts anzeigen",
       "",
       "  Nummern verwendbar mit: read, link, comments",
-      "  Mit [m]ore weiterblättern.",
+      "  Mit [m]ore weiterblättern (ohne --all).",
     ],
     pages: [
-      "ls pages  – alle statischen Seiten auflisten",
+      "ls pages [--all]  – alle statischen Seiten auflisten",
       "",
+      "  --all       Itemlimit ignorieren, alle Seiten anzeigen",
       "  Nummern verwendbar mit: read, link",
-      "  Mit [m]ore weiterblättern.",
+      "  Mit [m]ore weiterblättern (ohne --all).",
     ],
     categories: [
-      "ls categories  – alle Kategorien auflisten  (Alias: ls cats)",
+      "ls categories [--all]  – alle Kategorien auflisten  (Alias: ls cats)",
       "",
-      "  Mit [m]ore weiterblättern.",
+      "  --all       Itemlimit ignorieren, alle Kategorien anzeigen",
+      "  Mit [m]ore weiterblättern (ohne --all).",
     ],
     tags: [
-      "ls tags  – alle Tags auflisten",
+      "ls tags [--all]  – alle Tags auflisten",
       "",
-      "  Mit [m]ore weiterblättern.",
+      "  --all       Itemlimit ignorieren, alle Tags anzeigen",
+      "  Mit [m]ore weiterblättern (ohne --all).",
     ],
   },
 

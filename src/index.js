@@ -439,13 +439,28 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
 
     case "ls": {
       pager.current = null;
-      const ps = configRef.current.posts;
+      const showAll = args.includes('--all');
+      const ps = showAll ? 100 : configRef.current.posts;
       const cols = getLineWidth();
       const target = args[0]?.toLowerCase();
       if (args.includes('--help')) {
         const key = target === 'cats' ? 'categories' : target;
         return t.ls_help[key] ?? t.man_pages.ls;
       }
+
+      // Fetch all pages when --all is set
+      async function fetchAllPages(fetcher) {
+        let page = 1, all = [], total = 0;
+        do {
+          const res = await fetcher(page, 100);
+          const items = res.posts ?? res.pages ?? res.cats ?? res.tags;
+          total = res.total;
+          all = all.concat(items);
+          page++;
+        } while (all.length < total);
+        return { items: all, total };
+      }
+
       if (!target || target === "posts") {
         const orderArg = args[1]?.toLowerCase();
         const order = (orderArg === 'asc' || orderArg === 'desc') ? orderArg : configRef.current.order;
@@ -465,9 +480,15 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
           } catch (e) { return [t.error(e.message)]; }
         }
         try {
-          const { posts, total } = await fetchPosts(1, ps, order, filter);
+          let posts, total;
+          if (showAll) {
+            const r = await fetchAllPages((p, s) => fetchPosts(p, s, order, filter));
+            posts = r.items; total = r.total;
+          } else {
+            ({ posts, total } = await fetchPosts(1, ps, order, filter));
+          }
           if (!posts.length) return [t.ls_no_posts];
-          const hasMore = total > ps;
+          const hasMore = !showAll && total > ps;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "posts", page: 1, total, slugMap, order, filter };
@@ -483,9 +504,15 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
       }
       if (target === "pages") {
         try {
-          const { pages, total } = await fetchPages(1, ps);
+          let pages, total;
+          if (showAll) {
+            const r = await fetchAllPages((p, s) => fetchPages(p, s));
+            pages = r.items; total = r.total;
+          } else {
+            ({ pages, total } = await fetchPages(1, ps));
+          }
           if (!pages.length) return [t.ls_no_pages];
-          const hasMore = total > ps;
+          const hasMore = !showAll && total > ps;
           const slugMap = {};
           pages.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "pages", page: 1, total, slugMap };
@@ -501,9 +528,15 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
       }
       if (target === "categories" || target === "cats") {
         try {
-          const { cats, total } = await fetchCategories(1, ps);
+          let cats, total;
+          if (showAll) {
+            const r = await fetchAllPages((p, s) => fetchCategories(p, s));
+            cats = r.items; total = r.total;
+          } else {
+            ({ cats, total } = await fetchCategories(1, ps));
+          }
           if (!cats.length) return [t.ls_no_categories];
-          const hasMore = total > ps;
+          const hasMore = !showAll && total > ps;
           const slugMap = {};
           cats.forEach((c, i) => { slugMap[i + 1] = { slug: c.slug, id: c.id, url: c.link }; });
           pager.current = { type: "categories", page: 1, total, slugMap };
@@ -519,9 +552,15 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
       }
       if (target === "tags") {
         try {
-          const { tags, total } = await fetchTags(1, ps);
+          let tags, total;
+          if (showAll) {
+            const r = await fetchAllPages((p, s) => fetchTags(p, s));
+            tags = r.items; total = r.total;
+          } else {
+            ({ tags, total } = await fetchTags(1, ps));
+          }
           if (!tags.length) return [t.ls_no_tags];
-          const hasMore = total > ps;
+          const hasMore = !showAll && total > ps;
           const slugMap = {};
           tags.forEach((tg, i) => { slugMap[i + 1] = { slug: tg.slug, id: tg.id, url: tg.link }; });
           pager.current = { type: "tags", page: 1, total, slugMap };
