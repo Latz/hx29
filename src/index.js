@@ -304,10 +304,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       return [
         t.help_available_commands,
         "",
-        t.help_ls_posts,
-        t.help_ls_pages,
-        t.help_ls_categories,
-        t.help_ls_tags,
+        t.help_ls,
         t.help_read,
         t.help_link,
         t.help_search,

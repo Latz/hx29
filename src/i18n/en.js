@@ -4,10 +4,7 @@ export default {
 
   // help command
   help_available_commands: "Available commands:",
-  help_ls_posts:    "  ls posts [asc|desc]  – list all blog posts",
-  help_ls_pages:    "  ls pages          – list all pages",
-  help_ls_categories: "  ls categories, ls cats  – list all categories",
-  help_ls_tags:     "  ls tags           – list all tags",
+  help_ls:          "  ls <posts|pages|categories|cats|tags>  – list content",
   help_read:        "  read <n>, r <n>   – read article by number",
   help_link:        "  link <n>, l <n>   – open post in browser",
   help_search:      "  search <…>        – search posts",
