@@ -44,6 +44,8 @@ export default {
   ls_no_tags:       "No tags found.",
   ls_tags_found:    (n) => `${n} tags:`,
   ls_not_found:     (t) => `ls: '${t}' not found. Try: ls posts, ls pages, ls categories, ls tags`,
+  ls_sort_hint_desc: "  Sort: newest first  –  try: ls posts asc",
+  ls_sort_hint_asc:  "  Sort: oldest first  –  try: ls posts desc",
 
   // read
   read_usage:       "Usage: read <number> or r <number>",

@@ -492,10 +492,13 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
           pager.current = { type: "posts", page: 1, total, slugMap, order, filter };
+          const sortHint = order === 'asc' ? t.ls_sort_hint_asc : t.ls_sort_hint_desc;
           return [
             t.ls_posts_found(total),
             "",
             ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
+            "",
+            sortHint,
             ...(hasMore ? ["", t.more] : []),
           ];
         } catch (e) {
