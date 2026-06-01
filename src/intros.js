@@ -39,11 +39,16 @@ function loadSession() {
     sig = 'SIG-' + Math.floor(1000 + Math.random() * 9000);
     localStorage.setItem('hx29_sig', sig);
   }
-  const visits = parseInt(localStorage.getItem('hx29_visits') || '0', 10) + 1;
-  localStorage.setItem('hx29_visits', visits);
   const lastVisit = localStorage.getItem('hx29_last_visit') || null;
-  localStorage.setItem('hx29_last_visit', new Date().toISOString());
-  return { sig, visits, lastVisit };
+  const hourPassed = lastVisit && (Date.now() - new Date(lastVisit)) >= 3600_000;
+  const isFirstVisit = !lastVisit;
+  let visits = parseInt(localStorage.getItem('hx29_visits') || '0', 10);
+  if (isFirstVisit || hourPassed) {
+    visits += 1;
+    localStorage.setItem('hx29_visits', visits);
+    localStorage.setItem('hx29_last_visit', new Date().toISOString());
+  }
+  return { sig, visits: Math.max(visits, 1), lastVisit };
 }
 
 function timeAgo(isoStr) {
@@ -69,7 +74,7 @@ export function getSessionIntro(siteName) {
     LAST_VISIT: lastVisit ? formatTs(lastVisit) : '---',
     TIME_AGO: lastVisit ? timeAgo(lastVisit) : '---',
   };
-  return stageData.items.map(item => expandItem(item, vars));
+  return { stage, items: stageData.items.map(item => expandItem(item, vars)) };
 }
 
 export function getIntro(siteName) {

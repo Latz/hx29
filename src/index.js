@@ -11,6 +11,8 @@ import glitches from "./glitches.json";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
 const HX29 = typeof window !== "undefined" && window.hx29 ? window.hx29 : {};
+// Session resolved once at module load so stage and intro are always consistent
+const _session = getSessionIntro(HX29.site_name || "my-terminal");
 const WP_API = (HX29.rest_root || "/wp-json/").replace(/\/$/, "") + "/wp/v2";
 const NONCE = HX29.nonce || "";
 const SITE_NAME = HX29.site_name || "my-terminal";
@@ -967,7 +969,7 @@ function getLineWidth() {
 function WPTerminal() {
   const [terminalLines, setTerminalLines] = useState([]);
   const [printing, setPrinting] = useState(false);
-  const [visitStage] = useState(() => Math.min(parseInt(localStorage.getItem('hx29_visits') || '0', 10) + 1, 4));
+  const visitStage = _session.stage;
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
   const historyRef = useRef(loadHistory());
@@ -980,7 +982,7 @@ function WPTerminal() {
   useEffect(() => { applyConfig(configRef.current); }, []);
 
   useEffect(() => {
-    const INTRO = getSessionIntro(SITE_NAME);
+    const INTRO = _session.items;
     let cancelled = false;
     const charDelay = () => Math.random() < 0.03 ? 15 + Math.random() * 20 : 0;
 
