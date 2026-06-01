@@ -49,6 +49,8 @@ export default {
   read_usage:       "Verwendung: read <nummer> oder r <nummer>",
   read_not_found:   (s) => `read: ${s}: Kein Post gefunden`,
   read_published:   (d) => `Veröffentlicht: ${d}`,
+  read_categories:  (s) => `Kategorien: ${s}`,
+  read_tags:        (s) => `Tags: ${s}`,
 
   // link
   link_usage:       "Verwendung: link <nummer>",

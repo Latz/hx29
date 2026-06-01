@@ -154,7 +154,7 @@ async function fetchPosts(page = 1, pageSize = 10, order = 'desc', filter = {}) 
 }
 
 async function fetchPostBySlug(slug) {
-  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_fields=title,date,content,author`);
+  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_fields=title,date,content,author&_embed=wp:term`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const posts = await res.json();
   if (!posts.length) return null;
@@ -591,7 +591,7 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         let post = isNaN(num) ? await fetchPostBySlug(slug) : null;
         if (!post && !isNaN(num)) {
           // No slugMap entry — fetch by ordinal position
-          const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_fields=id,slug,title,date,content,link`);
+          const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_fields=id,slug,title,date,content,link&_embed=wp:term`);
           if (res.ok) {
             const posts = await res.json();
             if (posts.length) post = posts[0];
@@ -603,11 +603,19 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
         const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
         const dateLine = t.read_published(formatDate(post.date));
-        const headerW = Math.max(...titleLines.map(l => l.length), dateLine.length);
+        // Extract category and tag names from _embedded wp:term
+        const terms = post._embedded?.['wp:term'] ?? [];
+        const catNames = (terms[0] ?? []).map(term => term.name).filter(Boolean);
+        const tagNames = (terms[1] ?? []).map(term => term.name).filter(Boolean);
+        const catLine  = catNames.length ? t.read_categories(catNames.join(', ')) : null;
+        const tagLine  = tagNames.length ? t.read_tags(tagNames.join(', ')) : null;
+        const metaLines = [catLine, tagLine].filter(Boolean);
+        const headerW = Math.max(...titleLines.map(l => l.length), dateLine.length, ...metaLines.map(l => l.length));
         const allLines = [
           "-".repeat(headerW),
           ...titleLines,
           dateLine,
+          ...metaLines,
           "-".repeat(headerW),
           "",
           ...bodyLines,
