@@ -257,6 +257,27 @@ a { color: var(--accent); }
 }
 
 
+/* ── CRT tube vignette ───────────────────────────────────────────── */
+#hx29-root::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 55%,
+        rgba(0, 0, 0, 0.25) 80%,
+        rgba(0, 0, 0, 0.55) 100%
+    );
+}
+
+/* Subtle tube curve: slight perspective warp on the terminal content */
+.react-terminal-wrapper {
+    transform: perspective(1200px) rotateX(0.4deg);
+    transform-origin: center center;
+}
+
 /* ── 50Hz mains hum bar ──────────────────────────────────────────── */
 @keyframes hum-bar {
     0%   { transform: translateY(-100px); }
