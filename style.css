@@ -272,11 +272,6 @@ a { color: var(--accent); }
     );
 }
 
-/* Subtle tube curve: slight perspective warp on the terminal content */
-.react-terminal-wrapper {
-    transform: perspective(1200px) rotateX(0.4deg);
-    transform-origin: center center;
-}
 
 /* ── 50Hz mains hum bar ──────────────────────────────────────────── */
 @keyframes hum-bar {
