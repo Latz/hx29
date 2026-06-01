@@ -112,19 +112,10 @@ html, body {
     color: var(--fg) !important;
 }
 
-@keyframes phosphor-decay {
-    0%   { text-shadow: 0 0 8px var(--fg), 0 0 2px var(--fg); }
-    50%  { text-shadow: 0 0 12px var(--fg), 0 0 4px var(--fg); }
-    100% { text-shadow: 0 0 8px var(--fg), 0 0 2px var(--fg); }
-}
-
 .react-terminal-line {
     color: var(--fg) !important;
     font-family: var(--font) !important;
     font-size: var(--fsize) !important;
-    transition: color 0.4s ease-out;
-    text-shadow: 0 0 8px var(--fg), 0 0 2px var(--fg);
-    animation: phosphor-decay 4s ease-in-out infinite;
 }
 
 #hx29-root .react-terminal-input[data-terminal-prompt]:before {
