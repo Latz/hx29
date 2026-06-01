@@ -1076,7 +1076,6 @@ function WPTerminal() {
 
   useEffect(() => {
     const IDLE_MS = 20 * 1000;
-    const SYSTEM_USER = ['Lars', 'Admin', 'User', 'Johannes', 'Max'][Math.floor(Math.random() * 5)];
 
     const runIdleSequence = async () => {
       if (introPlayingRef.current || printingRef.current) {
@@ -1095,40 +1094,69 @@ function WPTerminal() {
         return arr;
       });
 
-      append(key('l1'), '[!] TIMEOUT: Operator heartbeat lost.');
+      const FRAME_A = '   N E O N  -  N E X U S  ::  O N L I N E';
+      const GLITCH  = '▒░█▓╬╪╫╗╝╚╔║═╠╣▐▌▄▀■';
+      const corrupt = (t) => t.split('').map(ch =>
+        ch !== ' ' && Math.random() < 0.45
+          ? GLITCH[Math.floor(Math.random() * GLITCH.length)] : ch
+      ).join('');
+      const SEP = '======================================================================';
+
+      const drop = Math.floor(30 + Math.random() * 25);
+      append(key('l1'), `> SYSTEM IDLE LOOP DETECTED // VOLTAGE DROP: ${drop}%`);
       await wait(400);
-      append(key('l2'), '[!] Initiating automatic memory dump to prevent data loss.');
-      await wait(700);
+      append(key('l2'), '');
+      await wait(200);
+      append(key('sep1'), SEP);
+      const signKey = key('sign');
+      append(signKey, FRAME_A);
+      append(key('sep2'), SEP);
+      await wait(500);
+
+      // Flicker loop: alternate between clean and corrupted frame
+      const FLICKERS = 6 + Math.floor(Math.random() * 6);
+      for (let f = 0; f < FLICKERS && idleActiveRef.current; f++) {
+        // Frame B — corrupt flash
+        update(signKey, corrupt(FRAME_A));
+        scrollTerminal();
+        await wait(40 + Math.random() * 80);
+        if (!idleActiveRef.current) break;
+        // Frame A — stable
+        update(signKey, FRAME_A);
+        await wait(200 + Math.random() * 400);
+      }
+
+      if (!idleActiveRef.current) return;
+
       append(key('l3'), '');
       await wait(300);
-
-      const file1 = `C:/Users/${SYSTEM_USER}/Documents/Personal_Vault.rar`;
-      append(key('l4'), `> Uploading '${file1}' -> Tor-Node #4`);
+      append(key('l4'), '[!] ALERT: Backlight inverter failing.');
       await wait(300);
+      append(key('l5'), '[!] Power grid stuttering in District 9...');
+      await wait(500);
+      append(key('l6'), '');
+      append(key('warn'), '*** TOUCH THE DECK TO STABILIZE THE PHOTON STREAM ***');
+      scrollTerminal();
 
-      // Animated progress bar
-      const barKey = key('bar');
-      let pct = 0;
-      const FILLED = '▓';
-      const PARTIAL = ['░', '▒'];
-      const BAR_W = 45;
+      // Wait for keypress
+      await new Promise((res) => {
+        const onKey = () => {
+          document.removeEventListener('keydown', onKey, true);
+          idleActiveRef.current = false;
+          res();
+        };
+        document.addEventListener('keydown', onKey, true);
+      });
 
-      const renderBar = (p, speed) => {
-        const filled = Math.floor(p / 100 * BAR_W);
-        const bar = FILLED.repeat(filled) + PARTIAL[Math.floor(Math.random() * 2)].repeat(BAR_W - filled);
-        return `  [${bar}] ${p}% (${speed} MB/s)`;
-      };
-
-      append(barKey, renderBar(0, '0.0'));
-
-      while (pct < 100 && idleActiveRef.current) {
-        await wait(80 + Math.random() * 220);
-        if (!idleActiveRef.current) break;
-        pct = Math.min(100, pct + Math.floor(1 + Math.random() * 7));
-        const speed = (8 + Math.random() * 12).toFixed(1);
-        update(barKey, renderBar(pct, speed));
-        scrollTerminal();
-      }
+      update(signKey, FRAME_A);
+      setTerminalLines((prev) => {
+        const arr = [...prev];
+        const i = arr.findIndex(l => l?.key === key('warn'));
+        if (i !== -1) arr[i] = <TerminalOutput key={key('stable')}>{'*** PHOTON STREAM STABILIZED ***'}</TerminalOutput>;
+        return arr;
+      });
+      append(key('done'), '');
+      scrollTerminal();
 
       idleActiveRef.current = false;
       // no reschedule — timer only restarts after user input (handleInput)
