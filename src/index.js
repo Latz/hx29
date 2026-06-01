@@ -142,8 +142,11 @@ function applyConfig(cfg) {
 }
 
 // ─── WordPress API ────────────────────────────────────────────────────────────
-async function fetchPosts(page = 1, pageSize = 10, order = 'desc') {
-  const res = await apiFetch(`/posts?per_page=${pageSize}&page=${page}&orderby=date&order=${order}&_fields=id,slug,title,date,link`);
+async function fetchPosts(page = 1, pageSize = 10, order = 'desc', filter = {}) {
+  let qs = `/posts?per_page=${pageSize}&page=${page}&orderby=date&order=${order}&_fields=id,slug,title,date,link`;
+  if (filter.category) qs += `&categories=${filter.category}`;
+  if (filter.tag)      qs += `&tags=${filter.tag}`;
+  const res = await apiFetch(qs);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
@@ -294,7 +297,7 @@ function wrapLines(rawLines, width) {
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
-async function executeCommand(rawInput, pager, configRef, historyRef) {
+async function executeCommand(rawInput, pager, configRef, contextRef, historyRef, setCtxDisplay) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -305,6 +308,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         t.help_available_commands,
         "",
         t.help_ls,
+        t.help_cd,
         t.help_read,
         t.help_link,
         t.help_search,
@@ -379,11 +383,12 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
         }
         if (type === "posts") {
           const ord = pager.current.order || 'desc';
-          const { posts, total: fetchedTotal } = await fetchPosts(nextPage, ps, ord);
+          const fil = pager.current.filter || {};
+          const { posts, total: fetchedTotal } = await fetchPosts(nextPage, ps, ord, fil);
           const shown = nextPage * ps;
           const hasMore = shown < (total ?? fetchedTotal);
           posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, order: ord } : null;
+          pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, order: ord, filter: fil } : null;
           const cols = getLineWidth();
           return [
             ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
@@ -444,13 +449,28 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       if (!target || target === "posts") {
         const orderArg = args[1]?.toLowerCase();
         const order = (orderArg === 'asc' || orderArg === 'desc') ? orderArg : configRef.current.order;
+        // Build filter from active context
+        const filter = {};
+        const ctx = contextRef.current;
+        if (ctx.type === 'category') filter.category = ctx.id;
+        if (ctx.type === 'tag')      filter.tag      = ctx.id;
+        // Extra tag-slug arg stacks on top of a category context
+        const tagArg = args.slice(1).find(a => a !== 'asc' && a !== 'desc' && !a.startsWith('--'));
+        if (tagArg) {
+          try {
+            const { tags: allTags } = await fetchTags(1, 100);
+            const found = allTags.find(tg => tg.slug === tagArg || tg.name.toLowerCase() === tagArg.toLowerCase());
+            if (found) filter.tag = found.id;
+            else return [t.cd_not_found(tagArg)];
+          } catch (e) { return [t.error(e.message)]; }
+        }
         try {
-          const { posts, total } = await fetchPosts(1, ps, order);
+          const { posts, total } = await fetchPosts(1, ps, order, filter);
           if (!posts.length) return [t.ls_no_posts];
           const hasMore = total > ps;
           const slugMap = {};
           posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-          pager.current = { type: "posts", page: 1, total, slugMap, order };
+          pager.current = { type: "posts", page: 1, total, slugMap, order, filter };
           return [
             t.ls_posts_found(total),
             "",
@@ -573,7 +593,7 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
     }
 
     case "cat":
-      return executeCommand('read ' + args.join(' '), pager, configRef, historyRef);
+      return executeCommand('read ' + args.join(' '), pager, configRef, contextRef, historyRef, setCtxDisplay);
 
     case "l":
     case "link": {
@@ -808,6 +828,42 @@ async function executeCommand(rawInput, pager, configRef, historyRef) {
       return [t.config_unknown];
     }
 
+    case "cd": {
+      const target = args[0]?.toLowerCase();
+      // cd with no arg — show current context
+      if (!target) {
+        const ctx = contextRef.current;
+        if (!ctx.type) return [t.cd_no_context];
+        return [t.cd_current(ctx.name, ctx.type)];
+      }
+      // cd .. or cd / — return to root
+      if (target === '..' || target === '/') {
+        contextRef.current = { type: null, id: null, name: null };
+        setCtxDisplay(null);
+        return [t.cd_back_to_root];
+      }
+      // resolve slug/name against categories then tags
+      try {
+        const { cats } = await fetchCategories(1, 100);
+        const cat = cats.find(c => c.slug === target || c.name.toLowerCase() === target.toLowerCase());
+        if (cat) {
+          contextRef.current = { type: 'category', id: cat.id, name: cat.name };
+          setCtxDisplay({ type: 'category', name: cat.slug });
+          return [t.cd_now_in(cat.name, 'category'), t.cd_hint_combine];
+        }
+        const { tags } = await fetchTags(1, 100);
+        const tag = tags.find(tg => tg.slug === target || tg.name.toLowerCase() === target.toLowerCase());
+        if (tag) {
+          contextRef.current = { type: 'tag', id: tag.id, name: tag.name };
+          setCtxDisplay({ type: 'tag', name: tag.slug });
+          return [t.cd_now_in(tag.name, 'tag')];
+        }
+        return [t.cd_not_found(target)];
+      } catch (e) {
+        return [t.error(e.message)];
+      }
+    }
+
     case "clear":
       return "__CLEAR__";
 
@@ -874,6 +930,8 @@ function WPTerminal() {
   const visitStage = _session.stage;
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
+  const contextRef = useRef({ type: null, id: null, name: null });
+  const [ctxDisplay, setCtxDisplay] = useState(null);
   const historyRef = useRef(loadHistory());
   const historyPosRef = useRef(-1);
   const timerRef = useRef(null);
@@ -1134,7 +1192,7 @@ function WPTerminal() {
     if (!raw) return;
 
     pushHistory(historyRef, raw);
-    const result = await executeCommand(raw, pager, configRef, historyRef);
+    const result = await executeCommand(raw, pager, configRef, contextRef, historyRef, setCtxDisplay);
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
@@ -1240,12 +1298,15 @@ function WPTerminal() {
   return (
     <Terminal
       name=""
-      prompt={[
-        `guest@aeon-gateway:~$`,
-        `intruder@aeon-gateway:#`,
-        `anon@apex-mainframe:#`,
-        `operator@aeon-core:#`,
-      ][visitStage - 1]}
+      prompt={(() => {
+        const base = [
+          `guest@aeon-gateway:~$`,
+          `intruder@aeon-gateway:#`,
+          `anon@apex-mainframe:#`,
+          `operator@aeon-core:#`,
+        ][visitStage - 1];
+        return ctxDisplay ? base.replace('~', `~/${ctxDisplay.name}`) : base;
+      })()}
       colorMode={ColorMode.Dark}
       height="100%"
       onInput={printing || introPlaying ? null : handleInput}
