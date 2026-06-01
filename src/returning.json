@@ -1,0 +1,47 @@
+[
+  [
+    { "text": "HAYES SMARTMODEM 2400  --  v2.31", "delay": 300 },
+    { "text": "ATDT 049-89-35840",                "delay": 500 },
+    { "text": null,                               "delay": 800 },
+    { "text": "CONNECT 2400",                     "delay": 300 },
+    { "__phases": [
+        { "text": "Routing via secure node...",     "hold": 0 },
+        { "text": "Routing via secure node... OK",  "hold": 0 }
+      ], "delay": 300 },
+    { "text": null,                               "delay": 300 },
+    { "text": "SESSION RESTORED",                 "delay": 400 },
+    { "text": "KNOWN HOST DETECTED — skipping authentication", "delay": 500 },
+    { "text": "REMOTE HOST: {{SITE_NAME}}",        "delay": 200 },
+    { "text": "VISIT: #{{VISITS}}",               "delay": 200 },
+    { "text": "",                                  "delay": 300 },
+    { "text": "Willkommen zurück. Tippe 'help' für Befehle.", "delay": 0 }
+  ],
+  [
+    { "text": "TERMINAL RECONNECT ATTEMPT...",     "delay": 400 },
+    { "__phases": [
+        { "text": "Authenticating session token...",       "hold": 0 },
+        { "text": "Authenticating session token... VALID", "hold": 0 }
+      ], "delay": 600 },
+    { "text": "",                                  "delay": 300 },
+    { "text": "+--------------------------------------------------+", "delay": 200 },
+    { "text": "| REMOTE HOST: {{SITE_NAME}}",      "delay": 200 },
+    { "text": "| SESSION: RESUMED (visit #{{VISITS}})", "delay": 200 },
+    { "text": "| STATUS:  TRUSTED TERMINAL",       "delay": 200 },
+    { "text": "+--------------------------------------------------+", "delay": 400 },
+    { "text": "",                                  "delay": 300 },
+    { "text": "Willkommen zurück. Tippe 'help' für Befehle.", "delay": 0 }
+  ],
+  [
+    { "text": "WELCOME BACK TO ROBCO INDUSTRIES (TM) TERMLINK", "delay": 500 },
+    { "text": "",                                               "delay": 200 },
+    { "text": "RETURNING USER IDENTIFIED",                      "delay": 400 },
+    { "text": "SESSION LOG: {{VISITS}} VISITS",                 "delay": 300 },
+    { "text": "SECURITY LEVEL: ELEVATED (TRUSTED)",             "delay": 400 },
+    { "text": "",                                               "delay": 300 },
+    { "text": "================================================================", "delay": 200 },
+    { "text": "A C C E S S   G R A N T E D",                   "delay": 400 },
+    { "text": "================================================================", "delay": 400 },
+    { "text": "",                                               "delay": 300 },
+    { "text": "Willkommen zurück. Tippe 'help' für Befehle.",   "delay": 0 }
+  ]
+]
