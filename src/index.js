@@ -609,7 +609,14 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
         const tagNames = (terms[1] ?? []).map(term => term.name).filter(Boolean);
         const catLine  = catNames.length ? t.read_categories(catNames.join(', ')) : null;
         const tagLine  = tagNames.length ? t.read_tags(tagNames.join(', ')) : null;
-        const metaLines = [catLine, tagLine].filter(Boolean);
+        let metaLines;
+        if (catLine && tagLine) {
+          const combined = `${catLine}  ${tagLine}`;
+          const baseW = Math.max(...titleLines.map(l => l.length), dateLine.length);
+          metaLines = combined.length <= baseW ? [combined] : [catLine, tagLine];
+        } else {
+          metaLines = [catLine, tagLine].filter(Boolean);
+        }
         const headerW = Math.max(...titleLines.map(l => l.length), dateLine.length, ...metaLines.map(l => l.length));
         const allLines = [
           "-".repeat(headerW),
