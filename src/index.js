@@ -1075,7 +1075,7 @@ function WPTerminal() {
   }, []);
 
   useEffect(() => {
-    const IDLE_MS = 5 * 60 * 1000;
+    const IDLE_MS = 20 * 1000;
     const SYSTEM_USER = ['Lars', 'Admin', 'User', 'Johannes', 'Max'][Math.floor(Math.random() * 5)];
 
     const runIdleSequence = async () => {
@@ -1134,7 +1134,6 @@ function WPTerminal() {
         append(key('abort'), '');
         append(key('abort2'), '*** UPLINK ABORTED BY OPERATOR ***');
         scrollTerminal();
-        scheduleIdle();
         return;
       }
 
@@ -1164,7 +1163,7 @@ function WPTerminal() {
       });
       append(key('done'), '');
       scrollTerminal();
-      scheduleIdle();
+      // no reschedule — timer only restarts after user input (handleInput)
     };
 
     const scheduleIdle = () => {
@@ -1172,18 +1171,11 @@ function WPTerminal() {
       idleTimerRef.current = setTimeout(runIdleSequence, IDLE_MS);
     };
 
+    // expose scheduleIdle so handleInput can restart the timer
+    idleTimerRef.schedule = scheduleIdle;
     scheduleIdle();
 
-    const resetIdle = () => {
-      if (idleActiveRef.current) return;
-      scheduleIdle();
-    };
-    document.addEventListener('keydown', resetIdle, true);
-
-    return () => {
-      clearTimeout(idleTimerRef.current);
-      document.removeEventListener('keydown', resetIdle, true);
-    };
+    return () => { clearTimeout(idleTimerRef.current); };
   }, []);
 
   useEffect(() => {
@@ -1244,6 +1236,7 @@ function WPTerminal() {
   const handleInput = useCallback(async (input) => {
     if (introPlayingRef.current) return;
     idleActiveRef.current = false;
+    idleTimerRef.schedule?.();
     const raw = input.trim();
 
     setTerminalLines((prev) => [
