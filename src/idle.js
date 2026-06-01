@@ -64,61 +64,78 @@ export async function idleNeonFlicker(ctx) {
   scrollTerminal();
 }
 
-// ─── Animation 2: Memory Dump Upload ─────────────────────────────────────────
-export async function idleMemoryDump(ctx) {
+// ─── Animation 2: Network Vortex ─────────────────────────────────────────────
+export async function idleVortex(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 
-  const USERS = ['Lars', 'Admin', 'User', 'Johannes', 'Max'];
-  const user = USERS[Math.floor(Math.random() * USERS.length)];
-  const FILLED = '▓';
-  const PARTIAL = ['░', '▒'];
-  const BAR_W = 45;
+  // Vortex frames: 4 rotational states for both spinner and box shape
+  const SPINNERS = ['|', '/', '-', '\\'];
+  const VORTEX_FRAMES = [
+    ['        / \\ ', '       /   \\    ', '       \\   /    ', '        \\ / '],
+    ['        | | ', '       |   |    ', '       |   |    ', '        | | '],
+    ['        \\ / ', '       \\   /    ', '       /   \\    ', '        / \\ '],
+    ['        - - ', '       -   -    ', '       -   -    ', '        - - '],
+  ];
 
-  const renderBar = (p, speed) => {
-    const filled = Math.floor(p / 100 * BAR_W);
-    const bar = FILLED.repeat(filled) + PARTIAL[Math.floor(Math.random() * 2)].repeat(BAR_W - filled);
-    return `  [${bar}] ${p}% (${speed} MB/s)`;
-  };
-
-  append(key('l1'), '[!] TIMEOUT: Operator heartbeat lost.');
+  append(key('l1'), '[!] NOTICE: Neural pipeline sitting idle.');
   await wait(400);
-  append(key('l2'), '[!] Initiating automatic memory dump to prevent data loss.');
-  await wait(700);
+  append(key('l2'), '[!] Routing ambient background noise into the vortex...');
+  await wait(600);
   append(key('l3'), '');
-  await wait(300);
-  append(key('l4'), `> Uploading 'C:/Users/${user}/Documents/Personal_Vault.rar' -> Tor-Node #4`);
-  await wait(300);
+  await wait(200);
 
-  const barKey = key('bar');
-  let pct = 0;
-  append(barKey, renderBar(0, '0.0'));
+  // Append the 4 vortex lines + status line
+  const vk = [key('v0'), key('v1'), key('v2'), key('v3')];
+  const statusKey = key('status');
+  const threadKey = key('thread');
 
-  while (pct < 100 && idleActiveRef.current) {
-    await wait(80 + Math.random() * 220);
-    if (!idleActiveRef.current) break;
-    pct = Math.min(100, pct + Math.floor(1 + Math.random() * 7));
-    const speed = (8 + Math.random() * 12).toFixed(1);
-    update(barKey, renderBar(pct, speed));
-    scrollTerminal();
-  }
-
-  if (!idleActiveRef.current) return;
-
-  await wait(300);
-  append(key('l5'), '');
-  append(key('warn'), '*** TOUCH THE DECK TO ABORT UPLINK IMMEDIATELY ***');
+  VORTEX_FRAMES[0].forEach((line, i) => append(vk[i], line));
+  append(statusKey, '');
+  append(threadKey, '');
   scrollTerminal();
 
-  await new Promise((res) => {
+  // Animate until keypress
+  let frame = 0;
+  let buf = 0;
+
+  const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
     document.addEventListener('keydown', onKey, true);
   });
 
+  let aborted = false;
+  done.then(() => { aborted = true; });
+
+  while (!aborted && idleActiveRef.current) {
+    frame = (frame + 1) % 4;
+    buf = Math.min(100, buf + Math.floor(1 + Math.random() * 4));
+    const spinner = SPINNERS[frame];
+    const vf = VORTEX_FRAMES[frame];
+
+    vf.forEach((line, i) => update(vk[i], line));
+    update(statusKey, `       [   ${spinner}   ]  CYCLING DATA PORT_FALLBACK    Buffer fill: ${buf}%`);
+    if (buf > 30 && frame % 2 === 0) {
+      const thread = Math.floor(Math.random() * 16).toString().padStart(2, '0');
+      update(threadKey, `> Thread #${thread} spinning out of sync...`);
+    }
+    scrollTerminal();
+    await wait(100);
+  }
+
+  if (!idleActiveRef.current) return;
   idleActiveRef.current = false;
-  update(key('warn'), '*** UPLINK ABORTED BY OPERATOR ***');
+
+  // Replace warn line, show resolution
+  update(vk[0], '        * * ');
+  update(vk[1], '       *   *    [ VORTEX COLLAPSED ]');
+  update(vk[2], '       *   *    ');
+  update(vk[3], '        * * ');
+  update(statusKey, '');
+  update(threadKey, '');
   await wait(300);
-  append(key('l6'), '[ OK ] Uplink terminated. Memory buffer cleared.');
-  append(key('l7'), '[ OK ] Encryption keys rotated. Trace routes flushed.');
+  append(key('l4'), '');
+  append(key('l5'), '[ OK ] Vortex dissipated. Ambient noise rerouted to /dev/null.');
+  append(key('l6'), '[ OK ] Neural pipeline flushed. Thread synchronization restored.');
   append(key('done'), '');
   scrollTerminal();
 }
