@@ -1090,8 +1090,12 @@ function WPTerminal() {
           const msg = glitches[Math.floor(Math.random() * glitches.length)];
           setTerminalLines((prev) => [...prev, <TerminalOutput key={`glitch-${Date.now()}`}>{msg}</TerminalOutput>]);
           setTimeout(scrollTerminal, 50);
+          // wait for next user interaction before scheduling another glitch
+          timerRef.current = null;
+          timerRef.reschedule = () => { timerRef.current = schedule(); };
+        } else {
+          timerRef.current = schedule();
         }
-        timerRef.current = schedule();
       }, delay);
     };
     timerRef.current = schedule();
@@ -1234,6 +1238,8 @@ function WPTerminal() {
     if (introPlayingRef.current) return;
     idleActiveRef.current = false;
     idleTimerRef.schedule?.();
+    timerRef.reschedule?.();
+    timerRef.reschedule = null;
     const raw = input.trim();
 
     setTerminalLines((prev) => [
