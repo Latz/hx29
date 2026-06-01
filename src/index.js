@@ -1205,7 +1205,13 @@ function WPTerminal() {
       return;
     }
 
-    const charDelay = () => Math.random() < 0.03 ? 15 + Math.random() * 20 : 0;
+    // 1200 baud: ~8ms/char baseline; 4% chance of a 200–500ms line-noise freeze mid-word
+    const charDelay = (ch, nextCh) => {
+      const base = 6 + Math.random() * 4;
+      const midWord = ch !== ' ' && nextCh && nextCh !== ' ';
+      if (midWord && Math.random() < 0.04) return base + 200 + Math.random() * 300;
+      return base;
+    };
     const LINE_DELAY = 8;
 
     setPrinting(true);
@@ -1271,7 +1277,7 @@ function WPTerminal() {
             return next;
           });
           if (charIndex < animText.length) {
-            setTimeout(tick, charDelay());
+            setTimeout(tick, charDelay(animText[charIndex - 1], animText[charIndex]));
           } else {
             resolve();
           }
