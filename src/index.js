@@ -1081,7 +1081,11 @@ function WPTerminal() {
       () => import(/* webpackChunkName: "idle-vortex"    */ "./idle/vortex").then(m => m.default),
       () => import(/* webpackChunkName: "idle-melt"      */ "./idle/bufferMelt").then(m => m.default),
       () => import(/* webpackChunkName: "idle-cyberdeck" */ "./idle/cyberdeck").then(m => m.default),
-    ];
+      () => import(/* webpackChunkName: "idle-overheat"  */ "./idle/overheat").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-gridglitch"*/ "./idle/gridGlitch").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-synapse"   */ "./idle/synapseDesync").then(m => m.default),
+      () => import(/* webpackChunkName: "idle-memleak"   */ "./idle/memoryLeak").then(m => m.default),
+    ].slice(-1); // TESTING: last sequence only
     let lastSeq = -1;
 
     const runIdleSequence = async () => {
