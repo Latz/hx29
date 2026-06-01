@@ -144,10 +144,14 @@ html, body {
     height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 45px 45px 20px !important;
+    padding: 45px 45px 45px !important;
     border-radius: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+}
+
+.react-terminal {
+    padding-bottom: 0 !important;
 }
 
 .react-terminal {
