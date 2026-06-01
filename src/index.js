@@ -868,7 +868,7 @@ async function executeCommand(rawInput, pager, configRef, contextRef, historyRef
     }
 
     case "cd": {
-      const target = args[0]?.toLowerCase();
+      const target = args.join(' ').toLowerCase().trim();
       // cd with no arg — show current context
       if (!target) {
         const ctx = contextRef.current;
