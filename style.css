@@ -270,13 +270,11 @@ a { color: var(--accent); }
     pointer-events: none;
     z-index: 9999;
     background: linear-gradient(
-        rgba(255,255,255,0) 0%,
-        rgba(255,255,255,0.06) 15%,
-        rgba(255,255,255,0.06) 25%,
-        rgba(255,255,255,0) 50%,
+        rgba(255,255,255,0) 90%,
+        rgba(255,255,255,0.06) 95%,
         rgba(255,255,255,0) 100%
     );
-    background-size: 100% 300%;
+    background-size: 100% 400%;
     animation: hum-bar 30s linear infinite;
 }
 
