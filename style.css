@@ -116,6 +116,7 @@ html, body {
     color: var(--fg) !important;
     font-family: var(--font) !important;
     font-size: var(--fsize) !important;
+    transition: color 0.4s ease-out;
 }
 
 #hx29-root .react-terminal-input[data-terminal-prompt]:before {
