@@ -947,7 +947,7 @@ function scrollTerminal() {
   const wrapper = document.querySelector(".react-terminal-wrapper");
   if (wrapper) {
     wrapper.style.transition = "opacity 50ms linear";
-    wrapper.style.opacity = "0.85";
+    wrapper.style.opacity = "0.94";
     setTimeout(() => {
       wrapper.style.transition = "opacity 120ms ease-out";
       wrapper.style.opacity = "1";
