@@ -1,0 +1,71 @@
+import { useEffect, useRef } from "@wordpress/element";
+import { TerminalOutput } from "react-terminal-ui";
+import { scrollTerminal } from "../utils.js";
+
+const IDLE_MS = 5 * 60 * 1000;
+
+const SEQUENCE_LOADERS = [
+  () => import(/* webpackChunkName: "idle-neon"      */ "../idle/neonFlicker").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-vortex"    */ "../idle/vortex").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-melt"      */ "../idle/bufferMelt").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-cyberdeck" */ "../idle/cyberdeck").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-overheat"  */ "../idle/overheat").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-gridglitch"*/ "../idle/gridGlitch").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-synapse"   */ "../idle/synapseDesync").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-memleak"   */ "../idle/memoryLeak").then((m) => m.default),
+];
+
+/**
+ * Runs a randomly-selected idle animation sequence after 5 minutes of inactivity.
+ * Sequences are lazy-loaded chunks. The timer is restarted by calling `idleTimerRef.schedule()`.
+ * @param {import('react').MutableRefObject<boolean>} introPlayingRef - True while the intro is running; delays idle start.
+ * @param {import('react').MutableRefObject<boolean>} printingRef - True while a command result is printing; delays idle start.
+ * @param {function(function(Array):Array):void} setTerminalLines - React state setter for terminal lines.
+ * @returns {{idleTimerRef: import('react').MutableRefObject<ReturnType<typeof setTimeout>|null>, idleActiveRef: import('react').MutableRefObject<boolean>}}
+ */
+export default function useIdleSequence(introPlayingRef, printingRef, setTerminalLines) {
+  const idleTimerRef = useRef(null);
+  const idleActiveRef = useRef(false);
+
+  useEffect(() => {
+    let lastSeq = -1;
+
+    const runIdleSequence = async () => {
+      if (introPlayingRef.current || printingRef.current) {
+        scheduleIdle();
+        return;
+      }
+      idleActiveRef.current = true;
+
+      let pick;
+      do { pick = Math.floor(Math.random() * SEQUENCE_LOADERS.length); } while (pick === lastSeq && SEQUENCE_LOADERS.length > 1);
+      lastSeq = pick;
+
+      const ts = Date.now();
+      const key = (suffix) => `idle-${ts}-${suffix}`;
+      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      const append = (k, text) => setTerminalLines((prev) => [...prev, <TerminalOutput key={k}>{text}</TerminalOutput>]);
+      const update = (k, text) => setTerminalLines((prev) => {
+        const arr = [...prev];
+        const i = arr.findIndex((l) => l?.key === k);
+        if (i !== -1) arr[i] = <TerminalOutput key={k}>{text}</TerminalOutput>;
+        return arr;
+      });
+
+      const seq = await SEQUENCE_LOADERS[pick]();
+      await seq({ key, wait, append, update, scrollTerminal, idleActiveRef });
+    };
+
+    const scheduleIdle = () => {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(runIdleSequence, IDLE_MS);
+    };
+
+    idleTimerRef.schedule = scheduleIdle;
+    scheduleIdle();
+
+    return () => { clearTimeout(idleTimerRef.current); };
+  }, []);
+
+  return { idleTimerRef, idleActiveRef };
+}

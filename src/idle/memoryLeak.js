@@ -1,5 +1,11 @@
 import { TerminalOutput } from "react-terminal-ui";
 
+/**
+ * Idle sequence: visually "shreds" a list of filenames character-by-character,
+ * simulating a forced RAM purge until the user interrupts.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleMemoryLeak(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 
@@ -13,6 +19,12 @@ export default async function idleMemoryLeak(ctx) {
   const BAR_W = 10;
   const HASH = '#';
 
+  /**
+   * Renders a shred-progress bar.
+   * @param {number} destroyed - Number of characters already destroyed.
+   * @param {number} total - Total characters in the filename.
+   * @returns {string} Bracket-enclosed progress bar string.
+   */
   const renderProgress = (destroyed, total) => {
     const filled = Math.round(destroyed / total * BAR_W);
     return `[${'▒'.repeat(filled)}${'░'.repeat(BAR_W - filled)}]`;

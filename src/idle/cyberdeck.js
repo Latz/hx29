@@ -1,5 +1,11 @@
 import { TerminalOutput } from "react-terminal-ui";
 
+/**
+ * Idle sequence: oscillating temperature bar (cyberdeck overheat heartbeat)
+ * waiting for a keypress to discharge.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleCyberdeck(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 
@@ -10,6 +16,11 @@ export default async function idleCyberdeck(ctx) {
   // Heartbeat wave: pct oscillates 60→84→60
   const WAVE = [60, 66, 72, 78, 84, 78, 72, 66, 60, 60];
 
+  /**
+   * Renders the temperature bar line.
+   * @param {number} pct - Temperature percentage (0–100).
+   * @returns {string} Formatted bar string with percentage and status label.
+   */
   const renderBar = (pct) => {
     const filled = Math.round(pct / 100 * BAR_W);
     const bar = FILLED.repeat(filled) + EMPTY.repeat(BAR_W - filled);
@@ -17,6 +28,11 @@ export default async function idleCyberdeck(ctx) {
     return `CORE-TEMP: [${bar}] ${pct}% // ${level}`;
   };
 
+  /**
+   * Returns a separator line style based on whether temperature is critical.
+   * @param {number} pct - Temperature percentage.
+   * @returns {string} `=` separator at critical levels, `-` separator otherwise.
+   */
   const renderSep = (pct) => pct >= 80
     ? '=================================================='
     : '--------------------------------------------------';

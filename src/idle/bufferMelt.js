@@ -1,11 +1,23 @@
 import { TerminalOutput } from "react-terminal-ui";
 
+/**
+ * Idle sequence: progressively corrupts a status string with block-drawing glyphs
+ * until the user presses a key, then restores it.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleBufferMelt(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 
   const DROPS = ['░', '▒', '█', '▓'];
   const ORIGIN = 'GRID_STATUS: STABLE_CONNECTIVITY_ESTABLISHED';
 
+  /**
+   * Randomly replaces non-space characters with block-drawing glyphs.
+   * @param {string[]} chars - Current character array.
+   * @param {number} intensity - Controls how many characters are replaced per frame.
+   * @returns {string[]} New character array with some positions melted.
+   */
   const melt = (chars, intensity) => {
     const out = [...chars];
     const candidates = out.reduce((acc, ch, i) => {

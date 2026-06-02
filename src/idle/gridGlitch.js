@@ -1,5 +1,11 @@
 import { TerminalOutput } from "react-terminal-ui";
 
+/**
+ * Idle sequence: scrolling ticker, hex-swap, and glitch-code animation
+ * simulating grid noise leaking into the TTY stream.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleGridGlitch(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 
@@ -8,6 +14,11 @@ export default async function idleGridGlitch(ctx) {
   const CODES = ['404_SUBNET_MAPPED', 'GATE_WAY_ERR', 'NULL_POINTER', 'SEG_FAULT_0x9', 'OVERFLOW_TTY'];
   const TICKER = 'Neon-District billboards switching to mainframe override...';
 
+  /**
+   * Generates a random string of block/box-drawing glitch characters.
+   * @param {number} len - Number of characters to generate.
+   * @returns {string} Random glitch character string of the given length.
+   */
   const randGlitch = (len) => Array.from({ length: len }, () =>
     GLITCH[Math.floor(Math.random() * GLITCH.length)]
   ).join('');

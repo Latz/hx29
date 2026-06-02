@@ -1,5 +1,11 @@
 import { TerminalOutput } from "react-terminal-ui";
 
+/**
+ * Idle sequence: neural sync-rate countdown with jittering chromatic aberration
+ * overlay; reaching 0% clears the terminal via `ctx.clearAll()`.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>, clearAll?:function():void}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleSynapseDesync(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 

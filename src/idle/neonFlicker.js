@@ -2,6 +2,11 @@ import { TerminalOutput } from "react-terminal-ui";
 
 const GLITCH = '▒░█▓╬╪╫╗╝╚╔║═╠╣▐▌▄▀■';
 
+/**
+ * Randomly replaces ~45% of non-space characters with glitch glyphs.
+ * @param {string} t - Input string to corrupt.
+ * @returns {string} String with random characters replaced by glitch symbols.
+ */
 function corrupt(t) {
   return t.split('').map(ch =>
     ch !== ' ' && Math.random() < 0.45
@@ -9,6 +14,12 @@ function corrupt(t) {
   ).join('');
 }
 
+/**
+ * Idle sequence: flickers a neon sign title with glitch corruption,
+ * then waits for a keypress to stabilise.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @returns {Promise<void>}
+ */
 export default async function idleNeonFlicker(ctx) {
   const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
 

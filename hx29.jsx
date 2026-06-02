@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "@wordpress/element";
 
 // ─── Konfig ───────────────────────────────────────────────────────────────────
 const WP_API = "https://your-wordpress-site.com/wp-json/wp/v2";
@@ -113,6 +113,62 @@ async function fetchPages() {
 }
 
 // ─── Command-Handler ──────────────────────────────────────────────────────────
+async function cmdLs(target) {
+  if (!target || target === "posts") {
+    try {
+      const posts = await fetchPosts();
+      if (!posts.length) return [{ text: "Keine Posts gefunden.", style: "muted" }];
+      return [
+        { text: `${posts.length} Posts gefunden:`, style: "info" },
+        { text: "" },
+        ...posts.map((p) => ({
+          text: `  ${p.slug.padEnd(35)} ${formatDate(p.date)}  ${stripHtml(p.title.rendered)}`,
+          style: "success",
+        })),
+      ];
+    } catch (e) {
+      return [{ text: `Fehler: ${e.message}`, style: "error" }];
+    }
+  }
+  if (target === "pages") {
+    try {
+      const pages = await fetchPages();
+      if (!pages.length) return [{ text: "Keine Seiten gefunden.", style: "muted" }];
+      return [
+        { text: `${pages.length} Seiten:`, style: "info" },
+        { text: "" },
+        ...pages.map((p) => ({
+          text: `  ${p.slug.padEnd(35)} ${stripHtml(p.title.rendered)}`,
+          style: "success",
+        })),
+      ];
+    } catch (e) {
+      return [{ text: `Fehler: ${e.message}`, style: "error" }];
+    }
+  }
+  return [{ text: `ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`, style: "error" }];
+}
+
+async function cmdCat(slug) {
+  if (!slug) return [{ text: "Verwendung: cat <slug>", style: "error" }];
+  try {
+    const post = await fetchPostBySlug(slug);
+    if (!post) return [{ text: `cat: ${slug}: Kein Post gefunden`, style: "error" }];
+    const lines = stripHtml(post.content.rendered).split("\n").filter((l) => l.trim());
+    return [
+      { text: "─".repeat(60), style: "muted" },
+      { text: stripHtml(post.title.rendered), style: "info" },
+      { text: `Veröffentlicht: ${formatDate(post.date)}`, style: "muted" },
+      { text: "─".repeat(60), style: "muted" },
+      { text: "" },
+      ...lines.map((l) => ({ text: l, style: "command" })),
+      { text: "" },
+    ];
+  } catch (e) {
+    return [{ text: `Fehler: ${e.message}`, style: "error" }];
+  }
+}
+
 async function executeCommand(rawInput) {
   const parts = rawInput.trim().split(/\s+/);
   const cmd = parts[0].toLowerCase();
@@ -133,81 +189,21 @@ async function executeCommand(rawInput) {
         { text: "" },
         { text: "Tipp: Pfeil-Tasten ↑↓ für Befehlshistorie", style: "muted" },
       ];
-
-    case "ls": {
-      const target = args[0]?.toLowerCase();
-      if (!target || target === "posts") {
-        try {
-          const posts = await fetchPosts();
-          if (!posts.length) return [{ text: "Keine Posts gefunden.", style: "muted" }];
-          return [
-            { text: `${posts.length} Posts gefunden:`, style: "info" },
-            { text: "" },
-            ...posts.map((p) => ({
-              text: `  ${p.slug.padEnd(35)} ${formatDate(p.date)}  ${stripHtml(p.title.rendered)}`,
-              style: "success",
-            })),
-          ];
-        } catch (e) {
-          return [{ text: `Fehler: ${e.message}`, style: "error" }];
-        }
-      }
-      if (target === "pages") {
-        try {
-          const pages = await fetchPages();
-          if (!pages.length) return [{ text: "Keine Seiten gefunden.", style: "muted" }];
-          return [
-            { text: `${pages.length} Seiten:`, style: "info" },
-            { text: "" },
-            ...pages.map((p) => ({
-              text: `  ${p.slug.padEnd(35)} ${stripHtml(p.title.rendered)}`,
-              style: "success",
-            })),
-          ];
-        } catch (e) {
-          return [{ text: `Fehler: ${e.message}`, style: "error" }];
-        }
-      }
-      return [{ text: `ls: '${target}' nicht gefunden. Versuche: ls posts, ls pages`, style: "error" }];
-    }
-
-    case "cat": {
-      const slug = args[0];
-      if (!slug) return [{ text: "Verwendung: cat <slug>", style: "error" }];
-      try {
-        const post = await fetchPostBySlug(slug);
-        if (!post) return [{ text: `cat: ${slug}: Kein Post gefunden`, style: "error" }];
-        const body = stripHtml(post.content.rendered);
-        const lines = body.split("\n").filter((l) => l.trim());
-        return [
-          { text: "─".repeat(60), style: "muted" },
-          { text: stripHtml(post.title.rendered), style: "info" },
-          { text: `Veröffentlicht: ${formatDate(post.date)}`, style: "muted" },
-          { text: "─".repeat(60), style: "muted" },
-          { text: "" },
-          ...lines.map((l) => ({ text: l, style: "command" })),
-          { text: "" },
-        ];
-      } catch (e) {
-        return [{ text: `Fehler: ${e.message}`, style: "error" }];
-      }
-    }
-
+    case "ls":
+      return cmdLs(args[0]?.toLowerCase());
+    case "cat":
+      return cmdCat(args[0]);
     case "whoami":
       return [
         { text: AUTHOR, style: "success" },
         { text: `uid=1000(${AUTHOR}) gid=1000(writers) groups=1000(writers),4(adm)`, style: "muted" },
       ];
-
     case "date":
       return [{ text: new Date().toString(), style: "success" }];
-
     case "clear":
       return "__CLEAR__";
-
     case "":
       return [];
-
     default:
       return [
         { text: `${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`, style: "error" },
