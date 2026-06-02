@@ -25,6 +25,12 @@ export default {
   more_results_left: (n) => `[n]ext  (${n} more results)`,
   more_items_left:   (n) => `[n]ext  (${n} more)`,
   more:              "[n]ext",
+  more_posts:        "[n]ext posts",
+  more_pages:        "[n]ext pages",
+  more_categories:   "[n]ext categories",
+  more_tags:         "[n]ext tags",
+  more_search:       "[n]ext results",
+  more_grep:         "[n]ext results",
 
   // cd
   cd_now_in:         (n, type) => `Entered ${type} context: ${n}`,

@@ -45,7 +45,7 @@ export default async function cmdN(pager, configRef) {
     const remaining = blocks.length - newShown;
     pager.current = { type: "grep", blocks, shownBlocks: newShown, slugMap: grepSlugMap };
     return remaining > 0
-      ? [...nextPage, t.more_results_left(remaining)]
+      ? [...nextPage, t.more_grep]
       : [...nextPage, ""];
   }
 
@@ -67,7 +67,7 @@ export default async function cmdN(pager, configRef) {
       pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, searchTerm } : null;
       return [
         ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-        ...(hasMore ? ["", t.more_items_left((total ?? fetchedTotal) - shown)] : [""]),
+        ...(hasMore ? ["", t.more_search] : [""]),
       ];
     }
     if (type === "posts") {
@@ -80,7 +80,7 @@ export default async function cmdN(pager, configRef) {
       pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, order: ord, filter: fil } : null;
       return [
         ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-        ...(hasMore ? ["", t.more] : [""]),
+        ...(hasMore ? ["", t.more_posts] : [""]),
       ];
     }
     if (type === "pages") {
@@ -91,7 +91,7 @@ export default async function cmdN(pager, configRef) {
       pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
       return [
         ...batchFmtLineEls(pages.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: "" })), cols),
-        ...(hasMore ? ["", t.more] : [""]),
+        ...(hasMore ? ["", t.more_pages] : [""]),
       ];
     }
     if (type === "categories") {
@@ -102,7 +102,7 @@ export default async function cmdN(pager, configRef) {
       pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
       return [
         ...batchFmtLineEls(cats.map((c, i) => ({ n: offset + i + 1, title: c.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more] : [""]),
+        ...(hasMore ? ["", t.more_categories] : [""]),
       ];
     }
     if (type === "tags") {
@@ -113,7 +113,7 @@ export default async function cmdN(pager, configRef) {
       pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
       return [
         ...batchFmtLineEls(tags.map((tg, i) => ({ n: offset + i + 1, title: tg.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more] : [""]),
+        ...(hasMore ? ["", t.more_tags] : [""]),
       ];
     }
   } catch (e) {

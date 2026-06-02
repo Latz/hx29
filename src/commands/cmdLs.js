@@ -78,7 +78,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
         "",
         sortHint,
-        ...(hasMore ? ["", t.more] : []),
+        ...(hasMore ? ["", t.more_posts] : []),
       ];
     } catch (e) {
       return [t.error(e.message)];
@@ -103,7 +103,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         t.ls_pages_found(total),
         "",
         ...batchFmtLineEls(pages.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: "" })), cols),
-        ...(hasMore ? ["", t.more] : []),
+        ...(hasMore ? ["", t.more_pages] : []),
       ];
     } catch (e) {
       return [t.error(e.message)];
@@ -128,7 +128,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         t.ls_categories_found(total),
         "",
         ...batchFmtLineEls(cats.map((c, i) => ({ n: i + 1, title: c.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more] : []),
+        ...(hasMore ? ["", t.more_categories] : []),
       ];
     } catch (e) {
       return [t.error(e.message)];
@@ -153,7 +153,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         t.ls_tags_found(total),
         "",
         ...batchFmtLineEls(tags.map((tg, i) => ({ n: i + 1, title: tg.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more] : []),
+        ...(hasMore ? ["", t.more_tags] : []),
       ];
     } catch (e) {
       return [t.error(e.message)];

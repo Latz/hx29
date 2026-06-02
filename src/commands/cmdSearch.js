@@ -28,7 +28,7 @@ export default async function cmdSearch(args, pager, configRef) {
       t.search_found(total, term),
       "",
       ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-      ...(hasMore ? ["", t.more_items_left(total - ps)] : []),
+      ...(hasMore ? ["", t.more_search] : []),
     ];
   } catch (e) {
     return [t.error(e.message)];

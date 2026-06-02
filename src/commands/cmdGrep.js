@@ -63,7 +63,7 @@ export default async function cmdGrep(args, pager) {
     pager.current = { type: "grep", blocks, shownBlocks, slugMap };
     const header = [t.grep_found(blocks.length, term), ""];
     if (remainingBlocks > 0) {
-      return [...header, ...firstPage, t.more_results_left(remainingBlocks)];
+      return [...header, ...firstPage, t.more_grep];
     }
     pager.current = { type: "grep", blocks: [], shownBlocks: blocks.length, slugMap };
     return [...header, ...firstPage];
