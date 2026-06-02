@@ -16,12 +16,12 @@ import cmdCd from "./cmdCd.js";
 /**
  * Parses raw terminal input and dispatches to the matching command handler.
  * @param {string} rawInput - The full input string typed by the user.
- * @param {import('react').MutableRefObject<{type:string,page:number,total:number,slugMap:Object,lines?:Array,offset?:number}|null>} pager - Shared pager state ref.
- * @param {import('react').MutableRefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
- * @param {import('react').MutableRefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
- * @param {import('react').MutableRefObject<string[]>} historyRef - Command history ref.
+ * @param {import('react').RefObject<{type:string,page:number,total:number,slugMap:Object,lines?:Array,offset?:number}|null>} pager - Shared pager state ref.
+ * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
+ * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
+ * @param {import('react').RefObject<string[]>} historyRef - Command history ref.
  * @param {function({type:string,name:string}|null):void} setCtxDisplay - Updates the prompt context display.
- * @param {import('react').MutableRefObject<{candidates:Array}|null>} pendingRef - Pending disambiguation ref.
+ * @param {import('react').RefObject<{candidates:Array}|null>} pendingRef - Pending disambiguation ref.
  * @returns {Promise<Array<string|import('react').ReactElement>|"__CLEAR__">}
  */
 export async function executeCommand(rawInput, pager, configRef, contextRef, historyRef, setCtxDisplay, pendingRef) {

@@ -2,7 +2,7 @@ import { t } from "../i18n/index.js";
 
 /**
  * Returns the command history as a formatted numbered list.
- * @param {import('react').MutableRefObject<string[]>} historyRef - Command history ref (most-recent-first).
+ * @param {import('react').RefObject<string[]>} historyRef - Command history ref (most-recent-first).
  * @returns {string[]} Formatted history lines.
  */
 export default function cmdHistory(historyRef) {

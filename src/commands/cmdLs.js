@@ -25,9 +25,9 @@ async function fetchAllPages(fetcher) {
  * Lists posts, pages, categories, or tags in a paginated table.
  * Respects the active taxonomy context from `contextRef` when listing posts.
  * @param {string[]} args - `[target?, ...flags]` where target is posts|pages|categories|cats|tags.
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref; updated with the new listing.
- * @param {import('react').MutableRefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
- * @param {import('react').MutableRefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with the new listing.
+ * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
+ * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
  * @returns {Promise<string[]>} Formatted listing lines.
  */
 export default async function cmdLs(args, pager, configRef, contextRef) {

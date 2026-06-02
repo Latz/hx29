@@ -5,8 +5,8 @@ import { batchFmtLineEls, getLineWidth, stripHtml, formatDate } from "../utils.j
 /**
  * Searches posts by keyword via the WP REST API full-text search.
  * @param {string[]} args - Search term tokens (joined with spaces).
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref; updated with search result state.
- * @param {import('react').MutableRefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref (provides page size).
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with search result state.
+ * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref (provides page size).
  * @returns {Promise<string[]>} Formatted result lines.
  */
 export default async function cmdSearch(args, pager, configRef) {

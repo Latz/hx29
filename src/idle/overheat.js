@@ -3,7 +3,7 @@ import { TerminalOutput } from "react-terminal-ui";
 /**
  * Idle sequence: jittering temperature readout with a cycling voltage-dump bar,
  * resolved by a keypress triggering emergency cooling.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleOverheat(ctx) {

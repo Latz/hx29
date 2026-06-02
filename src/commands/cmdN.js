@@ -8,8 +8,8 @@ import { batchFmtLineEls, getPageLines, getLineWidth, stripHtml, formatDate } fr
 /**
  * Advances the active pager to the next page (bound to `n` and `m` commands).
  * Handles article pagination, grep result blocks, and all list types (posts/pages/categories/tags/search).
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref; updated with next-page state.
- * @param {import('react').MutableRefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref (provides page size).
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with next-page state.
+ * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref (provides page size).
  * @returns {Promise<Array<string|import('react').ReactElement>>} Next page of content lines.
  */
 export default async function cmdN(pager, configRef) {

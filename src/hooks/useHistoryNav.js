@@ -15,7 +15,7 @@ function setNativeValue(el, value) {
 /**
  * Wires ArrowUp/ArrowDown history navigation to the hidden terminal input.
  * Also simulates occasional key-bounce with a self-correcting visual notice.
- * @param {import('react').MutableRefObject<string[]>} historyRef - Command history ref (most-recent-first).
+ * @param {import('react').RefObject<string[]>} historyRef - Command history ref (most-recent-first).
  * @param {boolean} printing - When true, key events are ignored.
  * @param {boolean} introPlaying - When true, key events are ignored.
  * @returns {{reset: function():void}} `reset` sets the navigation position back to -1; call it on command submit.

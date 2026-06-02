@@ -6,7 +6,7 @@ import { fmtLine, getPageLines, getLineWidth, stripHtml, formatDate } from "../u
  * Searches post content client-side with highlighted match context.
  * Fetches up to 100 posts and filters lines containing the search term.
  * @param {string[]} args - Search term tokens (joined with spaces).
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref; updated with grep block state.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with grep block state.
  * @returns {Promise<Array<string|import('react').ReactElement>>} Matching lines with highlighted terms, paginated.
  */
 export default async function cmdGrep(args, pager) {

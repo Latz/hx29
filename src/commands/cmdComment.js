@@ -4,7 +4,7 @@ import { postComment } from "../api/comments.js";
 /**
  * Posts a comment on the post identified by a pager slot number.
  * @param {string[]} args - `[n, ...text]` where n is the slugMap entry number.
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
  * @returns {Promise<string[]>} Confirmation or error message.
  */
 export default async function cmdComment(args, pager) {

@@ -7,7 +7,7 @@ const ALIASES = { r: "read", l: "link", link: "link", c: "comment" };
 /**
  * Displays a man page for the given topic, paginating via the pager if needed.
  * @param {string[]} args - `[topic]` to look up (aliases r→read, l/link→link, c→comment).
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
  * @returns {string[]} Man page lines, possibly truncated with a "more" prompt.
  */
 export default function cmdMan(args, pager) {

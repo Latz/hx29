@@ -183,8 +183,9 @@ export function parseBodyWithLinks(html, width) {
   const wrapped = rawLines.flatMap((l) => (l.length <= width ? [l] : wordWrap(l, width)));
 
   const markerRe = /«([^»]*)»​(\d+)‌/g;
-  const lines = wrapped.map((line, li) => {
-    if (!line.includes("«")) return line;
+  const lines = wrapped.map((line) => {
+    const lineKey = line.slice(0, 40);
+    if (!line.includes("«")) return <span key={lineKey}>{line}</span>;
     const parts = [];
     let last = 0;
     let m;
@@ -192,13 +193,13 @@ export function parseBodyWithLinks(html, width) {
     while ((m = markerRe.exec(line)) !== null) {
       if (m.index > last) parts.push(line.slice(last, m.index));
       parts.push(
-        <span key={`lnk-${li}-${m[2]}`} style={{ textDecoration: "underline" }}>{m[1]}</span>
+        <span key={`${lineKey}-${m[2]}`} style={{ textDecoration: "underline" }}>{m[1]}</span>,
+        ` [${m[2]}]`
       );
-      parts.push(` [${m[2]}]`);
       last = m.index + m[0].length;
     }
     if (last < line.length) parts.push(line.slice(last));
-    return <span key={`line-${li}`}>{parts}</span>;
+    return <span key={lineKey}>{parts}</span>;
   });
 
   const footerLines = footnotes.length
@@ -221,7 +222,7 @@ export function parseBodyWithLinks(html, width) {
 export function getPageLines() {
   const el = document.querySelector(".react-terminal");
   if (!el) return 20;
-  const lineH = parseFloat(getComputedStyle(el).fontSize) * 1.4;
+  const lineH = Number.parseFloat(getComputedStyle(el).fontSize) * 1.4;
   return Math.max(5, Math.floor(el.clientHeight / lineH) - 3);
 }
 
@@ -239,7 +240,7 @@ export function getLineWidth() {
   span.textContent = "M";
   el.appendChild(span);
   const charW = span.getBoundingClientRect().width;
-  el.removeChild(span);
+  span.remove();
   return charW > 0 ? Math.floor(el.clientWidth / charW) : LINE_W;
 }
 
@@ -316,9 +317,9 @@ export function saveConfig(cfg) {
 export function applyConfig(cfg) {
   document.documentElement.style.setProperty("--fsize", cfg.font + "px");
   if (cfg.theme && cfg.theme !== "a") {
-    document.documentElement.setAttribute("data-theme", cfg.theme);
+    document.documentElement.dataset.theme = cfg.theme;
   } else {
-    document.documentElement.removeAttribute("data-theme");
+    delete document.documentElement.dataset.theme;
   }
 }
 
@@ -339,7 +340,7 @@ export function loadHistory() {
 /**
  * Prepends a command to the history ref, deduplicates, caps at 25 entries, and
  * persists to the `hx29_history` cookie.
- * @param {import('react').MutableRefObject<string[]>} historyRef - Mutable history ref (mutated in place).
+ * @param {import('react').RefObject<string[]>} historyRef - Mutable history ref (mutated in place).
  * @param {string} cmd - Command string to record.
  * @returns {void}
  */

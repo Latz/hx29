@@ -8,7 +8,7 @@ import { parseBodyWithLinks, getPageLines, getLineWidth, stripHtml, formatDate, 
  * Looks up the slug from the pager slugMap first; falls back to ordinal API fetch.
  * Paginates long articles via the pager and renders hyperlinks as footnotes.
  * @param {string[]} args - `[slug|n]` — a post slug or 1-based list number.
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref; updated with article pagination state.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with article pagination state.
  * @returns {Promise<Array<string|import('react').ReactElement>>} Article lines, possibly truncated with a "more" prompt.
  */
 export default async function cmdRead(args, pager) {

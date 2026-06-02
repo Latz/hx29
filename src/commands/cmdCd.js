@@ -6,9 +6,9 @@ import { fetchCategories, fetchTags } from "../api/taxonomy.js";
  * Supports exact slug/name, partial match, and interactive disambiguation.
  * `cd ..` or `cd /` resets to root. `cd` with no args shows the current context.
  * @param {string[]} args - Target name/slug tokens, or empty to show current context.
- * @param {import('react').MutableRefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active context ref, mutated on change.
+ * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active context ref, mutated on change.
  * @param {function({type:string,name:string}|null):void} setCtxDisplay - Updates the prompt display.
- * @param {import('react').MutableRefObject<{candidates:Array}|null>} pendingRef - Set when disambiguation is needed.
+ * @param {import('react').RefObject<{candidates:Array}|null>} pendingRef - Set when disambiguation is needed.
  * @returns {Promise<string[]>} Status lines.
  */
 export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef) {

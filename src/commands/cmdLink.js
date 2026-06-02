@@ -4,7 +4,7 @@ import { t } from "../i18n/index.js";
  * Opens a numbered link from the active pager context in a new tab.
  * Checks article footnotes first, then the slugMap URL.
  * @param {string[]} args - `[n]` where n is the 1-based link number.
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
  * @returns {string[]} Confirmation or error message.
  */
 export default function cmdLink(args, pager) {

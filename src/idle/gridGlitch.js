@@ -3,7 +3,7 @@ import { TerminalOutput } from "react-terminal-ui";
 /**
  * Idle sequence: scrolling ticker, hex-swap, and glitch-code animation
  * simulating grid noise leaking into the TTY stream.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').MutableRefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleGridGlitch(ctx) {

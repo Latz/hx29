@@ -18,10 +18,10 @@ const SEQUENCE_LOADERS = [
 /**
  * Runs a randomly-selected idle animation sequence after 5 minutes of inactivity.
  * Sequences are lazy-loaded chunks. The timer is restarted by calling `idleTimerRef.schedule()`.
- * @param {import('react').MutableRefObject<boolean>} introPlayingRef - True while the intro is running; delays idle start.
- * @param {import('react').MutableRefObject<boolean>} printingRef - True while a command result is printing; delays idle start.
+ * @param {import('react').RefObject<boolean>} introPlayingRef - True while the intro is running; delays idle start.
+ * @param {import('react').RefObject<boolean>} printingRef - True while a command result is printing; delays idle start.
  * @param {function(function(Array):Array):void} setTerminalLines - React state setter for terminal lines.
- * @returns {{idleTimerRef: import('react').MutableRefObject<ReturnType<typeof setTimeout>|null>, idleActiveRef: import('react').MutableRefObject<boolean>}}
+ * @returns {{idleTimerRef: import('react').RefObject<ReturnType<typeof setTimeout>|null>, idleActiveRef: import('react').RefObject<boolean>}}
  */
 export default function useIdleSequence(introPlayingRef, printingRef, setTerminalLines) {
   const idleTimerRef = useRef(null);

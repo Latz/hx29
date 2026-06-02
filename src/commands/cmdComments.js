@@ -5,7 +5,7 @@ import { getLineWidth, wrapLines, stripHtml, formatDate } from "../utils.js";
 /**
  * Fetches and displays comments for the post at a given pager slot number.
  * @param {string[]} args - `[n]` where n is the slugMap entry number.
- * @param {import('react').MutableRefObject<Object|null>} pager - Shared pager state ref.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
  * @returns {Promise<string[]>} Formatted comment lines or an error message.
  */
 export default async function cmdComments(args, pager) {

@@ -5,7 +5,7 @@ import { saveConfig, applyConfig } from "../utils.js";
  * Reads or updates the persistent user config (font size, page size, theme, sort order).
  * With no args prints current values; with flags (--font, --posts, --theme, --order) updates them.
  * @param {string[]} args - Flag/value pairs, e.g. `["--font", "18", "--theme", "b"]`.
- * @param {import('react').MutableRefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref, mutated in place on change.
+ * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref, mutated in place on change.
  * @returns {string[]} Status lines.
  */
 export default function cmdConfig(args, configRef) {

@@ -7,10 +7,10 @@ import { scrollTerminal } from "../utils.js";
  * Periodically appends a random glitch message to the terminal (every 90–150 s).
  * The timer pauses while the intro or a command is printing, then reschedules
  * on the next user input via `timerRef.reschedule`.
- * @param {import('react').MutableRefObject<boolean>} introPlayingRef - True while the intro animation is running.
- * @param {import('react').MutableRefObject<boolean>} printingRef - True while a command result is being printed.
+ * @param {import('react').RefObject<boolean>} introPlayingRef - True while the intro animation is running.
+ * @param {import('react').RefObject<boolean>} printingRef - True while a command result is being printed.
  * @param {function(function(Array):Array):void} setTerminalLines - React state setter for terminal lines.
- * @returns {import('react').MutableRefObject<ReturnType<typeof setTimeout>|null>} Timer ref; callers may set `.reschedule` to restart after input.
+ * @returns {import('react').RefObject<ReturnType<typeof setTimeout>|null>} Timer ref; callers may set `.reschedule` to restart after input.
  */
 export default function useGlitch(introPlayingRef, printingRef, setTerminalLines) {
   const timerRef = useRef(null);
