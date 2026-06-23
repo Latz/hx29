@@ -123,6 +123,7 @@ export default {
   error_timeout:    "Verbindung unterbrochen. Netzwerk prüfen.",
   error_rate_limit: "Server ausgelastet (429). Kurz warten und erneut versuchen.",
   error_server:     (code) => `Serverfehler (${code}). Später erneut versuchen.`,
+  error_parse:      "Server hat eine ungültige Antwort gesendet. Bitte erneut versuchen.",
   unknown_command:  (cmd) => `${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`,
 
   // timeAgo

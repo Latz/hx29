@@ -28,6 +28,7 @@ vi.mock("../i18n/index.js", () => ({
     error_timeout: "Connection timed out.",
     error_rate_limit: "Server busy (429).",
     error_server: (code) => `Server error (${code}).`,
+    error_parse: "Server returned an invalid response.",
   },
 }));
 

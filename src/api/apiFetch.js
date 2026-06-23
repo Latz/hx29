@@ -51,7 +51,13 @@ export default async function apiFetch(path) {
   if (res.status === 429) throw new ApiError("rate_limit", 429);
   if (!res.ok) throw new ApiError("server", res.status);
 
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new ApiError("parse_error", res.status);
+  }
   _cache.set(url, { data, ts: Date.now() });
   return makeFakeResponse(data);
 }

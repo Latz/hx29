@@ -123,6 +123,7 @@ export default {
   error_timeout:    "Connection timed out. Check your network.",
   error_rate_limit: "Server busy (429). Wait a moment and retry.",
   error_server:     (code) => `Server error (${code}). Try again later.`,
+  error_parse:      "Server returned an invalid response. Try again.",
   unknown_command:  (cmd) => `${cmd}: command not found. Type 'help' for help.`,
 
   // timeAgo

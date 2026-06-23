@@ -8,9 +8,10 @@ import { ApiError } from "./api/apiFetch.js";
  */
 export function fmtApiError(e) {
   if (e instanceof ApiError) {
-    if (e.type === "timeout")    return t.error_timeout;
-    if (e.type === "rate_limit") return t.error_rate_limit;
-    if (e.type === "server")     return t.error_server(e.status);
+    if (e.type === "timeout")     return t.error_timeout;
+    if (e.type === "rate_limit")  return t.error_rate_limit;
+    if (e.type === "server")      return t.error_server(e.status);
+    if (e.type === "parse_error") return t.error_parse;
   }
   return t.error(e.message);
 }
