@@ -5,20 +5,25 @@ import { fetchCategories, fetchTags } from "../api/taxonomy.js";
 import { batchFmtLineEls, getLineWidth, stripHtml, formatDate } from "../utils.js";
 
 /**
- * Exhaustively fetches all pages of a paginated API resource.
+ * Exhaustively fetches all pages of a paginated API resource in parallel.
+ * Fetches page 1 first to discover the total, then fetches remaining pages concurrently.
  * @param {function(page:number, pageSize:number):Promise<{posts?:Array,pages?:Array,cats?:Array,tags?:Array,total:number}>} fetcher - API fetch function.
  * @returns {Promise<{items:Array,total:number}>} All items concatenated with the total count.
  */
 async function fetchAllPages(fetcher) {
-  let page = 1, all = [], total = 0;
-  do {
-    const res = await fetcher(page, 100);
-    const items = res.posts ?? res.pages ?? res.cats ?? res.tags;
-    total = res.total;
-    all = all.concat(items);
-    page++;
-  } while (all.length < total);
-  return { items: all, total };
+  const PAGE_SIZE = 100;
+  const first = await fetcher(1, PAGE_SIZE);
+  const total = first.total;
+  const firstItems = first.posts ?? first.pages ?? first.cats ?? first.tags;
+
+  const remaining = Math.ceil((total - firstItems.length) / PAGE_SIZE);
+  if (remaining <= 0) return { items: firstItems, total };
+
+  const pages = await Promise.all(
+    Array.from({ length: remaining }, (_, i) => fetcher(i + 2, PAGE_SIZE))
+  );
+  const rest = pages.flatMap((r) => r.posts ?? r.pages ?? r.cats ?? r.tags);
+  return { items: [...firstItems, ...rest], total };
 }
 
 /**

@@ -3,6 +3,8 @@
  * HX29 Terminal Theme Functions (React / wp-element)
  */
 
+define('HX29_VERSION', '4.0.0');
+
 require get_template_directory() . '/inc/setup.php';
 require get_template_directory() . '/inc/uid.php';
 require get_template_directory() . '/inc/enqueue.php';

@@ -19,6 +19,8 @@ const _session = getSessionIntro(SITE_NAME);
  * intro sequence, idle effects, and command dispatch.
  * @returns {import('react').ReactElement}
  */
+const MAX_LINES = 500;
+
 function WPTerminal() {
   const [terminalLines, setTerminalLines] = useState([]);
   const [printing, setPrinting] = useState(false);
@@ -26,6 +28,7 @@ function WPTerminal() {
   const [pendingPrompt, setPendingPrompt] = useState(null);
 
   const visitStage = _session.stage;
+  const lineId = useRef(0);
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
   const contextRef = useRef({ type: null, id: null, name: null });
@@ -34,8 +37,13 @@ function WPTerminal() {
   const introPlayingRef = useRef(true);
   const printingRef = useRef(false);
 
+  const scrollDebounceRef = useRef(null);
+
   useEffect(() => { applyConfig(configRef.current); }, []);
-  useEffect(() => { scrollTerminal(); }, [terminalLines]);
+  useEffect(() => {
+    clearTimeout(scrollDebounceRef.current);
+    scrollDebounceRef.current = setTimeout(scrollTerminal, 50);
+  }, [terminalLines]);
 
   const introPlaying = useIntro(_session.items, setTerminalLines);
   useEffect(() => { introPlayingRef.current = introPlaying; }, [introPlaying]);
@@ -43,7 +51,7 @@ function WPTerminal() {
   const glitchTimerRef = useGlitch(introPlayingRef, printingRef, setTerminalLines);
   useHumBar();
   const { idleTimerRef, idleActiveRef } = useIdleSequence(introPlayingRef, printingRef, setTerminalLines);
-  const { reset: resetHistoryPos } = useHistoryNav(historyRef, printing, introPlaying, pager);
+  const { reset: resetHistoryPos } = useHistoryNav(historyRef, printingRef, introPlayingRef, pager);
 
   const handleInput = useCallback(async (input) => {
     if (introPlayingRef.current) return;
@@ -52,10 +60,7 @@ function WPTerminal() {
     if (glitchTimerRef.reschedule) { glitchTimerRef.reschedule(); glitchTimerRef.reschedule = null; }
 
     const raw = input.trim();
-    setTerminalLines((prev) => [
-      ...prev,
-      <TerminalInput key={`in-${Date.now()}`}>{raw}</TerminalInput>,
-    ]);
+    setTerminalLines((prev) => [...prev, <TerminalInput key={`in-${++lineId.current}`}>{raw}</TerminalInput>].slice(-MAX_LINES));
 
     if (!raw) return;
 
@@ -71,12 +76,9 @@ function WPTerminal() {
         setCtxDisplay({ type: pick.type, name: pick.slug });
         const lines = [t.cd_now_in(pick.name, pick.type)];
         if (pick.type === "category") lines.push(t.cd_hint_combine);
-        setTerminalLines((prev) => [
-          ...prev,
-          ...lines.map((line, i) => <TerminalOutput key={`cd-pick-${Date.now()}-${i}`}>{line}</TerminalOutput>),
-        ]);
+        setTerminalLines((prev) => [...prev, ...lines.map((line) => <TerminalOutput key={`cd-${++lineId.current}`}>{line}</TerminalOutput>)].slice(-MAX_LINES));
       } else {
-        setTerminalLines((prev) => [...prev, <TerminalOutput key={`cd-cancel-${Date.now()}`}>{t.cd_cancelled}</TerminalOutput>]);
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={`cd-${++lineId.current}`}>{t.cd_cancelled}</TerminalOutput>].slice(-MAX_LINES));
       }
       return;
     }
@@ -104,10 +106,10 @@ function WPTerminal() {
     for (let i = 0; i < result.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, LINE_DELAY));
       const text = result[i];
-      const key = `out-${Date.now()}-${i}`;
+      const key = `out-${++lineId.current}`;
 
       if (!text) {
-        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{" "}</TerminalOutput>]);
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{" "}</TerminalOutput>].slice(-MAX_LINES));
         continue;
       }
 
@@ -133,7 +135,7 @@ function WPTerminal() {
       }
 
       if (typeof text !== "string" && !text?.__animText) {
-        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{text}</TerminalOutput>]);
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{text}</TerminalOutput>].slice(-MAX_LINES));
         continue;
       }
 
@@ -163,7 +165,7 @@ function WPTerminal() {
             resolve();
           }
         };
-        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>]);
+        setTerminalLines((prev) => [...prev, <TerminalOutput key={key}>{""}</TerminalOutput>].slice(-MAX_LINES));
         setTimeout(tick, charDelay());
       });
 

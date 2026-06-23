@@ -17,17 +17,17 @@ function setNativeValue(el, value) {
  * Wires ArrowUp/ArrowDown history navigation to the hidden terminal input.
  * Also simulates occasional key-bounce with a self-correcting visual notice.
  * @param {import('react').RefObject<string[]>} historyRef - Command history ref (most-recent-first).
- * @param {boolean} printing - When true, key events are ignored.
- * @param {boolean} introPlaying - When true, key events are ignored.
+ * @param {import('react').RefObject<boolean>} printingRef - When true, key events are ignored.
+ * @param {import('react').RefObject<boolean>} introPlayingRef - When true, key events are ignored.
  * @param {import('react').RefObject<Object|null>} pager - Pager ref for slug completion.
  * @returns {{reset: function():void}} `reset` sets the navigation position back to -1; call it on command submit.
  */
-export default function useHistoryNav(historyRef, printing, introPlaying, pager) {
+export default function useHistoryNav(historyRef, printingRef, introPlayingRef, pager) {
   const historyPosRef = useRef(-1);
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (printing || introPlaying) return;
+      if (printingRef.current || introPlayingRef.current) return;
       const el = e.currentTarget;
 
       if (e.key.length === 1 && Math.random() < 0.005) {
@@ -96,7 +96,7 @@ export default function useHistoryNav(historyRef, printing, introPlaying, pager)
       clearTimeout(timer);
       if (el) el.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [printing, introPlaying]);
+  }, []);
 
   const reset = useCallback(() => { historyPosRef.current = -1; }, []);
   return { reset };

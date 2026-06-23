@@ -38,6 +38,25 @@ add_action('rest_api_init', function () {
     ]);
 });
 
+// Invalidate REST transients when a post is saved or deleted.
+add_action('save_post', 'hx29_invalidate_rest_cache');
+add_action('delete_post', 'hx29_invalidate_rest_cache');
+function hx29_invalidate_rest_cache(int $post_id): void {
+    // Clear list cache (all offsets/limits are keyed separately; wipe by group prefix).
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_hx29_posts_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_hx29_post_%'");
+}
+
+function hx29_get_total_posts(): int {
+    $total = wp_cache_get('hx29_post_count');
+    if (false === $total) {
+        $total = (int) wp_count_posts('post')->publish;
+        wp_cache_set('hx29_post_count', $total, '', 3600);
+    }
+    return $total;
+}
+
 function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
     $offset = (int) $request->get_param('offset');
     $limit  = (int) $request->get_param('limit');
@@ -45,31 +64,49 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
     if ($limit < 1)  $limit = 5;
     if ($limit > 50) $limit = 50;
 
+    $cache_key = "hx29_posts_{$offset}_{$limit}";
+    $cached    = get_transient($cache_key);
+    if (false !== $cached) {
+        return new WP_REST_Response($cached, 200);
+    }
+
     $query = new WP_Query([
-        'post_type'      => 'post',
-        'posts_per_page' => $limit,
-        'offset'         => $offset,
-        'post_status'    => 'publish',
-        'orderby'        => 'date',
-        'order'          => 'DESC',
+        'post_type'              => 'post',
+        'posts_per_page'         => $limit,
+        'offset'                 => $offset,
+        'post_status'            => 'publish',
+        'orderby'                => 'date',
+        'order'                  => 'DESC',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
     ]);
 
-    $total = (int) wp_count_posts('post')->publish;
+    // Batch-load all author display names to avoid N+1 user queries.
+    $author_ids = array_unique(array_column($query->posts, 'post_author'));
+    $author_names = [];
+    foreach ($author_ids as $id) {
+        $author_names[$id] = get_the_author_meta('display_name', $id);
+    }
 
-    $output = array_map(function ($post) {
+    $total  = hx29_get_total_posts();
+    $output = array_map(function ($post) use ($author_names) {
         return [
             'id'      => $post->ID,
             'title'   => $post->post_title,
             'date'    => get_the_date('Y-m-d', $post->ID),
             'excerpt' => wp_trim_words($post->post_content, 20, '...'),
             'url'     => get_permalink($post->ID),
-            'author'  => get_the_author_meta('display_name', $post->post_author),
+            'author'  => $author_names[$post->post_author] ?? '',
         ];
     }, $query->posts);
 
     wp_reset_postdata();
 
-    return new WP_REST_Response(['posts' => $output, 'total' => $total], 200);
+    $data = ['posts' => $output, 'total' => $total];
+    set_transient($cache_key, $data, HOUR_IN_SECONDS);
+
+    return new WP_REST_Response($data, 200);
 }
 
 function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
@@ -79,13 +116,22 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
         return new WP_REST_Response(['error' => __('Invalid post number.', 'hx29')], 400);
     }
 
+    $cache_key = "hx29_post_{$number}";
+    $cached    = get_transient($cache_key);
+    if (false !== $cached) {
+        return new WP_REST_Response($cached, 200);
+    }
+
     $query = new WP_Query([
-        'post_type'      => 'post',
-        'posts_per_page' => 1,
-        'offset'         => $number - 1,
-        'post_status'    => 'publish',
-        'orderby'        => 'date',
-        'order'          => 'DESC',
+        'post_type'              => 'post',
+        'posts_per_page'         => 1,
+        'offset'                 => $number - 1,
+        'post_status'            => 'publish',
+        'orderby'                => 'date',
+        'order'                  => 'DESC',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
     ]);
 
     if (!$query->have_posts()) {
@@ -93,16 +139,23 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
     }
 
     $post     = $query->posts[0];
-    $rendered = apply_filters('the_content', $post->post_content);
-    $rendered = preg_replace('/<\/(p|div|h[1-6]|li|blockquote|pre)>/i', "</$1>\n", $rendered);
-    $rendered = preg_replace('/<br\s*\/?>/i', "\n", $rendered);
-    $content  = wp_strip_all_tags($rendered);
-    $content  = preg_replace('/\n{3,}/', "\n\n", trim($content));
 
-    $total = (int) wp_count_posts('post')->publish;
+    // Cache rendered content to avoid repeated shortcode/oEmbed processing.
+    $content_key = "hx29_post_{$post->ID}_content";
+    $content     = wp_cache_get($content_key);
+    if (false === $content) {
+        $rendered = apply_filters('the_content', $post->post_content);
+        $rendered = preg_replace('/<\/(p|div|h[1-6]|li|blockquote|pre)>/i', "</$1>\n", $rendered);
+        $rendered = preg_replace('/<br\s*\/?>/i', "\n", $rendered);
+        $content  = wp_strip_all_tags($rendered);
+        $content  = preg_replace('/\n{3,}/', "\n\n", trim($content));
+        wp_cache_set($content_key, $content, '', HOUR_IN_SECONDS);
+    }
+
+    $total = hx29_get_total_posts();
     wp_reset_postdata();
 
-    return new WP_REST_Response([
+    $data = [
         'total' => $total,
         'post'  => [
             'title'   => $post->post_title,
@@ -110,5 +163,8 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
             'author'  => get_the_author_meta('display_name', $post->post_author),
             'content' => $content,
         ],
-    ], 200);
+    ];
+    set_transient($cache_key, $data, HOUR_IN_SECONDS);
+
+    return new WP_REST_Response($data, 200);
 }

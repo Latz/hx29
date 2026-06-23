@@ -5,14 +5,14 @@ import { scrollTerminal } from "../utils.js";
 const IDLE_MS = 5 * 60 * 1000;
 
 const SEQUENCE_LOADERS = [
-  () => import(/* webpackChunkName: "idle-neon"      */ "../idle/neonFlicker").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-vortex"    */ "../idle/vortex").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-melt"      */ "../idle/bufferMelt").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-cyberdeck" */ "../idle/cyberdeck").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-overheat"  */ "../idle/overheat").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-neon", webpackPrefetch: true */ "../idle/neonFlicker").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-vortex", webpackPrefetch: true */ "../idle/vortex").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-melt", webpackPrefetch: true */ "../idle/bufferMelt").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-cyberdeck", webpackPrefetch: true */ "../idle/cyberdeck").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-overheat", webpackPrefetch: true */ "../idle/overheat").then((m) => m.default),
   () => import(/* webpackChunkName: "idle-gridglitch"*/ "../idle/gridGlitch").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-synapse"   */ "../idle/synapseDesync").then((m) => m.default),
-  () => import(/* webpackChunkName: "idle-memleak"   */ "../idle/memoryLeak").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-synapse", webpackPrefetch: true */ "../idle/synapseDesync").then((m) => m.default),
+  () => import(/* webpackChunkName: "idle-memleak", webpackPrefetch: true */ "../idle/memoryLeak").then((m) => m.default),
 ];
 
 /**

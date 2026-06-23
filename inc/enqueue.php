@@ -4,7 +4,7 @@
  */
 
 function hx29_enqueue_scripts() {
-    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], wp_get_theme()->get('Version'));
+    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], HX29_VERSION);
 
     $asset_path = get_theme_file_path('build/index.asset.php');
     if (!file_exists($asset_path)) {

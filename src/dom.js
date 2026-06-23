@@ -12,12 +12,19 @@ export function getPageLines() {
   return Math.max(5, Math.floor(el.clientHeight / lineH) - 3);
 }
 
+let _lineWidthCache = 0;
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => { _lineWidthCache = 0; }, { passive: true });
+}
+
 /**
  * Measures how many monospace characters fit in one terminal line.
+ * Result is cached until the next resize event.
  * Falls back to `LINE_W` if unmeasurable.
  * @returns {number}
  */
 export function getLineWidth() {
+  if (_lineWidthCache > 0) return _lineWidthCache;
   const el = document.querySelector(".react-terminal");
   if (!el) return LINE_W;
   const span = document.createElement("span");
@@ -27,7 +34,8 @@ export function getLineWidth() {
   el.appendChild(span);
   const charW = span.getBoundingClientRect().width;
   span.remove();
-  return charW > 0 ? Math.floor(el.clientWidth / charW) : LINE_W;
+  _lineWidthCache = charW > 0 ? Math.floor(el.clientWidth / charW) : LINE_W;
+  return _lineWidthCache;
 }
 
 /**
