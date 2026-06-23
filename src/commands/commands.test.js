@@ -30,6 +30,7 @@ vi.mock("../i18n/index.js", () => ({
     config_posts: (v) => `  --posts  ${v}`,
     config_theme: (v) => `  --theme  ${v}`,
     config_order: (v) => `  --order  ${v}`,
+    config_glow: (v) => `  --glow   ${v}`,
     config_usage: "Usage: config …",
     config_saved: "Configuration saved.",
     config_unknown: "Unknown option.",

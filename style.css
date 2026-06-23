@@ -25,6 +25,7 @@ Text Domain: hx29
     --accent: #00ff00;
     --font:   'GlassTTY', 'Courier New', Courier, monospace;
     --fsize:  22px;
+    --glow:   0;
 }
 
 [data-theme="b"] {
@@ -73,6 +74,7 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
     font-smooth: never;
     image-rendering: pixelated;
+    text-shadow: 0 0 8px color-mix(in srgb, var(--fg) calc(var(--glow) * 100%), transparent);
 }
 
 /* Make WordPress block wrappers form an exact 100vh flex column */

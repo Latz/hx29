@@ -5,4 +5,4 @@ export const NONCE = HX29.nonce || "";
 export const SITE_NAME = HX29.site_name || "my-terminal";
 export const UID = HX29.uid || "guest";
 
-export const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: "a", order: "desc" };
+export const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: "a", order: "desc", glow: 0 };

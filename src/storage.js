@@ -31,6 +31,7 @@ export function saveConfig(cfg) {
  */
 export function applyConfig(cfg) {
   document.documentElement.style.setProperty("--fsize", cfg.font + "px");
+  document.documentElement.style.setProperty("--glow", cfg.glow ?? 0);
   if (cfg.theme && cfg.theme !== "a") {
     document.documentElement.dataset.theme = cfg.theme;
   } else {

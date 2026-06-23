@@ -18,6 +18,7 @@ export default function cmdConfig(args, configRef) {
       t.config_posts(cfg.posts),
       t.config_theme(cfg.theme),
       t.config_order(cfg.order),
+      t.config_glow(cfg.glow ?? 0),
       "",
       t.config_usage,
     ];
@@ -36,6 +37,9 @@ export default function cmdConfig(args, configRef) {
     } else if (args[i] === "--order" && args[i + 1]) {
       const v = args[++i];
       if (["asc", "desc"].includes(v)) { cfg.order = v; changed = true; }
+    } else if (args[i] === "--glow" && args[i + 1]) {
+      const v = parseFloat(args[++i]);
+      if (!isNaN(v) && v >= 0 && v <= 1) { cfg.glow = v; changed = true; }
     }
   }
   if (changed) {

@@ -113,9 +113,10 @@ export default {
   config_posts:     (v) => `  --posts  ${v}`,
   config_theme:     (v) => `  --theme  ${v}  (a=grün, b=dunkel, c=lila, d=hell, e=amber)`,
   config_order:     (v) => `  --order  ${v}  (asc=älteste zuerst, desc=neueste zuerst)`,
-  config_usage:     "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc>",
+  config_glow:      (v) => `  --glow   ${v}  (0=aus, 0.3=mittel, 1.0=maximales Phosphor-Leuchten)`,
+  config_usage:     "Verwendung: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc> --glow <0..1>",
   config_saved:     "Konfiguration gespeichert.",
-  config_unknown:   "Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a --order desc",
+  config_unknown:   "Unbekannte Option. Versuche: config --font 22 --posts 10 --theme a --order desc --glow 0",
 
   // errors / unknown command
   error:            (msg) => `Fehler: ${msg}`,
