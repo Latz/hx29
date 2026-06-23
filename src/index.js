@@ -43,7 +43,7 @@ function WPTerminal() {
   const glitchTimerRef = useGlitch(introPlayingRef, printingRef, setTerminalLines);
   useHumBar();
   const { idleTimerRef, idleActiveRef } = useIdleSequence(introPlayingRef, printingRef, setTerminalLines);
-  const { reset: resetHistoryPos } = useHistoryNav(historyRef, printing, introPlaying);
+  const { reset: resetHistoryPos } = useHistoryNav(historyRef, printing, introPlaying, pager);
 
   const handleInput = useCallback(async (input) => {
     if (introPlayingRef.current) return;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "@wordpress/element";
+import { complete } from "../complete.js";
 
 /**
  * Sets the value of a React-controlled input using the native setter so React's
@@ -18,9 +19,10 @@ function setNativeValue(el, value) {
  * @param {import('react').RefObject<string[]>} historyRef - Command history ref (most-recent-first).
  * @param {boolean} printing - When true, key events are ignored.
  * @param {boolean} introPlaying - When true, key events are ignored.
+ * @param {import('react').RefObject<Object|null>} pager - Pager ref for slug completion.
  * @returns {{reset: function():void}} `reset` sets the navigation position back to -1; call it on command submit.
  */
-export default function useHistoryNav(historyRef, printing, introPlaying) {
+export default function useHistoryNav(historyRef, printing, introPlaying, pager) {
   const historyPosRef = useRef(-1);
 
   useEffect(() => {
@@ -47,6 +49,14 @@ export default function useHistoryNav(historyRef, printing, introPlaying) {
             setTimeout(() => notice.remove(), 320);
           }, 120);
         }, 0);
+      }
+
+      if (e.key === "Tab") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const completed = complete(el.value, pager ?? { current: null });
+        if (completed !== null) setNativeValue(el, completed);
+        return;
       }
 
       if (e.key === "ArrowUp") {
@@ -86,7 +96,7 @@ export default function useHistoryNav(historyRef, printing, introPlaying) {
       clearTimeout(timer);
       if (el) el.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [printing]);
+  }, [printing, introPlaying]);
 
   const reset = useCallback(() => { historyPosRef.current = -1; }, []);
   return { reset };

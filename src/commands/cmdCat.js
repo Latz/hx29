@@ -7,7 +7,7 @@ import { parseBodyWithLinks, getLineWidth, stripHtml, formatDate, wordWrap } fro
  * Dumps a post's full content without pagination.
  * Same lookup logic as `read`, but never truncates — the entire article is returned at once.
  * @param {string[]} args - `[slug|n]` — a post slug or 1-based list number.
- * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; slugMap is read but not written.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated so `link N` works after `cat`.
  * @returns {Promise<string[]>} All article lines.
  */
 export default async function cmdCat(args, pager) {
@@ -33,7 +33,7 @@ export default async function cmdCat(args, pager) {
     if (!post) return [t.read_not_found(slug)];
 
     const cols = getLineWidth();
-    const { lines: bodyLines, footerLines } = parseBodyWithLinks(post.content.rendered, cols);
+    const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
     const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
     const dateLine = t.read_published(formatDate(post.date));
 
@@ -42,11 +42,18 @@ export default async function cmdCat(args, pager) {
     const tagNames = (terms[1] ?? []).map((term) => term.name).filter(Boolean);
     const catLine = catNames.length ? t.read_categories(catNames.join(", ")) : null;
     const tagLine = tagNames.length ? t.read_tags(tagNames.join(", ")) : null;
-    const metaLines = [catLine, tagLine].filter(Boolean);
+
+    let metaLines;
+    if (catLine && tagLine) {
+      const combined = `${catLine}  ${tagLine}`;
+      const baseW = Math.max(...titleLines.map((l) => l.length), dateLine.length);
+      metaLines = combined.length <= baseW ? [combined] : [catLine, tagLine];
+    } else {
+      metaLines = [catLine, tagLine].filter(Boolean);
+    }
 
     const headerW = Math.max(...titleLines.map((l) => l.length), dateLine.length, ...metaLines.map((l) => l.length));
-
-    return [
+    const allLines = [
       "-".repeat(headerW),
       ...titleLines,
       dateLine,
@@ -57,6 +64,10 @@ export default async function cmdCat(args, pager) {
       ...footerLines,
       "",
     ];
+
+    pager.current = { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes, slug };
+
+    return allLines;
   } catch (e) {
     return [t.error(e.message)];
   }

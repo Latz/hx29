@@ -1,4 +1,4 @@
-import { fmtLine, stripHtml, wordWrap } from "./utils.js";
+import { fmtLine, stripHtml, wordWrap } from "./format.js";
 
 /**
  * Renders a line with highlighted match terms in inverse video.
