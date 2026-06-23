@@ -1,6 +1,8 @@
 import { t } from "./i18n/index.js";
 import { CONFIG_DEFAULTS } from "./config.js";
 
+export { fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
+
 // ─── formatDate ───────────────────────────────────────────────────────────────
 /**
  * Formats an ISO date string using the locale defined in the active i18n bundle.
@@ -122,21 +124,6 @@ export function fmtLine(n, title, date, cols) {
 }
 
 /**
- * Like `fmtLine` but returns an animated-text object with an underlined `link [n]` React suffix.
- * @param {number} n - Row number.
- * @param {string} title - Post/page title.
- * @param {string} date - Pre-formatted date string.
- * @param {number} [cols] - Terminal width; defaults to `LINE_W`.
- * @returns {{__animText: string, __suffix: import('react').ReactElement}} Animated line descriptor.
- */
-export function fmtLineEl(n, title, date, cols) {
-  return {
-    __animText: fmtLine(n, title, date, cols) + "  ",
-    __suffix: <span style={{ textDecoration: "underline" }}>{`link [${n}]`}</span>,
-  };
-}
-
-/**
  * Formats an array of list items as fixed-width strings, auto-sizing the title column
  * to fit the longest title in the batch.
  * @param {Array<{n:number,title:string,date:string}>} items - Items to format.
@@ -152,65 +139,6 @@ export function batchFmtLineEls(items, cols) {
     const tr = title.length > titleW - 5 ? title.slice(0, titleW - 6) + "…" : title;
     return num + tr.padEnd(titleW) + date;
   });
-}
-
-/**
- * Parses an HTML body, replacing `<a>` links with underlined React spans and
- * numbered footnotes, then word-wraps the result to `width` characters.
- * @param {string} html - Raw HTML content from the WP REST API.
- * @param {number} width - Terminal character width for word-wrapping.
- * @returns {{lines: Array<string|import('react').ReactElement>, footerLines: string[], footnotes: string[]}}
- *   `lines` — wrapped body content; `footerLines` — footnote URL list; `footnotes` — raw URL array.
- */
-export function parseBodyWithLinks(html, width) {
-  const footnotes = [];
-  const urlIndex = {};
-
-  const marked = html.replace(
-    /<a\s[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
-    (_, url, text) => {
-      const label = stripHtml(text);
-      if (!urlIndex[url]) {
-        footnotes.push(url);
-        urlIndex[url] = footnotes.length;
-      }
-      return `«${label}»​${urlIndex[url]}‌`;
-    }
-  );
-
-  const plain = stripHtml(marked);
-  const rawLines = plain.split("\n").filter((l) => l.trim());
-  const wrapped = rawLines.flatMap((l) => (l.length <= width ? [l] : wordWrap(l, width)));
-
-  const markerRe = /«([^»]*)»​(\d+)‌/g;
-  const lines = wrapped.map((line) => {
-    const lineKey = line.slice(0, 40);
-    if (!line.includes("«")) return <span key={lineKey}>{line}</span>;
-    const parts = [];
-    let last = 0;
-    let m;
-    markerRe.lastIndex = 0;
-    while ((m = markerRe.exec(line)) !== null) {
-      if (m.index > last) parts.push(line.slice(last, m.index));
-      parts.push(
-        <span key={`${lineKey}-${m[2]}`} style={{ textDecoration: "underline" }}>{m[1]}</span>,
-        ` [${m[2]}]`
-      );
-      last = m.index + m[0].length;
-    }
-    if (last < line.length) parts.push(line.slice(last));
-    return <span key={lineKey}>{parts}</span>;
-  });
-
-  const footerLines = footnotes.length
-    ? (() => {
-        const entries = footnotes.map((u, i) => `[${i + 1}] ${u}`);
-        const sepW = Math.min(Math.max(...entries.map((e) => e.length)), width);
-        return ["", "-".repeat(sepW), ...entries];
-      })()
-    : [];
-
-  return { lines, footerLines, footnotes };
 }
 
 // ─── dom ──────────────────────────────────────────────────────────────────────

@@ -5,10 +5,18 @@
   "description": "HX29 React terminal WordPress block theme",
   "scripts": {
     "start": "wp-scripts start",
-    "build": "wp-scripts build"
+    "build": "wp-scripts build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.0.0"
+    "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/browser": "^4.1.9",
+    "@wordpress/scripts": "^30.0.0",
+    "jsdom": "^29.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "react-terminal-ui": "^1.4.0"

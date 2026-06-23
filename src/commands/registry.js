@@ -12,6 +12,7 @@ import cmdHistory from "./cmdHistory.js";
 import cmdMan from "./cmdMan.js";
 import cmdConfig from "./cmdConfig.js";
 import cmdCd from "./cmdCd.js";
+import cmdCat from "./cmdCat.js";
 
 /**
  * Parses raw terminal input and dispatches to the matching command handler.
@@ -34,7 +35,7 @@ export async function executeCommand(rawInput, pager, configRef, contextRef, his
     case "n":
     case "m":       return cmdN(pager, configRef);
     case "ls":      return cmdLs(args, pager, configRef, contextRef);
-    case "cat":
+    case "cat":     return cmdCat(args, pager);
     case "r":
     case "read":    return cmdRead(args, pager);
     case "l":

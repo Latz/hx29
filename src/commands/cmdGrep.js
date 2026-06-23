@@ -1,6 +1,7 @@
 import { t } from "../i18n/index.js";
 import apiFetch from "../api/apiFetch.js";
 import { fmtLine, getPageLines, getLineWidth, stripHtml, formatDate } from "../utils.js";
+import { highlightMatch } from "../ui.jsx";
 
 /**
  * Searches post content client-side with highlighted match context.
@@ -13,7 +14,6 @@ export default async function cmdGrep(args, pager) {
   if (!args.length) return [t.grep_usage];
   const term = args.join(" ");
   const termLower = term.toLowerCase();
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   try {
     const res = await apiFetch(`/posts?per_page=100&_fields=id,slug,title,date,content`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -26,21 +26,7 @@ export default async function cmdGrep(args, pager) {
       const lines = body.split("\n").filter((l) => l.trim());
       const matchLines = lines
         .filter((line) => line.toLowerCase().includes(termLower))
-        .map((line) => {
-          const raw = line.slice(0, cols - 4);
-          const re = new RegExp(`(${escaped})`, "gi");
-          const parts = raw.split(re);
-          return (
-            <span key={raw}>
-              {"    "}
-              {parts.map((part, i) =>
-                i % 2 === 1
-                  ? <span key={i} style={{ background: "var(--fg)", color: "var(--bg)" }}>{part}</span>
-                  : part
-              )}
-            </span>
-          );
-        });
+        .map((line) => highlightMatch(line, term, cols));
       if (!matchLines.length) return;
       const n = blocks.length + 1;
       slugMap[n] = { slug: p.slug, id: p.id };

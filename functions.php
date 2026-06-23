@@ -12,6 +12,7 @@ function hx29_setup() {
     add_theme_support('wp-block-styles');
     add_theme_support('block-templates');
     add_theme_support('block-template-parts');
+    add_theme_support('editor-styles');
 
     // Seed the visitor counter with a random 3-digit hex value on first run
     if (get_option('hx29_user_counter') === false) {

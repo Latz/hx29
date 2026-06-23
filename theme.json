@@ -4,15 +4,8 @@
   "settings": {
     "appearanceTools": true,
     "layout": {
-      "contentSize": "100%",
-      "wideSize": "100%"
-    },
-    "color": {
-      "palette": [
-        { "slug": "terminal-fg",     "color": "#00ff00", "name": "Terminal Foreground" },
-        { "slug": "terminal-dim",    "color": "#008800", "name": "Terminal Dim" },
-        { "slug": "terminal-bg",     "color": "#000000", "name": "Terminal Background" }
-      ]
+      "contentSize": "800px",
+      "wideSize": "1200px"
     },
     "typography": {
       "fontSizes": [
@@ -20,24 +13,12 @@
         { "slug": "medium", "size": "1rem",    "name": "Medium" },
         { "slug": "large",  "size": "1.25rem", "name": "Large" }
       ],
-      "fontFamilies": [
-        {
-          "slug": "monospace",
-          "fontFamily": "GlassTTY, 'Courier New', monospace",
-          "name": "Monospace"
-        }
-      ]
+      "fontFamilies": []
     }
   },
   "styles": {
-    "color": {
-      "background": "#000000",
-      "text": "#00ff00"
-    },
-    "typography": {
-      "fontSize": "1rem",
-      "lineHeight": "1.4",
-      "fontFamily": "GlassTTY, 'Courier New', monospace"
+    "spacing": {
+      "blockGap": "1rem"
     }
   },
   "templateParts": [
