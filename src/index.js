@@ -93,12 +93,12 @@ function WPTerminal() {
     }
 
     const charDelay = (ch, nextCh) => {
-      const base = 6 + Math.random() * 4;
+      const base = 3 + Math.random() * 2;
       const midWord = ch !== " " && nextCh && nextCh !== " ";
-      if (midWord && Math.random() < 0.02) return base + 100 + Math.random() * 150;
+      if (midWord && Math.random() < 0.02) return base + 60 + Math.random() * 80;
       return base;
     };
-    const LINE_DELAY = 8;
+    const LINE_DELAY = 4;
 
     setPrinting(true);
     printingRef.current = true;
