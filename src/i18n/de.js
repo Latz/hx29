@@ -12,6 +12,7 @@ export default {
   help_grep:        "  grep <…>          – Volltext in Posts durchsuchen",
   help_comments:    "  comments <n>      – Kommentare zu Beitrag n anzeigen",
   help_comment:     "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
+  help_cat:         "  cat <n>           – Artikel vollständig ausgeben (ohne Seitenumbruch)",
   help_history:     "  history           – Befehlshistorie anzeigen",
   help_config:      "  config            – Einstellungen anzeigen / ändern",
   help_clear:       "  clear             – Terminal leeren",
@@ -56,6 +57,9 @@ export default {
   ls_not_found:     (t) => `ls: '${t}' nicht gefunden. Versuche: ls posts, ls pages, ls categories, ls tags`,
   ls_sort_hint_desc: "  Sortierung: neueste zuerst  –  tipp: ls posts asc",
   ls_sort_hint_asc:  "  Sortierung: älteste zuerst  –  tipp: ls posts desc",
+
+  // cat
+  cat_usage:        "Verwendung: cat <nummer> oder cat <slug>",
 
   // read
   read_usage:       "Verwendung: read <nummer> oder r <nummer>",
@@ -115,6 +119,9 @@ export default {
 
   // errors / unknown command
   error:            (msg) => `Fehler: ${msg}`,
+  error_timeout:    "Verbindung unterbrochen. Netzwerk prüfen.",
+  error_rate_limit: "Server ausgelastet (429). Kurz warten und erneut versuchen.",
+  error_server:     (code) => `Serverfehler (${code}). Später erneut versuchen.`,
   unknown_command:  (cmd) => `${cmd}: Befehl nicht gefunden. Tippe 'help' für Hilfe.`,
 
   // timeAgo
@@ -189,6 +196,22 @@ export default {
       "",
       "VERWANDT",
       "  read, config --order",
+    ],
+    cat: [
+      "NAME",
+      "  cat – Artikel vollständig ausgeben",
+      "",
+      "SYNTAX",
+      "  cat <n>",
+      "  cat <slug>",
+      "",
+      "BESCHREIBUNG",
+      "  Gibt den vollständigen Artikel ohne Seitenumbruch aus.",
+      "  Anders als read wird der gesamte Text auf einmal angezeigt.",
+      "  Fußnoten-Links werden nummeriert; l <n> öffnet den n-ten Link.",
+      "",
+      "SIEHE AUCH",
+      "  read, l, link",
     ],
     read: [
       "NAME",
@@ -384,6 +407,7 @@ export default {
       "  cd <slug>   Kategorie oder Tag nach Slug, vollständigem oder partiellem Namen betreten",
       "  cd ..       Zurück zu root (Filter entfernen)",
       "  cd /        Wie cd ..",
+      "  cd -        Zum vorherigen Kontext zurückspringen",
       "  cd          Aktuellen Kontext anzeigen",
       "",
       "PARTIELLE ÜBEREINSTIMMUNG",

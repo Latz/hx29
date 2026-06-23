@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchPostBySlug } from "../api/posts.js";
 import apiFetch from "../api/apiFetch.js";
 import { parseBodyWithLinks, getLineWidth, stripHtml, formatDate, wordWrap } from "../utils.js";
@@ -12,7 +13,7 @@ import { parseBodyWithLinks, getLineWidth, stripHtml, formatDate, wordWrap } fro
  */
 export default async function cmdCat(args, pager) {
   let slug = args[0];
-  if (!slug) return [t.read_usage];
+  if (!slug) return [t.cat_usage];
 
   const num = parseInt(slug, 10);
   const savedSlugMap = pager.current?.slugMap || {};
@@ -69,6 +70,6 @@ export default async function cmdCat(args, pager) {
 
     return allLines;
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

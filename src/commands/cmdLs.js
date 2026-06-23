@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchPosts } from "../api/posts.js";
 import { fetchPages } from "../api/pages.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
@@ -61,7 +62,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         const found = allTags.find((tg) => tg.slug === tagArg || tg.name.toLowerCase() === tagArg.toLowerCase());
         if (found) filter.tag = found.id;
         else return [t.cd_not_found(tagArg)];
-      } catch (e) { return [t.error(e.message)]; }
+      } catch (e) { return [fmtApiError(e)]; }
     }
     try {
       let posts, total;
@@ -86,7 +87,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         ...(hasMore ? ["", t.more_posts] : []),
       ];
     } catch (e) {
-      return [t.error(e.message)];
+      return [fmtApiError(e)];
     }
   }
 
@@ -111,7 +112,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         ...(hasMore ? ["", t.more_pages] : []),
       ];
     } catch (e) {
-      return [t.error(e.message)];
+      return [fmtApiError(e)];
     }
   }
 
@@ -136,7 +137,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         ...(hasMore ? ["", t.more_categories] : []),
       ];
     } catch (e) {
-      return [t.error(e.message)];
+      return [fmtApiError(e)];
     }
   }
 
@@ -161,7 +162,7 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
         ...(hasMore ? ["", t.more_tags] : []),
       ];
     } catch (e) {
-      return [t.error(e.message)];
+      return [fmtApiError(e)];
     }
   }
 

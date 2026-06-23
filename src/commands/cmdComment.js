@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { postComment } from "../api/comments.js";
 
 /**
@@ -20,6 +21,6 @@ export default async function cmdComment(args, pager) {
     await postComment(id, text);
     return [t.comment_saved];
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

@@ -19,12 +19,15 @@ vi.mock("../utils.js", () => ({
 }));
 vi.mock("../i18n/index.js", () => ({
   t: {
-    read_usage: "Usage: read <number> or r <number>",
+    cat_usage: "Usage: cat <number> or cat <slug>",
     read_not_found: (s) => `read: ${s}: No post found`,
     read_published: (d) => `Published: ${d}`,
     read_categories: (s) => `Categories: ${s}`,
     read_tags: (s) => `Tags: ${s}`,
     error: (m) => `Error: ${m}`,
+    error_timeout: "Connection timed out.",
+    error_rate_limit: "Server busy (429).",
+    error_server: (code) => `Server error (${code}).`,
   },
 }));
 
@@ -48,7 +51,7 @@ describe("cmdCat", () => {
   it("returns usage when called with no args", async () => {
     const pager = { current: null };
     const result = await cmdCat([], pager);
-    expect(result).toEqual(["Usage: read <number> or r <number>"]);
+    expect(result).toEqual(["Usage: cat <number> or cat <slug>"]);
   });
 
   it("returns error when post not found by slug", async () => {

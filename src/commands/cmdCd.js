@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
 
 /**
@@ -11,6 +12,8 @@ import { fetchCategories, fetchTags } from "../api/taxonomy.js";
  * @param {import('react').RefObject<{candidates:Array}|null>} pendingRef - Set when disambiguation is needed.
  * @returns {Promise<string[]>} Status lines.
  */
+let _prevContext = { type: null, id: null, name: null };
+
 export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef) {
   const target = args.join(" ").toLowerCase().trim();
 
@@ -21,9 +24,19 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
   }
 
   if (target === ".." || target === "/") {
+    _prevContext = { ...contextRef.current };
     contextRef.current = { type: null, id: null, name: null };
     setCtxDisplay(null);
     return [t.cd_back_to_root];
+  }
+
+  if (target === "-") {
+    if (!_prevContext.type) return [t.cd_no_context];
+    const prev = { ..._prevContext };
+    _prevContext = { ...contextRef.current };
+    contextRef.current = prev;
+    setCtxDisplay({ type: prev.type, name: prev.name });
+    return [t.cd_now_in(prev.name, prev.type)];
   }
 
   try {
@@ -32,6 +45,7 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
 
     const cat = cats.find((c) => c.slug === target || c.name.toLowerCase() === target.toLowerCase());
     if (cat) {
+      _prevContext = { ...contextRef.current };
       contextRef.current = { type: "category", id: cat.id, name: cat.name };
       setCtxDisplay({ type: "category", name: cat.slug });
       return [t.cd_now_in(cat.name, "category"), t.cd_hint_combine];
@@ -39,6 +53,7 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
 
     const tag = tags.find((tg) => tg.slug === target || tg.name.toLowerCase() === target.toLowerCase());
     if (tag) {
+      _prevContext = { ...contextRef.current };
       contextRef.current = { type: "tag", id: tag.id, name: tag.name };
       setCtxDisplay({ type: "tag", name: tag.slug });
       return [t.cd_now_in(tag.name, "tag")];
@@ -51,6 +66,7 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
 
     if (candidates.length === 1) {
       const pick = candidates[0];
+      _prevContext = { ...contextRef.current };
       contextRef.current = { type: pick.type, id: pick.id, name: pick.name };
       setCtxDisplay({ type: pick.type, name: pick.slug });
       const lines = [t.cd_now_in(pick.name, pick.type)];
@@ -69,6 +85,6 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
 
     return [t.cd_not_found(target)];
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

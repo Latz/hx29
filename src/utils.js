@@ -2,3 +2,4 @@ export { formatDate, stripHtml, wordWrap, wrapLines, fmtLine, batchFmtLineEls, L
 export { getPageLines, getLineWidth, scrollTerminal, maybeSyncTear } from "./dom.js";
 export { loadConfig, saveConfig, applyConfig, loadHistory, pushHistory } from "./storage.js";
 export { fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
+export { fmtApiError } from "./apiError.js";

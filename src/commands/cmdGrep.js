@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import apiFetch from "../api/apiFetch.js";
 import { fmtLine, getPageLines, getLineWidth, stripHtml, formatDate } from "../utils.js";
 import { highlightMatch } from "../ui.jsx";
@@ -54,6 +55,6 @@ export default async function cmdGrep(args, pager) {
     pager.current = { type: "grep", blocks: [], shownBlocks: blocks.length, slugMap };
     return [...header, ...firstPage];
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

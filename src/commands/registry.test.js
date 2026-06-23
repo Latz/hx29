@@ -5,7 +5,7 @@ vi.mock("../i18n/index.js", () => ({
     unknown_command: (c) => `${c}: command not found`,
     help_available_commands: "Available commands:",
     help_ls: "", help_cd: "", help_read: "", help_link: "", help_search: "",
-    help_grep: "", help_comments: "", help_comment: "", help_history: "",
+    help_grep: "", help_comments: "", help_comment: "", help_cat: "", help_history: "",
     help_config: "", help_clear: "", help_help: "", help_man: "", help_tip: "",
     history_empty: "No command history.",
     history_title: "Command history:",
@@ -17,6 +17,7 @@ vi.mock("../i18n/index.js", () => ({
     config_order: (v) => `  --order  ${v}`,
     config_usage: "Usage: config …",
     link_usage: "Usage: link <number>",
+    cat_usage: "Usage: cat <number> or cat <slug>",
     read_usage: "Usage: read <number> or r <number>",
     cd_no_context: "No context active.",
     cd_back_to_root: "Back to root.",
@@ -51,7 +52,8 @@ vi.mock("../utils.js", () => ({
 vi.mock("../api/posts.js", () => ({ fetchPosts: vi.fn(), fetchPostBySlug: vi.fn() }));
 vi.mock("../api/pages.js", () => ({ fetchPages: vi.fn() }));
 vi.mock("../api/taxonomy.js", () => ({ fetchCategories: vi.fn(), fetchTags: vi.fn() }));
-vi.mock("../api/apiFetch.js", () => ({ default: vi.fn() }));
+vi.mock("../api/apiFetch.js", () => ({ default: vi.fn(), ApiError: class ApiError extends Error {} }));
+vi.mock("../apiError.js", () => ({ fmtApiError: (e) => `Error: ${e.message}` }));
 vi.mock("../api/comments.js", () => ({ fetchComments: vi.fn(), postComment: vi.fn() }));
 
 import { executeCommand } from "./registry.js";
@@ -128,7 +130,7 @@ describe("executeCommand", () => {
 
   it("dispatches cat with no args", async () => {
     const result = await run("cat");
-    expect(result).toContain("Usage: read <number> or r <number>");
+    expect(result).toContain("Usage: cat <number> or cat <slug>");
   });
 
   it("dispatches search with no args", async () => {

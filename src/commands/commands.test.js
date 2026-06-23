@@ -12,6 +12,7 @@ vi.mock("../i18n/index.js", () => ({
     help_grep: "  grep …",
     help_comments: "  comments …",
     help_comment: "  comment …",
+    help_cat: "  cat …",
     help_history: "  history …",
     help_config: "  config …",
     help_clear: "  clear …",

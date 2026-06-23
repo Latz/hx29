@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchPostBySlug } from "../api/posts.js";
 import apiFetch from "../api/apiFetch.js";
 import { parseBodyWithLinks, getPageLines, getLineWidth, stripHtml, formatDate, wordWrap } from "../utils.js";
@@ -36,7 +37,9 @@ export default async function cmdRead(args, pager) {
     const cols = getLineWidth();
     const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
     const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
-    const dateLine = t.read_published(formatDate(post.date));
+    const wordCount = stripHtml(post.content.rendered).trim().split(/\s+/).length;
+    const readMins = Math.max(1, Math.round(wordCount / 200));
+    const dateLine = t.read_published(formatDate(post.date)) + `  (~${readMins} min read)`;
 
     const terms = post._embedded?.["wp:term"] ?? [];
     const catNames = (terms[0] ?? []).map((term) => term.name).filter(Boolean);
@@ -79,6 +82,6 @@ export default async function cmdRead(args, pager) {
     }
     return [...slice];
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

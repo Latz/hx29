@@ -55,7 +55,9 @@ function expandItem(item, vars) {
 function loadSession() {
   let sig = localStorage.getItem('hx29_sig');
   if (!sig) {
-    sig = 'SIG-' + Math.floor(1000 + Math.random() * 9000);
+    const rnd = new Uint32Array(1);
+    crypto.getRandomValues(rnd);
+    sig = 'SIG-' + rnd[0].toString(16).slice(0, 6).toUpperCase();
     localStorage.setItem('hx29_sig', sig);
   }
   const lastVisit = localStorage.getItem('hx29_last_visit') || null;

@@ -16,6 +16,7 @@ export default function cmdHelp() {
     t.help_grep,
     t.help_comments,
     t.help_comment,
+    t.help_cat,
     t.help_history,
     t.help_config,
     t.help_clear,

@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchComments } from "../api/comments.js";
 import { getLineWidth, wrapLines, stripHtml, formatDate } from "../utils.js";
 
@@ -32,6 +33,6 @@ export default async function cmdComments(args, pager) {
     });
     return out;
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
 }

@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { fmtApiError } from "../apiError.js";
 import { fetchPosts } from "../api/posts.js";
 import { fetchPages } from "../api/pages.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
@@ -117,7 +118,7 @@ export default async function cmdN(pager, configRef) {
       ];
     }
   } catch (e) {
-    return [t.error(e.message)];
+    return [fmtApiError(e)];
   }
   return [];
 }

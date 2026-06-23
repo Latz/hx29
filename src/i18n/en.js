@@ -12,6 +12,7 @@ export default {
   help_grep:        "  grep <…>          – full-text search in posts",
   help_comments:    "  comments <n>      – show comments for post n",
   help_comment:     "  comment <n> <…>, c <n> <…>   – write comment on post n",
+  help_cat:         "  cat <n>           – dump full article without pagination",
   help_history:     "  history           – show command history",
   help_config:      "  config            – view / change settings",
   help_clear:       "  clear             – clear terminal",
@@ -56,6 +57,9 @@ export default {
   ls_not_found:     (t) => `ls: '${t}' not found. Try: ls posts, ls pages, ls categories, ls tags`,
   ls_sort_hint_desc: "  Sort: newest first  –  try: ls posts asc",
   ls_sort_hint_asc:  "  Sort: oldest first  –  try: ls posts desc",
+
+  // cat
+  cat_usage:        "Usage: cat <number> or cat <slug>",
 
   // read
   read_usage:       "Usage: read <number> or r <number>",
@@ -115,6 +119,9 @@ export default {
 
   // errors / unknown command
   error:            (msg) => `Error: ${msg}`,
+  error_timeout:    "Connection timed out. Check your network.",
+  error_rate_limit: "Server busy (429). Wait a moment and retry.",
+  error_server:     (code) => `Server error (${code}). Try again later.`,
   unknown_command:  (cmd) => `${cmd}: command not found. Type 'help' for help.`,
 
   // timeAgo
@@ -189,6 +196,23 @@ export default {
       "",
       "SEE ALSO",
       "  read, config --order",
+    ],
+    cat: [
+      "NAME",
+      "  cat – dump full article",
+      "",
+      "SYNOPSIS",
+      "  cat <n>",
+      "  cat <slug>",
+      "",
+      "DESCRIPTION",
+      "  Outputs the full article without pagination.",
+      "  Unlike read, the entire text is printed at once — useful for",
+      "  piping or reviewing short articles.",
+      "  Footnote links are numbered; use l <n> to open them.",
+      "",
+      "SEE ALSO",
+      "  read, l, link",
     ],
     read: [
       "NAME",
@@ -384,6 +408,7 @@ export default {
       "  cd <slug>   enter a category or tag by slug, full name, or partial name",
       "  cd ..       return to root (remove filter)",
       "  cd /        same as cd ..",
+      "  cd -        return to previous context",
       "  cd          show the current context",
       "",
       "PARTIAL MATCH",
