@@ -12,7 +12,9 @@ function hx29_setup() {
     add_theme_support('wp-block-styles');
     add_theme_support('block-templates');
     add_theme_support('block-template-parts');
-    add_theme_support('editor-styles');
+    add_theme_support('responsive-embeds');
+    add_theme_support('html5', array('comment-list', 'comment-form', 'search-form', 'gallery', 'caption', 'style', 'script'));
+    add_editor_style('style-editor.css');
 
     // Seed the visitor counter with a random 3-digit hex value on first run
     if (get_option('hx29_user_counter') === false) {
@@ -39,7 +41,7 @@ function hx29_get_or_create_uid(): string {
 // ── Enqueue React bundle ──────────────────────────────────────────
 
 function hx29_enqueue_scripts() {
-    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], '4.0.2');
+    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], wp_get_theme()->get('Version'));
 
     $asset_path = get_template_directory() . '/build/index.asset.php';
     if (!file_exists($asset_path)) {

@@ -1,0 +1,13 @@
+/* Editor styles — mirrors the terminal theme variables so the block editor background matches the frontend. */
+:root {
+    --bg:   #000000;
+    --fg:   #00ff00;
+    --dim:  #008800;
+    --font: 'GlassTTY', 'Courier New', Courier, monospace;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+}

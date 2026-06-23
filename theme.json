@@ -12,15 +12,10 @@
         { "slug": "small",  "size": "0.75rem", "name": "Small" },
         { "slug": "medium", "size": "1rem",    "name": "Medium" },
         { "slug": "large",  "size": "1.25rem", "name": "Large" }
-      ],
-      "fontFamilies": []
+      ]
     }
   },
-  "styles": {
-    "spacing": {
-      "blockGap": "1rem"
-    }
-  },
+  "styles": {},
   "templateParts": [
     { "name": "header", "area": "header" },
     { "name": "footer", "area": "footer" }
