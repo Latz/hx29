@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "$schema": "https://schemas.wp.org/wp/7.0/theme.json",
   "version": 2,
   "settings": {
     "appearanceTools": false,
@@ -16,8 +16,5 @@
     }
   },
   "styles": {},
-  "templateParts": [
-    { "name": "header", "area": "header" },
-    { "name": "footer", "area": "footer" }
-  ]
+  "templateParts": []
 }
