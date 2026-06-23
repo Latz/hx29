@@ -20,9 +20,10 @@ function setNativeValue(el, value) {
  * @param {import('react').RefObject<boolean>} printingRef - When true, key events are ignored.
  * @param {import('react').RefObject<boolean>} introPlayingRef - When true, key events are ignored.
  * @param {import('react').RefObject<Object|null>} pager - Pager ref for slug completion.
+ * @param {function():void} [onClear] - Called when Ctrl+L is pressed; should clear the terminal.
  * @returns {{reset: function():void}} `reset` sets the navigation position back to -1; call it on command submit.
  */
-export default function useHistoryNav(historyRef, printingRef, introPlayingRef, pager) {
+export default function useHistoryNav(historyRef, printingRef, introPlayingRef, pager, onClear) {
   const historyPosRef = useRef(-1);
 
   useEffect(() => {
@@ -49,6 +50,13 @@ export default function useHistoryNav(historyRef, printingRef, introPlayingRef, 
             setTimeout(() => notice.remove(), 320);
           }, 120);
         }, 0);
+      }
+
+      if (e.ctrlKey && e.key === "l") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onClear?.();
+        return;
       }
 
       if (e.key === "Tab") {
