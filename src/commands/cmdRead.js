@@ -77,7 +77,7 @@ export default async function cmdRead(args, pager) {
       : { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes, slug };
 
     if (hasMore) {
-      const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + l.length, 0);
+      const charsLeft = allLines.slice(pageLines).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
       return [...slice, "", t.more_chars_left(charsLeft)];
     }
     return [...slice];
