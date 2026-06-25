@@ -28,9 +28,9 @@ export default async function cmdN(pager, configRef) {
       : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes, slug };
     if (hasMore) {
       const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
-      return [...slice, "", t.more_chars_left(charsLeft)];
+      return ["__REPLACE__", ...slice, "", t.more_chars_left(charsLeft)];
     }
-    return [...slice, ""];
+    return ["__REPLACE__", ...slice, ""];
   }
 
   if (type === "grep") {

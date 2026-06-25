@@ -100,12 +100,18 @@ function WPTerminal() {
     };
     const LINE_DELAY = 4;
 
+    let lines = result;
+    if (Array.isArray(result) && result[0] === "__REPLACE__") {
+      setTerminalLines([]);
+      lines = result.slice(1);
+    }
+
     setPrinting(true);
     printingRef.current = true;
 
-    for (let i = 0; i < result.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
       await new Promise((resolve) => setTimeout(resolve, LINE_DELAY));
-      const text = result[i];
+      const text = lines[i];
       const key = `out-${++lineId.current}`;
 
       if (!text) {

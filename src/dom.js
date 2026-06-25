@@ -58,6 +58,14 @@ export function scrollTerminal() {
 }
 
 /**
+ * Returns the number of line elements currently rendered in the terminal.
+ * @returns {number}
+ */
+export function getRenderedLineCount() {
+  return document.querySelectorAll(".react-terminal .react-terminal-line").length;
+}
+
+/**
  * With 3% probability applies a CRT sync-tear animation to the last terminal line.
  * @returns {void}
  */

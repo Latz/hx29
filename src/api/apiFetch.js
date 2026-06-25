@@ -12,10 +12,10 @@ export class ApiError extends Error {
   }
 }
 
-function makeFakeResponse(data) {
+function makeFakeResponse(data, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...extraHeaders },
   });
 }
 
@@ -35,7 +35,7 @@ function fetchWithTimeout(url, opts) {
 export default async function apiFetch(path) {
   const url = `${WP_API}${path}`;
   const hit = _cache.get(url);
-  if (hit && Date.now() - hit.ts < CACHE_TTL) return makeFakeResponse(hit.data);
+  if (hit && Date.now() - hit.ts < CACHE_TTL) return makeFakeResponse(hit.data, hit.headers);
 
   let res;
   try {
@@ -58,8 +58,13 @@ export default async function apiFetch(path) {
   } catch {
     throw new ApiError("parse_error", res.status);
   }
-  _cache.set(url, { data, ts: Date.now() });
-  return makeFakeResponse(data);
+  const headers = {};
+  const wpTotal = res.headers.get("X-WP-Total");
+  if (wpTotal) headers["X-WP-Total"] = wpTotal;
+  const wpTotalPages = res.headers.get("X-WP-TotalPages");
+  if (wpTotalPages) headers["X-WP-TotalPages"] = wpTotalPages;
+  _cache.set(url, { data, headers, ts: Date.now() });
+  return makeFakeResponse(data, headers);
 }
 
 /** Clears the client-side API cache (e.g. after a comment is posted). */

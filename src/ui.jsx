@@ -70,7 +70,7 @@ export function parseBodyWithLinks(html, width) {
   const markerRe = /«([^»]*)»​(\d+)‌/g;
   const lines = wrapped.map((line) => {
     const lineKey = line.slice(0, 40);
-    if (!line.includes("«")) return <span key={lineKey}>{line}</span>;
+    if (!line.includes("«")) return line;
     const parts = [];
     let last = 0;
     let m;
