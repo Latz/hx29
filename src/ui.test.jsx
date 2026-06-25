@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import React from "react";
+import { isValidElement } from "@wordpress/element";
 import { render, screen } from "@testing-library/react";
 import { highlightMatch, fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
 
@@ -29,7 +29,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("highlightMatch", () => {
   it("returns a React element", () => {
     const el = highlightMatch("This is a test line", "test", 80);
-    expect(React.isValidElement(el)).toBe(true);
+    expect(isValidElement(el)).toBe(true);
   });
 
   it("wraps matched term in an inner span", () => {
@@ -74,7 +74,7 @@ describe("fmtLineEl", () => {
 
   it("__suffix is a React element containing 'link [n]'", () => {
     const result = fmtLineEl(5, "Title", "2025");
-    expect(React.isValidElement(result.__suffix)).toBe(true);
+    expect(isValidElement(result.__suffix)).toBe(true);
     render(result.__suffix);
     expect(screen.getByText("link [5]")).not.toBeNull();
   });
@@ -102,7 +102,7 @@ describe("parseBodyWithLinks", () => {
   it("returns React elements for lines containing links", () => {
     const html = '<p>Check <a href="https://example.com">this link</a> out</p>';
     const { lines } = parseBodyWithLinks(html, 80);
-    expect(lines.some((l) => React.isValidElement(l))).toBe(true);
+    expect(lines.some((l) => isValidElement(l))).toBe(true);
   });
 
   it("collects footnote URLs", () => {
@@ -136,7 +136,7 @@ describe("parseBodyWithLinks", () => {
   it("renders link label as underlined text in output", () => {
     const html = '<p><a href="https://example.com">click here</a></p>';
     const { lines } = parseBodyWithLinks(html, 80);
-    const elementLines = lines.filter((l) => React.isValidElement(l));
+    const elementLines = lines.filter((l) => isValidElement(l));
     expect(elementLines.length).toBeGreaterThan(0);
     const { container } = render(elementLines[0]);
     expect(container.textContent).toContain("click here");
