@@ -6,7 +6,8 @@
   "scripts": {
     "start": "wp-scripts start",
     "build": "wp-scripts build",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
+    "posttest": "cp coverage/cobertura-coverage.xml coverage.xml",
     "test:watch": "vitest"
   },
   "devDependencies": {
