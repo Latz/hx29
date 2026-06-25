@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { render, screen } from "@testing-library/react";
 import { highlightMatch, fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
 
 vi.mock("./format.js", () => ({
@@ -33,30 +33,30 @@ describe("highlightMatch", () => {
   });
 
   it("wraps matched term in an inner span", () => {
-    const html = renderToStaticMarkup(highlightMatch("This is a test line", "test", 80));
-    expect(html).toContain("<span");
-    expect(html.toLowerCase()).toContain("test");
+    const { container } = render(highlightMatch("This is a test line", "test", 80));
+    const innerSpan = container.querySelector("span span");
+    expect(innerSpan).not.toBeNull();
+    expect(innerSpan.textContent).toBe("test");
   });
 
   it("returns span even when term is not found", () => {
-    const el = highlightMatch("Hello world", "zzz", 80);
-    expect(React.isValidElement(el)).toBe(true);
-    const html = renderToStaticMarkup(el);
-    expect(html).toContain("Hello world");
+    const { container } = render(highlightMatch("Hello world", "zzz", 80));
+    expect(container.textContent).toContain("Hello world");
+    expect(container.querySelectorAll("span span")).toHaveLength(0);
   });
 
   it("truncates line to cols-4 characters", () => {
     const line = "A".repeat(100);
-    const html = renderToStaticMarkup(highlightMatch(line, "X", 20));
-    const text = html.replace(/<[^>]*>/g, "");
-    expect(text.replace(/\s/g, "").length).toBeLessThanOrEqual(16 + 4);
+    const { container } = render(highlightMatch(line, "X", 20));
+    expect(container.textContent.replace(/\s/g, "").length).toBeLessThanOrEqual(16 + 4);
   });
 
   it("is case-insensitive — matches WORLD with 'world'", () => {
-    const html = renderToStaticMarkup(highlightMatch("Hello WORLD", "world", 80));
-    expect(html).toContain("WORLD");
-    // The inner highlighted span exists (has background style)
-    expect(html).toContain("background");
+    const { container } = render(highlightMatch("Hello WORLD", "world", 80));
+    const innerSpan = container.querySelector("span span");
+    expect(innerSpan).not.toBeNull();
+    expect(innerSpan.textContent).toBe("WORLD");
+    expect(container.innerHTML).toContain("background");
   });
 });
 
@@ -75,14 +75,14 @@ describe("fmtLineEl", () => {
   it("__suffix is a React element containing 'link [n]'", () => {
     const result = fmtLineEl(5, "Title", "2025");
     expect(React.isValidElement(result.__suffix)).toBe(true);
-    const html = renderToStaticMarkup(result.__suffix);
-    expect(html).toContain("link [5]");
+    render(result.__suffix);
+    expect(screen.getByText("link [5]")).not.toBeNull();
   });
 
   it("__suffix has underline style", () => {
     const result = fmtLineEl(2, "Title", "2025");
-    const html = renderToStaticMarkup(result.__suffix);
-    expect(html).toContain("underline");
+    const { container } = render(result.__suffix);
+    expect(container.innerHTML).toContain("underline");
   });
 });
 
@@ -102,8 +102,7 @@ describe("parseBodyWithLinks", () => {
   it("returns React elements for lines containing links", () => {
     const html = '<p>Check <a href="https://example.com">this link</a> out</p>';
     const { lines } = parseBodyWithLinks(html, 80);
-    const hasElement = lines.some((l) => React.isValidElement(l));
-    expect(hasElement).toBe(true);
+    expect(lines.some((l) => React.isValidElement(l))).toBe(true);
   });
 
   it("collects footnote URLs", () => {
@@ -139,8 +138,8 @@ describe("parseBodyWithLinks", () => {
     const { lines } = parseBodyWithLinks(html, 80);
     const elementLines = lines.filter((l) => React.isValidElement(l));
     expect(elementLines.length).toBeGreaterThan(0);
-    const markup = renderToStaticMarkup(elementLines[0]);
-    expect(markup).toContain("click here");
-    expect(markup).toContain("underline");
+    const { container } = render(elementLines[0]);
+    expect(container.textContent).toContain("click here");
+    expect(container.innerHTML).toContain("underline");
   });
 });
