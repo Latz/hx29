@@ -1,0 +1,146 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { highlightMatch, fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
+
+vi.mock("./format.js", () => ({
+  fmtLine: vi.fn((n, title) => `${n}. ${title}`),
+  stripHtml: vi.fn((s) => s.replace(/<[^>]*>/g, "")),
+  wordWrap: vi.fn((s, w) => {
+    const words = s.split(" ");
+    const lines = [];
+    let cur = "";
+    for (const word of words) {
+      if ((cur + " " + word).trim().length <= w) {
+        cur = (cur + " " + word).trim();
+      } else {
+        if (cur) lines.push(cur);
+        cur = word;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }),
+  LINE_W: 80,
+}));
+
+beforeEach(() => vi.clearAllMocks());
+
+describe("highlightMatch", () => {
+  it("returns a React element", () => {
+    const el = highlightMatch("This is a test line", "test", 80);
+    expect(React.isValidElement(el)).toBe(true);
+  });
+
+  it("wraps matched term in an inner span", () => {
+    const html = renderToStaticMarkup(highlightMatch("This is a test line", "test", 80));
+    expect(html).toContain("<span");
+    expect(html.toLowerCase()).toContain("test");
+  });
+
+  it("returns span even when term is not found", () => {
+    const el = highlightMatch("Hello world", "zzz", 80);
+    expect(React.isValidElement(el)).toBe(true);
+    const html = renderToStaticMarkup(el);
+    expect(html).toContain("Hello world");
+  });
+
+  it("truncates line to cols-4 characters", () => {
+    const line = "A".repeat(100);
+    const html = renderToStaticMarkup(highlightMatch(line, "X", 20));
+    const text = html.replace(/<[^>]*>/g, "");
+    expect(text.replace(/\s/g, "").length).toBeLessThanOrEqual(16 + 4);
+  });
+
+  it("is case-insensitive — matches WORLD with 'world'", () => {
+    const html = renderToStaticMarkup(highlightMatch("Hello WORLD", "world", 80));
+    expect(html).toContain("WORLD");
+    // The inner highlighted span exists (has background style)
+    expect(html).toContain("background");
+  });
+});
+
+describe("fmtLineEl", () => {
+  it("returns object with __animText and __suffix keys", () => {
+    const result = fmtLineEl(1, "My Title", "2025-01-01");
+    expect(result).toHaveProperty("__animText");
+    expect(result).toHaveProperty("__suffix");
+  });
+
+  it("__animText contains formatted line", () => {
+    const result = fmtLineEl(3, "My Title", "2025-01-01");
+    expect(result.__animText).toContain("3. My Title");
+  });
+
+  it("__suffix is a React element containing 'link [n]'", () => {
+    const result = fmtLineEl(5, "Title", "2025");
+    expect(React.isValidElement(result.__suffix)).toBe(true);
+    const html = renderToStaticMarkup(result.__suffix);
+    expect(html).toContain("link [5]");
+  });
+
+  it("__suffix has underline style", () => {
+    const result = fmtLineEl(2, "Title", "2025");
+    const html = renderToStaticMarkup(result.__suffix);
+    expect(html).toContain("underline");
+  });
+});
+
+describe("parseBodyWithLinks", () => {
+  it("returns {lines, footerLines, footnotes}", () => {
+    const result = parseBodyWithLinks("<p>Hello world</p>", 80);
+    expect(result).toHaveProperty("lines");
+    expect(result).toHaveProperty("footerLines");
+    expect(result).toHaveProperty("footnotes");
+  });
+
+  it("returns plain strings for text without links", () => {
+    const { lines } = parseBodyWithLinks("<p>Hello world</p>", 80);
+    expect(lines.every((l) => typeof l === "string")).toBe(true);
+  });
+
+  it("returns React elements for lines containing links", () => {
+    const html = '<p>Check <a href="https://example.com">this link</a> out</p>';
+    const { lines } = parseBodyWithLinks(html, 80);
+    const hasElement = lines.some((l) => React.isValidElement(l));
+    expect(hasElement).toBe(true);
+  });
+
+  it("collects footnote URLs", () => {
+    const html = '<p><a href="https://example.com">example</a></p>';
+    const { footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+  });
+
+  it("generates footerLines with numbered references when links present", () => {
+    const html = '<p><a href="https://example.com">example</a></p>';
+    const { footerLines } = parseBodyWithLinks(html, 80);
+    expect(footerLines.some((l) => l.includes("[1]") && l.includes("https://example.com"))).toBe(true);
+  });
+
+  it("returns empty footerLines when no links", () => {
+    const { footerLines } = parseBodyWithLinks("<p>No links here</p>", 80);
+    expect(footerLines).toHaveLength(0);
+  });
+
+  it("deduplicates repeated URLs — only one footnote entry", () => {
+    const html = '<p><a href="https://example.com">A</a> and <a href="https://example.com">B</a></p>';
+    const { footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toHaveLength(1);
+  });
+
+  it("strips empty lines from output", () => {
+    const { lines } = parseBodyWithLinks("<p></p><p>Hello</p><p></p>", 80);
+    expect(lines.some((l) => typeof l === "string" && l.trim() === "")).toBe(false);
+  });
+
+  it("renders link label as underlined text in output", () => {
+    const html = '<p><a href="https://example.com">click here</a></p>';
+    const { lines } = parseBodyWithLinks(html, 80);
+    const elementLines = lines.filter((l) => React.isValidElement(l));
+    expect(elementLines.length).toBeGreaterThan(0);
+    const markup = renderToStaticMarkup(elementLines[0]);
+    expect(markup).toContain("click here");
+    expect(markup).toContain("underline");
+  });
+});
