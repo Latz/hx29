@@ -7,6 +7,16 @@ License: GNU General Public License v2 or later
 Text Domain: hx29
 */
 
+/* ── Cascade layers ──────────────────────────────────────────────── */
+@layer base, overrides;
+
+/* ── Typed custom property ───────────────────────────────────────── */
+@property --glow {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+}
+
 /* ── VT323 self-hosted font ──────────────────────────────────────── */
 @font-face {
     font-family: 'GlassTTY';
@@ -17,43 +27,44 @@ Text Domain: hx29
          url('assets/fonts/glasstty.ttf') format('truetype');
 }
 
+@layer base {
+
 /* ── Theme variables (default: VT100 green) ─────────────────────── */
 :root {
-    --bg:     #000000;
-    --fg:     #00ff00;
-    --dim:    #008800;
-    --accent: #00ff00;
+    --bg:     oklch(0% 0 0);           /* #000000 */
+    --fg:     oklch(87.8% 0.265 142.5); /* #00ff00 */
+    --dim:    oklch(51.3% 0.156 142.5); /* #008800 */
+    --accent: oklch(87.8% 0.265 142.5); /* #00ff00 */
     --font:   'GlassTTY', 'Courier New', Courier, monospace;
     --fsize:  22px;
-    --glow:   0;
 }
 
 [data-theme="b"] {
-    --bg:     #0d1117;
-    --fg:     #e6edf3;
-    --dim:    #79c0ff;
-    --accent: #58a6ff;
+    --bg:     oklch(13.6% 0.018 264);  /* #0d1117 */
+    --fg:     oklch(93.5% 0.009 247);  /* #e6edf3 */
+    --dim:    oklch(76.4% 0.118 234);  /* #79c0ff */
+    --accent: oklch(68.2% 0.149 251);  /* #58a6ff */
 }
 
 [data-theme="c"] {
-    --bg:     #1a0a2e;
-    --fg:     #e0d0ff;
-    --dim:    #ff79c6;
-    --accent: #bf7fff;
+    --bg:     oklch(13.8% 0.06 295);   /* #1a0a2e */
+    --fg:     oklch(88% 0.06 295);     /* #e0d0ff */
+    --dim:    oklch(72% 0.2 340);      /* #ff79c6 */
+    --accent: oklch(68% 0.18 305);     /* #bf7fff */
 }
 
 [data-theme="d"] {
-    --bg:     #fdf6e3;
-    --fg:     #657b83;
-    --dim:    #2aa198;
-    --accent: #268bd2;
+    --bg:     oklch(97.3% 0.022 95);   /* #fdf6e3 */
+    --fg:     oklch(52% 0.03 220);     /* #657b83 */
+    --dim:    oklch(62% 0.1 192);      /* #2aa198 */
+    --accent: oklch(56% 0.13 237);     /* #268bd2 */
 }
 
 [data-theme="e"] {
-    --bg:     #0a0500;
-    --fg:     #ffb000;
-    --dim:    #7a5000;
-    --accent: #ffb000;
+    --bg:     oklch(4% 0.02 60);       /* #0a0500 */
+    --fg:     oklch(79% 0.19 75);      /* #ffb000 */
+    --dim:    oklch(42% 0.1 60);       /* #7a5000 */
+    --accent: oklch(79% 0.19 75);      /* #ffb000 */
 }
 
 /* ── Reset ───────────────────────────────────────────────────────── */
@@ -70,11 +81,12 @@ html, body {
     font-family: var(--font);
     font-size: var(--fsize);
     line-height: 1.4;
+    text-wrap: pretty;
     -webkit-font-smoothing: none;
     -moz-osx-font-smoothing: grayscale;
     font-smooth: never;
     image-rendering: pixelated;
-    text-shadow: 0 0 8px color-mix(in srgb, var(--fg) calc(var(--glow) * 100%), transparent);
+    text-shadow: 0 0 8px color-mix(in oklch, var(--fg) calc(var(--glow) * 100%), transparent);
 }
 
 /* Make WordPress block wrappers form an exact 100vh flex column */
@@ -112,19 +124,7 @@ html, body {
     min-height: 0;
 }
 
-/* ── react-terminal-ui overrides ─────────────────────────────────── */
-.react-terminal-wrapper,
-.react-terminal {
-    background: var(--bg) !important;
-    color: var(--fg) !important;
-}
-
-.react-terminal-line {
-    color: var(--fg) !important;
-    font-family: var(--font) !important;
-    font-size: var(--fsize) !important;
-}
-
+/* ── react-terminal-ui prompt & cursor ───────────────────────────── */
 #hx29-root .react-terminal-input[data-terminal-prompt]:before {
     margin-right: 0.25em;
     color: var(--accent);
@@ -141,32 +141,6 @@ html, body {
     );
     width: 0.55em;
     box-shadow: 0 0 4px var(--fg);
-}
-
-.react-terminal-wrapper {
-    height: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    padding: 45px 45px 45px !important;
-    border-radius: 0 !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-}
-
-.react-terminal {
-    padding-bottom: 0 !important;
-}
-
-.react-terminal {
-    flex: 1 !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-    scrollbar-width: none !important;
-    scroll-behavior: auto !important;
-}
-
-.react-terminal::-webkit-scrollbar {
-    display: none;
 }
 
 /* ── Terminal container (legacy / no-JS fallback) ────────────────── */
@@ -195,18 +169,6 @@ html, body {
     line-height: 1.4;
     scrollbar-color: var(--dim) var(--bg);
     scrollbar-width: thin;
-}
-
-#terminal-output::-webkit-scrollbar {
-    width: 6px;
-}
-
-#terminal-output::-webkit-scrollbar-track {
-    background: var(--bg);
-}
-
-#terminal-output::-webkit-scrollbar-thumb {
-    background: var(--dim);
 }
 
 /* ── Input line ──────────────────────────────────────────────────── */
@@ -245,7 +207,7 @@ html, body {
 
 /* ── Text helpers ────────────────────────────────────────────────── */
 .command-echo { color: var(--fg); font-weight: bold; }
-.error        { color: #ff5555; }
+.error        { color: oklch(65% 0.22 25); } /* #ff5555 */
 .dim          { color: var(--dim); }
 .hx29-loading { color: var(--dim); }
 
@@ -268,7 +230,6 @@ a { color: var(--accent); }
     font-size: 12px;
 }
 
-
 /* ── CRT tube vignette ───────────────────────────────────────────── */
 #hx29-root::before {
     content: '';
@@ -279,11 +240,10 @@ a { color: var(--accent); }
     background: radial-gradient(
         ellipse at center,
         transparent 65%,
-        rgba(0, 0, 0, 0.12) 85%,
-        rgba(0, 0, 0, 0.30) 100%
+        oklch(0% 0 0 / 0.12) 85%,
+        oklch(0% 0 0 / 0.30) 100%
     );
 }
-
 
 /* ── 50Hz mains hum bar ──────────────────────────────────────────── */
 @keyframes hum-bar {
@@ -298,18 +258,17 @@ a { color: var(--accent); }
 #hx29-root::after {
     content: '';
     position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
+    inset-block-start: 0;
+    inset-inline: 0;
     height: 80px;
     pointer-events: none;
     z-index: 9999;
     background: linear-gradient(
         to bottom,
-        rgba(255,255,255,0) 0%,
-        rgba(255,255,255,0.03) 40%,
-        rgba(255,255,255,0.03) 60%,
-        rgba(255,255,255,0) 100%
+        oklch(100% 0 0 / 0) 0%,
+        oklch(100% 0 0 / 0.03) 40%,
+        oklch(100% 0 0 / 0.03) 60%,
+        oklch(100% 0 0 / 0) 100%
     );
     animation: none;
 }
@@ -331,4 +290,40 @@ a { color: var(--accent); }
 @media (max-width: 768px) {
     #terminal-container { padding: 8px; }
     #terminal-output, #terminal-input, #terminal-input-line span { font-size: 12px; }
+}
+
+} /* end @layer base */
+
+/* ── react-terminal-ui overrides (layer wins without !important) ─── */
+@layer overrides {
+    .react-terminal-wrapper,
+    .react-terminal {
+        background: var(--bg);
+        color: var(--fg);
+    }
+
+    .react-terminal-line {
+        color: var(--fg);
+        font-family: var(--font);
+        font-size: var(--fsize);
+    }
+
+    .react-terminal-wrapper {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 45px;
+        border-radius: 0;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .react-terminal {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-width: none;
+        scroll-behavior: auto;
+        padding-bottom: 0;
+    }
 }
