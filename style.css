@@ -10,11 +10,35 @@ Text Domain: hx29
 /* ── Cascade layers ──────────────────────────────────────────────── */
 @layer base, overrides;
 
-/* ── Typed custom property ───────────────────────────────────────── */
+/* ── Typed custom properties ─────────────────────────────────────── */
 @property --glow {
     syntax: "<number>";
     inherits: true;
     initial-value: 0;
+}
+
+@property --bg {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(0% 0 0);
+}
+
+@property --fg {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(87.8% 0.265 142.5);
+}
+
+@property --dim {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(51.3% 0.156 142.5);
+}
+
+@property --accent {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: oklch(87.8% 0.265 142.5);
 }
 
 /* ── VT323 self-hosted font ──────────────────────────────────────── */
@@ -91,7 +115,7 @@ html, body {
 
 /* Make WordPress block wrappers form an exact 100vh flex column */
 .wp-site-blocks {
-    display: flex;
+    display: block flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
@@ -100,8 +124,10 @@ html, body {
 }
 
 .wp-site-blocks > * {
-    margin: 0;
-    padding: 0;
+    margin-block: 0;
+    margin-inline: 0;
+    padding-block: 0;
+    padding-inline: 0;
 }
 
 /* The group block wrapping the terminal should expand to fill remaining space */
@@ -113,7 +139,7 @@ html, body {
 
 /* ── React mount point ───────────────────────────────────────────── */
 #hx29-root {
-    display: flex;
+    display: block flex;
     flex-direction: column;
     height: 100%;
     width: 100%;
@@ -136,8 +162,8 @@ html, body {
         to bottom,
         transparent 0px,
         transparent 1px,
-        rgba(0, 0, 0, 0.45) 1px,
-        rgba(0, 0, 0, 0.45) 2px
+        oklch(0% 0 0 / 0.45) 1px,
+        oklch(0% 0 0 / 0.45) 2px
     );
     width: 0.55em;
     box-shadow: 0 0 4px var(--fg);
@@ -145,7 +171,7 @@ html, body {
 
 /* ── Terminal container (legacy / no-JS fallback) ────────────────── */
 #terminal-container {
-    display: flex;
+    display: block flex;
     flex-direction: column;
     height: 100%;
     padding: 0;
@@ -169,11 +195,13 @@ html, body {
     line-height: 1.4;
     scrollbar-color: var(--dim) var(--bg);
     scrollbar-width: thin;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
 }
 
 /* ── Input line ──────────────────────────────────────────────────── */
 #terminal-input-line {
-    display: flex;
+    display: block flex;
     align-items: center;
     gap: 8px;
     padding: 4px 8px;
@@ -287,7 +315,11 @@ a { color: var(--accent); }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+#terminal-container {
+    container-type: inline-size;
+}
+
+@container (max-width: 768px) {
     #terminal-container { padding: 8px; }
     #terminal-output, #terminal-input, #terminal-input-line span { font-size: 12px; }
 }
@@ -310,7 +342,7 @@ a { color: var(--accent); }
 
     .react-terminal-wrapper {
         height: 100%;
-        display: flex;
+        display: block flex;
         flex-direction: column;
         padding: 45px;
         border-radius: 0;
