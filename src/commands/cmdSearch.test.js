@@ -19,23 +19,9 @@ vi.mock("../apiError.js", () => ({ fmtApiError: (e) => `Error: ${e.message}` }))
 
 import apiFetch from "../api/apiFetch.js";
 import cmdSearch from "./cmdSearch.js";
+import { POST_WITH_EXCERPT as POST, makeFetchResult as mockRes } from "../__mocks__/fixtures.js";
 
 const configRef = { current: { posts: 5 } };
-
-function mockRes(posts, total) {
-  return {
-    ok: true,
-    headers: { get: () => String(total) },
-    json: async () => posts,
-  };
-}
-
-const POST = (n) => ({
-  id: n, slug: `post-${n}`,
-  title: { rendered: `Post ${n}` },
-  date: "2025-01-01", link: "/",
-  excerpt: { rendered: `<p>Excerpt ${n}</p>` },
-});
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -60,14 +46,14 @@ describe("cmdSearch", () => {
   it("returns formatted results", async () => {
     apiFetch.mockResolvedValue(mockRes([POST(1)], 1));
     const result = await cmdSearch(["hello"], { current: null }, configRef);
-    expect(result.some((l) => l.includes('results for "hello"'))).toBe(true);
+    expect(result).toContainLineWithText('results for "hello"');
     expect(result).toContain("1. Post 1");
   });
 
   it("includes excerpt in output", async () => {
     apiFetch.mockResolvedValue(mockRes([POST(1)], 1));
     const result = await cmdSearch(["hello"], { current: null }, configRef);
-    expect(result.some((l) => l.includes("Excerpt 1"))).toBe(true);
+    expect(result).toContainLineWithText("Excerpt 1");
   });
 
   it("sets pager state when more results exist", async () => {
@@ -75,7 +61,7 @@ describe("cmdSearch", () => {
     const pager = { current: null };
     const result = await cmdSearch(["hello"], pager, configRef);
     expect(pager.current).not.toBeNull();
-    expect(pager.current.type).toBe("search");
+    expect(pager).toHavePagerType("search");
     expect(pager.current.searchTerm).toBe("hello");
     expect(result).toContain("[n]ext results");
   });

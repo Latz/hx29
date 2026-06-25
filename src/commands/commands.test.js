@@ -82,7 +82,7 @@ describe("cmdHelp", () => {
 
   it("includes tip line", () => {
     const result = cmdHelp();
-    expect(result.some((l) => l.includes("Arrow keys"))).toBe(true);
+    expect(result).toContainLineWithText("Arrow keys");
   });
 });
 
@@ -105,7 +105,7 @@ describe("cmdHistory", () => {
   it("includes a numbered list", () => {
     const ref = { current: ["ls posts"] };
     const result = cmdHistory(ref);
-    expect(result.some((l) => l.includes("ls posts"))).toBe(true);
+    expect(result).toContainLineWithText("ls posts");
   });
 });
 
@@ -122,7 +122,7 @@ describe("cmdConfig", () => {
   it("returns current config when called with no args", () => {
     const result = cmdConfig([], configRef);
     expect(result).toContain("Current configuration:");
-    expect(result.some((l) => l.includes("22px"))).toBe(true);
+    expect(result).toContainLineWithText("22px");
   });
 
   it("updates font size", () => {

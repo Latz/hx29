@@ -38,12 +38,12 @@ describe("cmdMan", () => {
   it("returns manual for 'read'", async () => {
     const pager = { current: null };
     const result = await cmdMan(["read"], pager);
-    expect(result.some((l) => l.includes("read - display a post"))).toBe(true);
+    expect(result).toContainLineWithText("read - display a post");
   });
 
   it("returns manual for 'ls'", async () => {
     const result = await cmdMan(["ls"], { current: null });
-    expect(result.some((l) => l.includes("ls - list content"))).toBe(true);
+    expect(result).toContainLineWithText("ls - list content");
   });
 
   it("returns not-found error for unknown command", async () => {
@@ -53,12 +53,12 @@ describe("cmdMan", () => {
 
   it("resolves alias 'r' to 'read'", async () => {
     const result = await cmdMan(["r"], { current: null });
-    expect(result.some((l) => l.includes("read - display a post"))).toBe(true);
+    expect(result).toContainLineWithText("read - display a post");
   });
 
   it("resolves alias 'c' to 'comment'", async () => {
     const result = await cmdMan(["c"], { current: null });
-    expect(result.some((l) => l.includes("comment"))).toBe(true);
+    expect(result).toContainLineWithText("comment");
   });
 
   it("returns an array of strings", async () => {

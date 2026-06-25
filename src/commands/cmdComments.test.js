@@ -52,7 +52,7 @@ describe("cmdComments", () => {
     const pager = { current: { slugMap: { 1: { slug: "test", id: 42 } } } };
     const result = await cmdComments(["1"], pager);
     expect(fetchComments).toHaveBeenCalledWith(42);
-    expect(result.some((l) => l.includes("Alice"))).toBe(true);
+    expect(result).toContainLineWithText("Alice");
   });
 
   it("returns no-comments message on empty array", async () => {
@@ -66,14 +66,14 @@ describe("cmdComments", () => {
     fetchComments.mockResolvedValue([COMMENT(1, "Charlie")]);
     const pager = { current: { slugMap: { 1: { slug: "test", id: 42 } } } };
     const result = await cmdComments(["1"], pager);
-    expect(result.some((l) => l.includes("Charlie"))).toBe(true);
+    expect(result).toContainLineWithText("Charlie");
   });
 
   it("includes comment body text", async () => {
     fetchComments.mockResolvedValue([COMMENT(1, "Alice", "Awesome article!")]);
     const pager = { current: { slugMap: { 1: { slug: "test", id: 42 } } } };
     const result = await cmdComments(["1"], pager);
-    expect(result.some((l) => l.includes("Awesome article!"))).toBe(true);
+    expect(result).toContainLineWithText("Awesome article!");
   });
 
   it("returns error on API failure", async () => {

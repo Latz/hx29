@@ -37,11 +37,7 @@ import { fetchPosts } from "../api/posts.js";
 import { fetchPages } from "../api/pages.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
 import cmdLs from "./cmdLs.js";
-
-const POST = (n) => ({ id: n, slug: `post-${n}`, title: { rendered: `Post ${n}` }, date: "2025-01-01", link: "/" });
-const PAGE = (n) => ({ id: n, slug: `page-${n}`, title: { rendered: `Page ${n}` }, link: "/" });
-const CAT  = (n) => ({ id: n, slug: `cat-${n}`,  name: `Cat ${n}`,  link: "/" });
-const TAG  = (n) => ({ id: n, slug: `tag-${n}`,  name: `Tag ${n}`,  link: "/" });
+import { POST, PAGE, CATEGORY as CAT, TAG } from "../__mocks__/fixtures.js";
 
 const configRef  = { current: { posts: 5, order: "desc" } };
 const contextRef = { current: { type: null, id: null, name: null } };
@@ -56,7 +52,7 @@ describe("cmdLs — posts", () => {
     fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
     const pager = { current: null };
     const result = await cmdLs([], pager, configRef, contextRef);
-    expect(result.some((l) => l.includes("1 posts found"))).toBe(true);
+    expect(result).toContainLineWithText("1 posts found");
     expect(result).toContain("1. Post 1");
   });
 
@@ -71,7 +67,7 @@ describe("cmdLs — posts", () => {
     fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
     const pager = { current: null };
     await cmdLs([], pager, configRef, contextRef);
-    expect(pager.current.type).toBe("posts");
+    expect(pager).toHavePagerType("posts");
   });
 
   it("shows more_posts indicator when total > page size", async () => {
@@ -120,8 +116,8 @@ describe("cmdLs — pages", () => {
     fetchPages.mockResolvedValue({ pages: [PAGE(1)], total: 1 });
     const pager = { current: null };
     const result = await cmdLs(["pages"], pager, configRef, contextRef);
-    expect(result.some((l) => l.includes("1 pages found"))).toBe(true);
-    expect(pager.current.type).toBe("pages");
+    expect(result).toContainLineWithText("1 pages found");
+    expect(pager).toHavePagerType("pages");
   });
 
   it("returns no-pages message on empty", async () => {
@@ -136,8 +132,8 @@ describe("cmdLs — categories", () => {
     fetchCategories.mockResolvedValue({ cats: [CAT(1)], total: 1 });
     const pager = { current: null };
     const result = await cmdLs(["categories"], pager, configRef, contextRef);
-    expect(result.some((l) => l.includes("1 categories found"))).toBe(true);
-    expect(pager.current.type).toBe("categories");
+    expect(result).toContainLineWithText("1 categories found");
+    expect(pager).toHavePagerType("categories");
   });
 
   it("lists categories with 'cats' alias", async () => {
@@ -153,8 +149,8 @@ describe("cmdLs — tags", () => {
     fetchTags.mockResolvedValue({ tags: [TAG(1)], total: 1 });
     const pager = { current: null };
     const result = await cmdLs(["tags"], pager, configRef, contextRef);
-    expect(result.some((l) => l.includes("1 tags found"))).toBe(true);
-    expect(pager.current.type).toBe("tags");
+    expect(result).toContainLineWithText("1 tags found");
+    expect(pager).toHavePagerType("tags");
   });
 });
 
@@ -168,7 +164,7 @@ describe("cmdLs — --all flag", () => {
     const result = await cmdLs(["posts", "--all"], pager, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledTimes(2);
     expect(fetchPosts).toHaveBeenCalledWith(1, 100, "desc", {});
-    expect(result.some((l) => l.includes("102 posts found"))).toBe(true);
+    expect(result).toContainLineWithText("102 posts found");
   });
 
   it("fetches only once when all items fit in first page", async () => {
@@ -176,7 +172,7 @@ describe("cmdLs — --all flag", () => {
     const pager = { current: null };
     const result = await cmdLs(["posts", "--all"], pager, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledTimes(1);
-    expect(result.some((l) => l.includes("3 posts found"))).toBe(true);
+    expect(result).toContainLineWithText("3 posts found");
   });
 });
 

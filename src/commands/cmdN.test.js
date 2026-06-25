@@ -70,14 +70,14 @@ describe("cmdN — article type", () => {
     const lines = Array.from({ length: 25 }, (_, i) => `Line ${i}`);
     const pager = { current: { type: "article", lines, offset: 0, slugMap: {}, footnotes: [], slug: "test" } };
     const result = await cmdN(pager, configRef);
-    expect(result.some((l) => l.includes("[n]ext"))).toBe(true);
+    expect(result).toContainLineWithText("[n]ext");
   });
 
   it("does not show more_chars_left on last page", async () => {
     const lines = Array.from({ length: 12 }, (_, i) => `Line ${i}`);
     const pager = { current: { type: "article", lines, offset: 5, slugMap: {}, footnotes: [], slug: "test" } };
     const result = await cmdN(pager, configRef);
-    expect(result.some((l) => typeof l === "string" && l.includes("[n]ext"))).toBe(false);
+    expect(result).not.toContainLineWithText("[n]ext");
     expect(pager.current.lines).toHaveLength(0);
   });
 });
@@ -120,14 +120,14 @@ describe("cmdN — posts type", () => {
     const pager = { current: { type: "posts", page: 1, total: 20, slugMap: {}, order: "desc", filter: {} } };
     const result = await cmdN(pager, configRef);
     // page=1, ps=5, offset=5, so first item is numbered 6
-    expect(result.some((l) => typeof l === "string" && l.includes("6. B"))).toBe(true);
+    expect(result).toContainLineWithText("6. B");
   });
 
   it("updates pager page", async () => {
     fetchPosts.mockResolvedValue({ posts: [{ id: 2, slug: "b", title: { rendered: "B" }, date: "2025-01-02", link: "/" }], total: 20 });
     const pager = { current: { type: "posts", page: 1, total: 20, slugMap: {}, order: "desc", filter: {} } };
     await cmdN(pager, configRef);
-    expect(pager.current.page).toBe(2);
+    expect(pager).toHavePagerPage(2);
   });
 
   it("sets pager to null on last page", async () => {
@@ -151,14 +151,14 @@ describe("cmdN — pages type", () => {
     const pager = { current: { type: "pages", page: 1, total: 20, slugMap: {} } };
     await cmdN(pager, configRef);
     expect(fetchPages).toHaveBeenCalledWith(2, 5);
-    expect(pager.current.page).toBe(2);
+    expect(pager).toHavePagerPage(2);
   });
 
   it("includes page title in output with offset numbering", async () => {
     fetchPages.mockResolvedValue({ pages: [{ id: 2, slug: "about", title: { rendered: "About" }, link: "/" }], total: 20 });
     const pager = { current: { type: "pages", page: 1, total: 20, slugMap: {} } };
     const result = await cmdN(pager, configRef);
-    expect(result.some((l) => typeof l === "string" && l.includes("About"))).toBe(true);
+    expect(result).toContainLineWithText("About");
   });
 });
 
@@ -168,7 +168,7 @@ describe("cmdN — categories type", () => {
     const pager = { current: { type: "categories", page: 1, total: 20, slugMap: {} } };
     const result = await cmdN(pager, configRef);
     // page=1, ps=5, offset=5 → first item numbered 6
-    expect(result.some((l) => typeof l === "string" && l.includes("Tech"))).toBe(true);
+    expect(result).toContainLineWithText("Tech");
   });
 });
 
@@ -177,7 +177,7 @@ describe("cmdN — tags type", () => {
     fetchTags.mockResolvedValue({ tags: [{ id: 1, slug: "rust", name: "Rust", link: "/" }], total: 20 });
     const pager = { current: { type: "tags", page: 1, total: 20, slugMap: {} } };
     const result = await cmdN(pager, configRef);
-    expect(result.some((l) => typeof l === "string" && l.includes("Rust"))).toBe(true);
+    expect(result).toContainLineWithText("Rust");
   });
 });
 

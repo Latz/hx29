@@ -50,8 +50,8 @@ describe("cmdRead", () => {
     fetchPostBySlug.mockResolvedValue(MOCK_POST);
     const pager = { current: null };
     const result = await cmdRead(["hello-world"], pager);
-    expect(result.some((l) => typeof l === "string" && l.includes("Hello World"))).toBe(true);
-    expect(result.some((l) => typeof l === "string" && l.includes("Body line 1"))).toBe(true);
+    expect(result).toContainLineWithText("Hello World");
+    expect(result).toContainLineWithText("Body line 1");
   });
 
   it("returns not-found error when post is missing", async () => {
@@ -91,7 +91,7 @@ describe("cmdRead", () => {
     const pager = { current: null };
     const result = await cmdRead(["hello-world"], pager);
     expect(pager.current.lines.length).toBeGreaterThan(0);
-    expect(result.some((l) => typeof l === "string" && l.includes("[n]ext"))).toBe(true);
+    expect(result).toContainLineWithText("[n]ext");
   });
 
   it("more_chars_left shows a real number, not NaN", async () => {
@@ -115,7 +115,7 @@ describe("cmdRead", () => {
     fetchPostBySlug.mockResolvedValue({ ...MOCK_POST, content: { rendered: "word ".repeat(400) } });
     const pager = { current: null };
     const result = await cmdRead(["hello-world"], pager);
-    expect(result.some((l) => typeof l === "string" && l.includes("min read"))).toBe(true);
+    expect(result).toContainLineWithText("min read");
   });
 
   it("returns error string on API exception", async () => {

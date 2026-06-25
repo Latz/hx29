@@ -24,27 +24,9 @@ vi.mock("../apiError.js", () => ({ fmtApiError: (e) => `Error: ${e.message}` }))
 import apiFetch from "../api/apiFetch.js";
 import { highlightMatch } from "../ui.jsx";
 import cmdGrep from "./cmdGrep.js";
+import { POST_WITH_CONTENT as makePost, makeFetchResult as mockApiFetch } from "../__mocks__/fixtures.js";
 
 const configRef = { current: { posts: 5 } };
-
-function makePost(id, content) {
-  return {
-    id,
-    slug: `post-${id}`,
-    title: { rendered: `Post ${id}` },
-    date: "2025-01-01",
-    link: "/",
-    content: { rendered: `<p>${content}</p>` },
-  };
-}
-
-function mockApiFetch(posts) {
-  return {
-    ok: true,
-    json: async () => posts,
-    headers: { get: () => String(posts.length) },
-  };
-}
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -64,14 +46,14 @@ describe("cmdGrep", () => {
     apiFetch.mockResolvedValue(mockApiFetch([makePost(1, "hello world"), makePost(2, "nothing")]));
     const pager = { current: null };
     const result = await cmdGrep(["hello"], pager, configRef);
-    expect(result.some((l) => typeof l === "string" && l.includes("Post 1"))).toBe(true);
-    expect(result.some((l) => typeof l === "string" && l.includes("Post 2"))).toBe(false);
+    expect(result).toContainLineWithText("Post 1");
+    expect(result).not.toContainLineWithText("Post 2");
   });
 
   it("case-insensitive matching", async () => {
     apiFetch.mockResolvedValue(mockApiFetch([makePost(1, "Hello World")]));
     const result = await cmdGrep(["hello"], { current: null }, configRef);
-    expect(result.some((l) => typeof l === "string" && l.includes("Post 1"))).toBe(true);
+    expect(result).toContainLineWithText("Post 1");
   });
 
   it("calls highlightMatch for matching lines", async () => {
@@ -85,7 +67,7 @@ describe("cmdGrep", () => {
     const pager = { current: null };
     await cmdGrep(["match"], pager, configRef);
     expect(pager.current).not.toBeNull();
-    expect(pager.current.type).toBe("grep");
+    expect(pager).toHavePagerType("grep");
     expect(Array.isArray(pager.current.blocks)).toBe(true);
   });
 
