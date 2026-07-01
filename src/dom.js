@@ -28,8 +28,7 @@ export function getLineWidth() {
   const el = document.querySelector(".react-terminal");
   if (!el) return LINE_W;
   const span = document.createElement("span");
-  span.style.cssText =
-    "position:absolute;visibility:hidden;font-family:var(--font,monospace);font-size:var(--fsize,22px);white-space:pre";
+  span.className = "hx29-measure-span";
   span.textContent = "M";
   el.appendChild(span);
   const charW = span.getBoundingClientRect().width;
@@ -47,11 +46,9 @@ export function scrollTerminal() {
   if (!el) return;
   const wrapper = document.querySelector(".react-terminal-wrapper");
   if (wrapper) {
-    wrapper.style.transition = "opacity 50ms linear";
-    wrapper.style.opacity = "0.94";
+    wrapper.classList.add("hx29-scroll-flash");
     setTimeout(() => {
-      wrapper.style.transition = "opacity 120ms ease-out";
-      wrapper.style.opacity = "1";
+      wrapper.classList.replace("hx29-scroll-flash", "hx29-scroll-flash-restore");
     }, 50);
   }
   el.scrollTop = el.scrollHeight;
@@ -76,9 +73,9 @@ export function maybeSyncTear() {
   const target = lines[lines.length - 1];
   const duration = 40 + Math.random() * 40;
   target.classList.add("sync-tear");
-  target.style.animationDuration = `${duration}ms`;
+  target.style.setProperty("--tear-duration", `${duration}ms`);
   setTimeout(() => {
     target.classList.remove("sync-tear");
-    target.style.animationDuration = "";
+    target.style.removeProperty("--tear-duration");
   }, duration + 10);
 }

@@ -39,14 +39,13 @@ export default function useHistoryNav(historyRef, printingRef, introPlayingRef, 
           setNativeValue(el, doubled);
           const notice = document.createElement("div");
           notice.textContent = "[KEY_BOUNCE RECALIBRATED]";
-          notice.style.cssText =
-            "position:fixed;bottom:12px;right:16px;color:var(--dim);font-family:var(--font);font-size:12px;pointer-events:none;z-index:9999;opacity:1;transition:opacity 0.3s";
+          notice.className = "hx29-key-bounce-notice";
           document.body.appendChild(notice);
           setTimeout(() => {
             const cur = el.value;
             const p = el.selectionStart ?? cur.length;
             if (p > 0) setNativeValue(el, cur.slice(0, p - 1) + cur.slice(p));
-            notice.style.opacity = "0";
+            notice.classList.add("is-hidden");
             setTimeout(() => notice.remove(), 320);
           }, 120);
         }, 0);

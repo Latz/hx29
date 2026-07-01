@@ -56,7 +56,7 @@ describe("highlightMatch", () => {
     const innerSpan = container.querySelector("span span");
     expect(innerSpan).not.toBeNull();
     expect(innerSpan.textContent).toBe("WORLD");
-    expect(container.innerHTML).toContain("background");
+    expect(container.innerHTML).toContain("hx29-highlight");
   });
 });
 

@@ -3,7 +3,7 @@
 // This file is required by WordPress as a fallback.
 get_header();
 ?>
-<div id="terminal-container" style="padding:16px;font-family:'Courier New',monospace;background:#000;color:#0f0;min-height:100vh">
+<div id="terminal-container" class="hx29-fallback-container">
   <div id="terminal-output">
     <div>HX29 Terminal — JavaScript required for full functionality.</div>
     <div>&nbsp;</div>

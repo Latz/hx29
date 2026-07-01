@@ -17,7 +17,7 @@ export function highlightMatch(line, term, cols) {
       {"    "}
       {parts.map((part, i) =>
         i % 2 === 1
-          ? <span key={i} style={{ background: "var(--fg)", color: "var(--bg)" }}>{part}</span>
+          ? <span key={i} className="hx29-highlight">{part}</span>
           : part
       )}
     </span>
@@ -35,7 +35,7 @@ export function highlightMatch(line, term, cols) {
 export function fmtLineEl(n, title, date, cols) {
   return {
     __animText: fmtLine(n, title, date, cols) + "  ",
-    __suffix: <span style={{ textDecoration: "underline" }}>{`link [${n}]`}</span>,
+    __suffix: <span className="hx29-underline">{`link [${n}]`}</span>,
   };
 }
 
@@ -78,7 +78,7 @@ export function parseBodyWithLinks(html, width) {
     while ((m = markerRe.exec(line)) !== null) {
       if (m.index > last) parts.push(line.slice(last, m.index));
       parts.push(
-        <span key={`${lineKey}-${m[2]}`} style={{ textDecoration: "underline" }}>{m[1]}</span>,
+        <span key={`${lineKey}-${m[2]}`} className="hx29-underline">{m[1]}</span>,
         ` [${m[2]}]`
       );
       last = m.index + m[0].length;
