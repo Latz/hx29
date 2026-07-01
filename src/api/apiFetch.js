@@ -1,4 +1,5 @@
-import { WP_API, NONCE } from "../config.js";
+import wpApiFetch from "@wordpress/api-fetch";
+import { WP_API } from "../config.js";
 
 const CACHE_TTL = 60_000;
 const FETCH_TIMEOUT = 8_000;
@@ -19,14 +20,15 @@ function makeFakeResponse(data, extraHeaders = {}) {
   });
 }
 
-function fetchWithTimeout(url, opts) {
+function fetchWithTimeout(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+  return wpApiFetch({ path, signal: controller.signal, parse: false }).finally(() => clearTimeout(timer));
 }
 
 /**
- * Sends an authenticated request to the WordPress REST API.
+ * Sends an authenticated request to the WordPress REST API via @wordpress/api-fetch
+ * (nonce and root-URL middleware configured in config.js).
  * JSON responses are cached for 60 seconds by URL. Requests time out after 8 seconds.
  * Throws ApiError with type "timeout", "rate_limit", or "server" on failure.
  * @param {string} path - API path relative to the WP v2 base URL.
@@ -39,10 +41,7 @@ export default async function apiFetch(path) {
 
   let res;
   try {
-    res = await fetchWithTimeout(url, {
-      headers: NONCE ? { "X-WP-Nonce": NONCE } : {},
-      credentials: "same-origin",
-    });
+    res = await fetchWithTimeout(`/wp/v2${path}`);
   } catch (e) {
     if (e.name === "AbortError") throw new ApiError("timeout", 0);
     throw e;

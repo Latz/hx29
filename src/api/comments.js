@@ -1,4 +1,4 @@
-import { WP_API, NONCE } from "../config.js";
+import wpApiFetch from "@wordpress/api-fetch";
 import apiFetch from "./apiFetch.js";
 
 /**
@@ -22,18 +22,13 @@ export async function fetchComments(postId, perPage = 20) {
  */
 export async function postComment(postId, content) {
   const uid = (typeof window !== "undefined" && window.hx29?.uid) || "guest";
-  const res = await fetch(`${WP_API}/comments`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(NONCE ? { "X-WP-Nonce": NONCE } : {}),
-    },
-    credentials: "same-origin",
-    body: JSON.stringify({ post: postId, author_name: uid, author_email: `${uid}@hx29.local`, content }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
+  try {
+    return await wpApiFetch({
+      path: "/wp/v2/comments",
+      method: "POST",
+      data: { post: postId, author_name: uid, author_email: `${uid}@hx29.local`, content },
+    });
+  } catch (err) {
+    throw new Error(err.message || `HTTP ${err.code || "error"}`);
   }
-  return res.json();
 }

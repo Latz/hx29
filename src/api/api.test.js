@@ -7,8 +7,12 @@ vi.mock("../config.js", () => ({
   WP_API: "https://example.com/wp-json/wp/v2",
   NONCE: "",
 }));
+vi.mock("@wordpress/api-fetch", () => ({
+  default: vi.fn(),
+}));
 
 import apiFetch from "./apiFetch.js";
+import wpApiFetch from "@wordpress/api-fetch";
 import { fetchPosts, fetchPostBySlug } from "./posts.js";
 import { fetchPages } from "./pages.js";
 import { fetchCategories, fetchTags } from "./taxonomy.js";
@@ -145,25 +149,23 @@ describe("fetchComments", () => {
 
 describe("postComment", () => {
   it("POSTs to the comments endpoint", async () => {
-    global.fetch.mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
+    wpApiFetch.mockResolvedValue({ id: 1 });
     await postComment(42, "Hello!");
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/comments"),
-      expect.objectContaining({ method: "POST" })
+    expect(wpApiFetch).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/wp/v2/comments", method: "POST" })
     );
   });
 
   it("includes post id and content in body", async () => {
-    global.fetch.mockResolvedValue({ ok: true, json: async () => ({ id: 1 }) });
+    wpApiFetch.mockResolvedValue({ id: 1 });
     await postComment(42, "Test comment");
-    const call = global.fetch.mock.calls[0];
-    const body = JSON.parse(call[1].body);
-    expect(body.post).toBe(42);
-    expect(body.content).toBe("Test comment");
+    const call = wpApiFetch.mock.calls[0][0];
+    expect(call.data.post).toBe(42);
+    expect(call.data.content).toBe("Test comment");
   });
 
-  it("throws on non-ok response", async () => {
-    global.fetch.mockResolvedValue({ ok: false, status: 403, json: async () => ({ message: "Forbidden" }) });
+  it("throws on rejected request", async () => {
+    wpApiFetch.mockRejectedValue({ message: "Forbidden", code: "rest_forbidden" });
     await expect(postComment(1, "hi")).rejects.toThrow("Forbidden");
   });
 });
