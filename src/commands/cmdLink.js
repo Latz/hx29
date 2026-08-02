@@ -8,11 +8,11 @@ import { t } from "../i18n/index.js";
  * @returns {string[]} Confirmation or error message.
  */
 export default function cmdLink(args, pager) {
-  const n = parseInt(args[0], 10);
-  if (isNaN(n)) return [t.link_usage];
+  const n = Number.parseInt(args[0], 10);
+  if (Number.isNaN(n)) return [t.link_usage];
 
   const footnotes = pager.current?.footnotes;
-  let url = footnotes && footnotes[n - 1] ? footnotes[n - 1] : null;
+  let url = footnotes?.[n - 1] ? footnotes[n - 1] : null;
   if (!url) {
     const entry = pager.current?.slugMap?.[n];
     if (!entry) return [t.link_unknown_num(n)];
@@ -26,6 +26,6 @@ export default function cmdLink(args, pager) {
   a.rel = "noopener noreferrer";
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
   return [t.link_opening(url)];
 }

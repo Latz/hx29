@@ -10,8 +10,8 @@ import { getLineWidth, wrapLines, stripHtml, formatDate } from "../utils.js";
  * @returns {Promise<string[]>} Formatted comment lines or an error message.
  */
 export default async function cmdComments(args, pager) {
-  const n = parseInt(args[0], 10);
-  if (isNaN(n)) return [t.comments_usage];
+  const n = Number.parseInt(args[0], 10);
+  if (Number.isNaN(n)) return [t.comments_usage];
   const entry = pager.current?.slugMap?.[n];
   if (!entry) return [t.comments_unknown_num(n)];
   const id = typeof entry === "object" ? entry.id : null;

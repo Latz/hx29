@@ -9,7 +9,7 @@ import { fmtLine, stripHtml, wordWrap } from "./format.js";
  */
 export function highlightMatch(line, term, cols) {
   const raw = line.slice(0, cols - 4);
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   const re = new RegExp(`(${escaped})`, "gi");
   const parts = raw.split(re);
   return (
@@ -17,7 +17,7 @@ export function highlightMatch(line, term, cols) {
       {"    "}
       {parts.map((part, i) =>
         i % 2 === 1
-          ? <span key={i} className="hx29-highlight">{part}</span>
+          ? <span key={`${part}-${i}`} className="hx29-highlight">{part}</span>
           : part
       )}
     </span>
@@ -67,8 +67,14 @@ export function parseBodyWithLinks(html, width) {
   const rawLines = plain.split("\n").filter((l) => l.trim());
   const wrapped = rawLines.flatMap((l) => (l.length <= width ? [l] : wordWrap(l, width)));
 
-  const markerRe = /«([^»]*)»​(\d+)‌/g;
-  const lines = wrapped.map((line) => {
+  // Linear-time: a single bounded capture group between two fixed delimiters,
+  // no nested/overlapping quantifiers — not susceptible to catastrophic backtracking.
+  const markerRe = /«([^»]*)»​(\d+)‌/g; // NOSONAR javascript:S8786
+
+  // Deliberately polymorphic: returns the plain string unchanged when a line has no
+  // link markers (so it's typed out character-by-character by the caller), or a
+  // <span> when it does (rendered statically). Downstream code branches on this.
+  const lines = wrapped.map((line) => { // NOSONAR javascript:S3800
     const lineKey = line.slice(0, 40);
     if (!line.includes("«")) return line;
     const parts = [];

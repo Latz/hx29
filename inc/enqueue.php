@@ -11,7 +11,7 @@ function hx29_enqueue_scripts() {
         // Build not run yet — nothing to enqueue.
         return;
     }
-    $asset = require $asset_path;
+    $asset = require_once $asset_path;
 
     wp_enqueue_script(
         'hx29-terminal',

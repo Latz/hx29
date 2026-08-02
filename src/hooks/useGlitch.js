@@ -2,6 +2,7 @@ import { useEffect, useRef } from "@wordpress/element";
 import { TerminalOutput } from "react-terminal-ui";
 import glitches from "../glitches.json";
 import { scrollTerminal } from "../utils.js";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Periodically appends a random glitch message to the terminal (every 90–150 s).
@@ -17,11 +18,11 @@ export default function useGlitch(introPlayingRef, printingRef, setTerminalLines
 
   useEffect(() => {
     const schedule = () => {
-      const delay = 90000 + Math.random() * 60000;
+      const delay = 90000 + cosmeticRandom() * 60000;
       return setTimeout(() => {
         if (!introPlayingRef.current && !printingRef.current) {
-          const msg = glitches[Math.floor(Math.random() * glitches.length)];
-          setTerminalLines((prev) => [...prev, <TerminalOutput key={`glitch-${Date.now()}`}>{msg}</TerminalOutput>]);
+          const msg = glitches[Math.floor(cosmeticRandom() * glitches.length)];
+          setTerminalLines((prev) => [...prev, <TerminalOutput key={`glitch-${prev.length}`}>{msg}</TerminalOutput>]);
           setTimeout(scrollTerminal, 50);
           timerRef.current = null;
           timerRef.reschedule = () => { timerRef.current = schedule(); };

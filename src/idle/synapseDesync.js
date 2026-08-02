@@ -1,13 +1,13 @@
-import { TerminalOutput } from "react-terminal-ui";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Idle sequence: neural sync-rate countdown with jittering chromatic aberration
  * overlay; reaching 0% clears the terminal via `ctx.clearAll()`.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, clearAll?:function():void}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, clearAll?:function():void, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleSynapseDesync(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
   const BRACKET = '[ C H R O M A T I C   A B E R R A T I O N   E N A B L E D ]';
   const JITTER  = ['', ' ', '  '];
@@ -40,7 +40,7 @@ export default async function idleSynapseDesync(ctx) {
   let aborted = false;
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
   done.then(() => { aborted = true; });
 
@@ -59,7 +59,7 @@ export default async function idleSynapseDesync(ctx) {
 
     // Drop sync every 2 seconds
     if (Date.now() - lastSyncDrop >= 2000 && sync > 0) {
-      sync = Math.max(0, sync - Math.floor(20 + Math.random() * 15));
+      sync = Math.max(0, sync - Math.floor(20 + cosmeticRandom() * 15));
       lastSyncDrop = Date.now();
       update(syncKey, `> Sync-Rate: ${sync}% ... [SIGNAL DEGRADATION]`);
 

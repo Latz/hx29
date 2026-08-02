@@ -216,7 +216,7 @@ describe("loadHistory / pushHistory", () => {
   it("caps history at 25 entries", () => {
     const ref = { current: [] };
     for (let i = 0; i < 30; i++) pushHistory(ref, `cmd${i}`);
-    expect(ref.current.length).toBe(25);
+    expect(ref.current).toHaveLength(25);
   });
 
   it("persists to cookie and can be loaded back", () => {

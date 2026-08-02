@@ -9,7 +9,7 @@ import apiFetch from "./apiFetch.js";
 export async function fetchCategories(page = 1, pageSize = 10) {
   const res = await apiFetch(`/categories?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const cats = await res.json();
   return { cats, total };
 }
@@ -23,7 +23,7 @@ export async function fetchCategories(page = 1, pageSize = 10) {
 export async function fetchTags(page = 1, pageSize = 10) {
   const res = await apiFetch(`/tags?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const tags = await res.json();
   return { tags, total };
 }

@@ -1,13 +1,13 @@
-import { TerminalOutput } from "react-terminal-ui";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Idle sequence: scrolling ticker, hex-swap, and glitch-code animation
  * simulating grid noise leaking into the TTY stream.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleGridGlitch(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
   const GLITCH = '▒░█▓╬╪╫╗╝╚╔║═╠╣▐▌▄▀■';
   const HEX_VALS = ['FF', 'AA', '3C', 'D4', 'B7', '0E', 'F2', '91'];
@@ -20,7 +20,7 @@ export default async function idleGridGlitch(ctx) {
    * @returns {string} Random glitch character string of the given length.
    */
   const randGlitch = (len) => Array.from({ length: len }, () =>
-    GLITCH[Math.floor(Math.random() * GLITCH.length)]
+    GLITCH[Math.floor(cosmeticRandom() * GLITCH.length)]
   ).join('');
 
   append(key('l1'), '> CRITICAL: Sub-net barrier degrading due to operator inactivity.');
@@ -34,11 +34,11 @@ export default async function idleGridGlitch(ctx) {
   const tickerKey = key('ticker');
   const codeKey   = key('code');
 
-  append(hexKey,    `  \\x00\\xFF --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
+  append(hexKey,    String.raw`  \x00\xFF --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
   await wait(200);
   append(tickerKey, `  [${new Date().toTimeString().slice(0,8)}] INTERCEPT: "${TICKER.slice(0, 40)}"`);
   await wait(200);
-  append(codeKey,   `  \\x09\\x12 [GLITCH] █▓▒░░ ${CODES[0]} ░░▒▓█`);
+  append(codeKey,   String.raw`  \x09\x12 [GLITCH] █▓▒░░ ${CODES[0]} ░░▒▓█`);
   await wait(300);
   append(key('l4'), '');
   append(key('l5'), '> Terminal interface drowning in raw telemetry packets.');
@@ -52,7 +52,7 @@ export default async function idleGridGlitch(ctx) {
   let aborted = false;
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
   done.then(() => { aborted = true; });
 
@@ -64,9 +64,8 @@ export default async function idleGridGlitch(ctx) {
     tick++;
 
     // Hex swap every tick
-    const h1 = HEX_VALS[Math.floor(Math.random() * HEX_VALS.length)];
-    const h2 = HEX_VALS[Math.floor(Math.random() * HEX_VALS.length)];
-    update(hexKey, `  \\x00\\x${h1} --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
+    const h1 = HEX_VALS[Math.floor(cosmeticRandom() * HEX_VALS.length)];
+    update(hexKey, String.raw`  \x00\x${h1} --> [NEO_CITY_TRAFFIC_FEED] -> STACK OVERFLOW`);
 
     // Ticker scroll every tick
     tickerOffset = (tickerOffset + 1) % TICKER.length;
@@ -75,10 +74,10 @@ export default async function idleGridGlitch(ctx) {
 
     // Code swap every 3 ticks (~300ms)
     if (tick % 3 === 0) {
-      const code = CODES[Math.floor(Math.random() * CODES.length)];
+      const code = CODES[Math.floor(cosmeticRandom() * CODES.length)];
       const g1 = randGlitch(5);
       const g2 = randGlitch(5);
-      update(codeKey, `  \\x09\\x12 [GLITCH] ${g1} ${code} ${g2}`);
+      update(codeKey, String.raw`  \x09\x12 [GLITCH] ${g1} ${code} ${g2}`);
     }
 
     scrollTerminal();
@@ -87,7 +86,7 @@ export default async function idleGridGlitch(ctx) {
   if (!idleActiveRef.current) return;
   idleActiveRef.current = false;
 
-  update(codeKey,   '  \\x09\\x12 [GLITCH] █████ FIREWALL_RESTORED █████');
+  update(codeKey,   String.raw`  \x09\x12 [GLITCH] █████ FIREWALL_RESTORED █████`);
   update(key('cta'), '*** FIREWALL RECEPTORS ONLINE — GRID NOISE FILTERED ***');
   await wait(300);
   append(key('l8'), '');

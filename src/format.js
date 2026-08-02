@@ -26,9 +26,8 @@ export function formatDate(iso) {
  * @returns {string} Plain text, trimmed.
  */
 export function stripHtml(html) {
-  const txt = document.createElement("textarea");
-  txt.innerHTML = html.replace(/<[^>]*>/g, "");
-  return txt.value.trim();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return (doc.body.textContent || "").trim();
 }
 
 /**

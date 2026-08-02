@@ -179,6 +179,7 @@ html, body {
     color: var(--fg);
     width: 100%;
     max-width: 160ch;
+    container-type: inline-size;
 }
 
 #terminal-output {
@@ -379,10 +380,6 @@ a { color: var(--accent); }
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
-#terminal-container {
-    container-type: inline-size;
-}
-
 @container (max-width: 768px) {
     #terminal-container { padding: 8px; }
     #terminal-output, #terminal-input, #terminal-input-line span { font-size: 12px; }

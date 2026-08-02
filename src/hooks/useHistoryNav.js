@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "@wordpress/element";
 import { complete } from "../complete.js";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Sets the value of a React-controlled input using the native setter so React's
@@ -31,7 +32,7 @@ export default function useHistoryNav(historyRef, printingRef, introPlayingRef, 
       if (printingRef.current || introPlayingRef.current) return;
       const el = e.currentTarget;
 
-      if (e.key.length === 1 && Math.random() < 0.005) {
+      if (e.key.length === 1 && cosmeticRandom() < 0.005) {
         setTimeout(() => {
           const before = el.value;
           const pos = el.selectionStart ?? before.length;

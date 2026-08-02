@@ -1,19 +1,22 @@
-import { TerminalOutput } from "react-terminal-ui";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Idle sequence: spinning ASCII vortex with a buffer-fill counter and
  * thread-desync messages, dismissed by any keypress.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleVortex(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
-  const SPINNERS = ['|', '/', '-', '\\'];
+  // A single trailing backslash can't be expressed via String.raw (a lone
+  // backslash immediately before the closing backtick escapes the delimiter
+  // instead of terminating the string), so this stays an escaped string.
+  const SPINNERS = ['|', '/', '-', '\\']; // NOSONAR javascript:S7780
   const VORTEX_FRAMES = [
-    ['        / \\ ', '       /   \\    ', '       \\   /    ', '        \\ / '],
+    [String.raw`        / \ `, String.raw`       /   \    `, String.raw`       \   /    `, String.raw`        \ / `],
     ['        | | ', '       |   |    ', '       |   |    ', '        | | '],
-    ['        \\ / ', '       \\   /    ', '       /   \\    ', '        / \\ '],
+    [String.raw`        \ / `, String.raw`       \   /    `, String.raw`       /   \    `, String.raw`        / \ `],
     ['        - - ', '       -   -    ', '       -   -    ', '        - - '],
   ];
 
@@ -38,26 +41,24 @@ export default async function idleVortex(ctx) {
 
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
 
-  let aborted = false;
-  done.then(() => { aborted = true; });
-
-  while (!aborted && idleActiveRef.current) {
+  while (idleActiveRef.current) {
     frame = (frame + 1) % 4;
-    buf = Math.min(100, buf + Math.floor(1 + Math.random() * 4));
+    buf = Math.min(100, buf + Math.floor(1 + cosmeticRandom() * 4));
     const spinner = SPINNERS[frame];
     const vf = VORTEX_FRAMES[frame];
 
     vf.forEach((line, i) => update(vk[i], line));
     update(statusKey, `       [   ${spinner}   ]  CYCLING DATA PORT_FALLBACK    Buffer fill: ${buf}%`);
     if (buf > 30 && frame % 2 === 0) {
-      const thread = Math.floor(Math.random() * 16).toString().padStart(2, '0');
+      const thread = Math.floor(cosmeticRandom() * 16).toString().padStart(2, '0');
       update(threadKey, `> Thread #${thread} spinning out of sync...`);
     }
     scrollTerminal();
-    await wait(100);
+    const interrupted = await Promise.race([wait(100).then(() => false), done.then(() => true)]);
+    if (interrupted || !idleActiveRef.current) break;
   }
 
   if (!idleActiveRef.current) return;

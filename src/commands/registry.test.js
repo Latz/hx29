@@ -94,19 +94,13 @@ describe("executeCommand", () => {
     expect(result[0]).toContain("command not found");
   });
 
-  it("dispatches help", async () => {
-    const result = await run("help");
-    expect(result).toContain("Available commands:");
-  });
-
-  it("dispatches history", async () => {
-    const result = await run("history");
-    expect(result).toContain("No command history.");
-  });
-
-  it("dispatches config with no args", async () => {
-    const result = await run("config");
-    expect(result).toContain("Current configuration:");
+  it.each([
+    ["help", "Available commands:"],
+    ["history", "No command history."],
+    ["config", "Current configuration:"],
+  ])("dispatches %s", async (cmd, expected) => {
+    const result = await run(cmd);
+    expect(result).toContain(expected);
   });
 
   it("dispatches link with no number", async () => {

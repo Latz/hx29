@@ -1,13 +1,13 @@
-import { TerminalOutput } from "react-terminal-ui";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Idle sequence: visually "shreds" a list of filenames character-by-character,
  * simulating a forced RAM purge until the user interrupts.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleMemoryLeak(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
   const FILES = [
     'neon_glow_render_effects.dll',
@@ -41,7 +41,6 @@ export default async function idleMemoryLeak(ctx) {
 
   const fileKey = key('file');
   const barKey  = key('bar');
-  const warnKey = key('warn');
   const ctaKey  = key('cta');
 
   append(fileKey, '');
@@ -57,7 +56,7 @@ export default async function idleMemoryLeak(ctx) {
   let aborted = false;
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
   done.then(() => { aborted = true; });
 
@@ -72,9 +71,10 @@ export default async function idleMemoryLeak(ctx) {
 
     // Shred right-to-left
     let destroyed = 0;
-    while (destroyed < file.length && !aborted && idleActiveRef.current) {
-      await wait(50);
-      destroyed = Math.min(file.length, destroyed + Math.floor(1 + Math.random() * 3));
+    while (destroyed < file.length && idleActiveRef.current) {
+      const interrupted = await Promise.race([wait(50).then(() => false), done.then(() => true)]);
+      if (interrupted || !idleActiveRef.current) break;
+      destroyed = Math.min(file.length, destroyed + Math.floor(1 + cosmeticRandom() * 3));
       const visible = file.slice(0, file.length - destroyed);
       const hashes  = HASH.repeat(destroyed);
       update(fileKey, `  [PURGING]: ${visible}${hashes}`);

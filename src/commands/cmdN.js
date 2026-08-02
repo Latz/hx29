@@ -7,6 +7,144 @@ import apiFetch from "../api/apiFetch.js";
 import { batchFmtLineEls, getPageLines, getLineWidth, stripHtml, formatDate } from "../utils.js";
 
 /**
+ * Advances the article pager (already-fetched, locally-paginated lines).
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @returns {Array<string|import('react').ReactElement>} Next page of article lines.
+ */
+function nextArticlePage(pager) {
+  const { lines, offset, slugMap, footnotes, slug } = pager.current;
+  const pageLines = getPageLines();
+  const slice = lines.slice(offset, offset + pageLines);
+  const nextOffset = offset + pageLines;
+  const hasMore = nextOffset < lines.length;
+  pager.current = hasMore
+    ? { type: "article", lines, offset: nextOffset, slugMap, footnotes, slug }
+    : { type: "article", lines: [], offset: 0, slugMap, footnotes, slug };
+  if (hasMore) {
+    const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
+    return ["__REPLACE__", ...slice, "", t.more_chars_left(charsLeft)];
+  }
+  return ["__REPLACE__", ...slice, ""];
+}
+
+/**
+ * Advances the grep-results pager (already-fetched, locally-paginated blocks).
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @returns {Array<string|import('react').ReactElement>} Next page of grep result lines.
+ */
+function nextGrepPage(pager) {
+  const { blocks, shownBlocks, slugMap } = pager.current;
+  const pageLines = getPageLines();
+  const nextPage = [];
+  let newShown = shownBlocks;
+  for (let i = shownBlocks; i < blocks.length; i++) {
+    if (nextPage.length + blocks[i].length > pageLines) break;
+    nextPage.push(...blocks[i]);
+    newShown++;
+  }
+  const remaining = blocks.length - newShown;
+  pager.current = { type: "grep", blocks, shownBlocks: newShown, slugMap };
+  return remaining > 0 ? [...nextPage, t.more_grep] : [...nextPage, ""];
+}
+
+/**
+ * Builds the next-page result lines for a remotely-fetched list pager
+ * (search/posts/pages/categories/tags), updating `pager.current` and the slugMap.
+ * @param {Object} params
+ * @param {string} params.type - Pager type.
+ * @param {Array<Object>} params.items - Items fetched for the next page.
+ * @param {number} params.fetchedTotal - Total reported by this fetch, used if `total` was unset.
+ * @param {import('react').RefObject<Object>} params.pager - Shared pager state ref.
+ * @param {number} params.nextPage - The page number just fetched.
+ * @param {number} params.offset - slugMap index offset (items already shown before this page).
+ * @param {number} params.ps - Page size.
+ * @param {number|undefined} params.total - Previously known total, if any.
+ * @param {Object} params.extraPagerFields - Extra fields to persist on `pager.current` (order/filter/searchTerm).
+ * @param {function(Object, number): {n:number,slug:string,id:number,url:string,title:string,date:string}} params.mapItem - Maps a raw item + slugMap index to its display/slugMap fields.
+ * @param {string} params.moreMessage - Localized "more" hint shown when another page remains.
+ * @param {number} params.cols - Terminal column width.
+ * @returns {Array<string|import('react').ReactElement>} Rendered result lines.
+ */
+function paginateListResult({ type, items, fetchedTotal, pager, nextPage, offset, ps, total, extraPagerFields, mapItem, moreMessage, cols }) {
+  const shown = nextPage * ps;
+  const hasMore = shown < (total ?? fetchedTotal);
+  const slugMap = pager.current.slugMap;
+  const mapped = items.map((item, i) => mapItem(item, offset + i + 1));
+  mapped.forEach(({ n, slug, id, url }) => { slugMap[n] = { slug, id, url }; });
+  pager.current = hasMore
+    ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, ...extraPagerFields }
+    : null;
+  return [
+    ...batchFmtLineEls(mapped.map(({ n, title, date }) => ({ n, title, date })), cols),
+    ...(hasMore ? ["", moreMessage] : [""]),
+  ];
+}
+
+async function nextSearchPage(pager, ps, nextPage, offset, cols, total) {
+  const { searchTerm } = pager.current;
+  const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const fetchedTotal = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const posts = await res.json();
+  return paginateListResult({
+    type: "search", items: posts, fetchedTotal, pager, nextPage, offset, ps, total,
+    extraPagerFields: { searchTerm },
+    mapItem: (p, n) => ({ n, slug: p.slug, id: p.id, url: p.link, title: stripHtml(p.title.rendered), date: formatDate(p.date) }),
+    moreMessage: t.more_search, cols,
+  });
+}
+
+async function nextPostsPage(pager, ps, nextPage, offset, cols, total) {
+  const ord = pager.current.order || "desc";
+  const fil = pager.current.filter || {};
+  const { posts, total: fetchedTotal } = await fetchPosts(nextPage, ps, ord, fil);
+  return paginateListResult({
+    type: "posts", items: posts, fetchedTotal, pager, nextPage, offset, ps, total,
+    extraPagerFields: { order: ord, filter: fil },
+    mapItem: (p, n) => ({ n, slug: p.slug, id: p.id, url: p.link, title: stripHtml(p.title.rendered), date: formatDate(p.date) }),
+    moreMessage: t.more_posts, cols,
+  });
+}
+
+async function nextPagesPage(pager, ps, nextPage, offset, cols, total) {
+  const { pages, total: fetchedTotal } = await fetchPages(nextPage, ps);
+  return paginateListResult({
+    type: "pages", items: pages, fetchedTotal, pager, nextPage, offset, ps, total,
+    extraPagerFields: {},
+    mapItem: (p, n) => ({ n, slug: p.slug, id: p.id, url: p.link, title: stripHtml(p.title.rendered), date: "" }),
+    moreMessage: t.more_pages, cols,
+  });
+}
+
+async function nextCategoriesPage(pager, ps, nextPage, offset, cols, total) {
+  const { cats, total: fetchedTotal } = await fetchCategories(nextPage, ps);
+  return paginateListResult({
+    type: "categories", items: cats, fetchedTotal, pager, nextPage, offset, ps, total,
+    extraPagerFields: {},
+    mapItem: (c, n) => ({ n, slug: c.slug, id: c.id, url: c.link, title: c.name, date: "" }),
+    moreMessage: t.more_categories, cols,
+  });
+}
+
+async function nextTagsPage(pager, ps, nextPage, offset, cols, total) {
+  const { tags, total: fetchedTotal } = await fetchTags(nextPage, ps);
+  return paginateListResult({
+    type: "tags", items: tags, fetchedTotal, pager, nextPage, offset, ps, total,
+    extraPagerFields: {},
+    mapItem: (tg, n) => ({ n, slug: tg.slug, id: tg.id, url: tg.link, title: tg.name, date: "" }),
+    moreMessage: t.more_tags, cols,
+  });
+}
+
+const LIST_HANDLERS = {
+  search: nextSearchPage,
+  posts: nextPostsPage,
+  pages: nextPagesPage,
+  categories: nextCategoriesPage,
+  tags: nextTagsPage,
+};
+
+/**
  * Advances the active pager to the next page (bound to `n` and `m` commands).
  * Handles article pagination, grep result blocks, and all list types (posts/pages/categories/tags/search).
  * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with next-page state.
@@ -15,40 +153,13 @@ import { batchFmtLineEls, getPageLines, getLineWidth, stripHtml, formatDate } fr
  */
 export default async function cmdN(pager, configRef) {
   if (!pager.current) return [t.no_active_pager];
-  const { type, page, total, slugMap } = pager.current;
+  const { type, page, total } = pager.current;
 
-  if (type === "article") {
-    const { lines, offset, slugMap: articleSlugMap, footnotes, slug } = pager.current;
-    const pageLines = getPageLines();
-    const slice = lines.slice(offset, offset + pageLines);
-    const nextOffset = offset + pageLines;
-    const hasMore = nextOffset < lines.length;
-    pager.current = hasMore
-      ? { type: "article", lines, offset: nextOffset, slugMap: articleSlugMap, footnotes, slug }
-      : { type: "article", lines: [], offset: 0, slugMap: articleSlugMap, footnotes, slug };
-    if (hasMore) {
-      const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
-      return ["__REPLACE__", ...slice, "", t.more_chars_left(charsLeft)];
-    }
-    return ["__REPLACE__", ...slice, ""];
-  }
+  if (type === "article") return nextArticlePage(pager);
+  if (type === "grep") return nextGrepPage(pager);
 
-  if (type === "grep") {
-    const { blocks, shownBlocks, slugMap: grepSlugMap } = pager.current;
-    const pageLines = getPageLines();
-    const nextPage = [];
-    let newShown = shownBlocks;
-    for (let i = shownBlocks; i < blocks.length; i++) {
-      if (nextPage.length + blocks[i].length > pageLines) break;
-      nextPage.push(...blocks[i]);
-      newShown++;
-    }
-    const remaining = blocks.length - newShown;
-    pager.current = { type: "grep", blocks, shownBlocks: newShown, slugMap: grepSlugMap };
-    return remaining > 0
-      ? [...nextPage, t.more_grep]
-      : [...nextPage, ""];
-  }
+  const handler = LIST_HANDLERS[type];
+  if (!handler) return [];
 
   const ps = configRef.current.posts;
   const nextPage = page + 1;
@@ -56,69 +167,8 @@ export default async function cmdN(pager, configRef) {
   const cols = getLineWidth();
 
   try {
-    if (type === "search") {
-      const { searchTerm } = pager.current;
-      const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const fetchedTotal = parseInt(res.headers.get("X-WP-Total") || "0", 10);
-      const posts = await res.json();
-      const shown = nextPage * ps;
-      const hasMore = shown < (total ?? fetchedTotal);
-      posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-      pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, searchTerm } : null;
-      return [
-        ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-        ...(hasMore ? ["", t.more_search] : [""]),
-      ];
-    }
-    if (type === "posts") {
-      const ord = pager.current.order || "desc";
-      const fil = pager.current.filter || {};
-      const { posts, total: fetchedTotal } = await fetchPosts(nextPage, ps, ord, fil);
-      const shown = nextPage * ps;
-      const hasMore = shown < (total ?? fetchedTotal);
-      posts.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-      pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap, order: ord, filter: fil } : null;
-      return [
-        ...batchFmtLineEls(posts.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-        ...(hasMore ? ["", t.more_posts] : [""]),
-      ];
-    }
-    if (type === "pages") {
-      const { pages, total: fetchedTotal } = await fetchPages(nextPage, ps);
-      const shown = nextPage * ps;
-      const hasMore = shown < (total ?? fetchedTotal);
-      pages.forEach((p, i) => { slugMap[offset + i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-      pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
-      return [
-        ...batchFmtLineEls(pages.map((p, i) => ({ n: offset + i + 1, title: stripHtml(p.title.rendered), date: "" })), cols),
-        ...(hasMore ? ["", t.more_pages] : [""]),
-      ];
-    }
-    if (type === "categories") {
-      const { cats, total: fetchedTotal } = await fetchCategories(nextPage, ps);
-      const shown = nextPage * ps;
-      const hasMore = shown < (total ?? fetchedTotal);
-      cats.forEach((c, i) => { slugMap[offset + i + 1] = { slug: c.slug, id: c.id, url: c.link }; });
-      pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
-      return [
-        ...batchFmtLineEls(cats.map((c, i) => ({ n: offset + i + 1, title: c.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more_categories] : [""]),
-      ];
-    }
-    if (type === "tags") {
-      const { tags, total: fetchedTotal } = await fetchTags(nextPage, ps);
-      const shown = nextPage * ps;
-      const hasMore = shown < (total ?? fetchedTotal);
-      tags.forEach((tg, i) => { slugMap[offset + i + 1] = { slug: tg.slug, id: tg.id, url: tg.link }; });
-      pager.current = hasMore ? { type, page: nextPage, total: total ?? fetchedTotal, slugMap } : null;
-      return [
-        ...batchFmtLineEls(tags.map((tg, i) => ({ n: offset + i + 1, title: tg.name, date: "" })), cols),
-        ...(hasMore ? ["", t.more_tags] : [""]),
-      ];
-    }
+    return await handler(pager, ps, nextPage, offset, cols, total);
   } catch (e) {
     return [fmtApiError(e)];
   }
-  return [];
 }

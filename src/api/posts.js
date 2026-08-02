@@ -14,7 +14,7 @@ export async function fetchPosts(page = 1, pageSize = 10, order = "desc", filter
   if (filter.tag)      qs += `&tags=${filter.tag}`;
   const res = await apiFetch(qs);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
   return { posts, total };
 }

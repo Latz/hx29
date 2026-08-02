@@ -1,13 +1,13 @@
-import { TerminalOutput } from "react-terminal-ui";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Idle sequence: progressively corrupts a status string with block-drawing glyphs
  * until the user presses a key, then restores it.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleBufferMelt(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
   const DROPS = ['░', '▒', '█', '▓'];
   const ORIGIN = 'GRID_STATUS: STABLE_CONNECTIVITY_ESTABLISHED';
@@ -24,10 +24,10 @@ export default async function idleBufferMelt(ctx) {
       if (ch !== ' ' && !DROPS.includes(ch)) acc.push(i);
       return acc;
     }, []);
-    const count = Math.min(3 + Math.floor(Math.random() * (intensity + 2)), candidates.length);
+    const count = Math.min(3 + Math.floor(cosmeticRandom() * (intensity + 2)), candidates.length);
     for (let n = 0; n < count; n++) {
-      const idx = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
-      out[idx] = DROPS[Math.floor(Math.random() * DROPS.length)];
+      const idx = candidates.splice(Math.floor(cosmeticRandom() * candidates.length), 1)[0];
+      out[idx] = DROPS[Math.floor(cosmeticRandom() * DROPS.length)];
     }
     return out;
   };
@@ -53,7 +53,7 @@ export default async function idleBufferMelt(ctx) {
   let aborted = false;
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
   done.then(() => { aborted = true; });
 

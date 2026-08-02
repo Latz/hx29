@@ -1,4 +1,5 @@
 import { useEffect } from "@wordpress/element";
+import { cosmeticRandom } from "../random.js";
 
 /**
  * Periodically adds the `hum-bar-active` class to `<html>` to trigger a CRT
@@ -10,9 +11,9 @@ export default function useHumBar() {
     const runHumBar = () => {
       document.documentElement.classList.add("hum-bar-active");
       setTimeout(() => document.documentElement.classList.remove("hum-bar-active"), 3100);
-      setTimeout(runHumBar, 60000 + Math.random() * 60000);
+      setTimeout(runHumBar, 60000 + cosmeticRandom() * 60000);
     };
-    const t = setTimeout(runHumBar, 60000 + Math.random() * 60000);
+    const t = setTimeout(runHumBar, 60000 + cosmeticRandom() * 60000);
     return () => clearTimeout(t);
   }, []);
 }

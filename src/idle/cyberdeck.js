@@ -1,13 +1,12 @@
-import { TerminalOutput } from "react-terminal-ui";
 
 /**
  * Idle sequence: oscillating temperature bar (cyberdeck overheat heartbeat)
  * waiting for a keypress to discharge.
- * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>}} ctx - Idle sequence context.
+ * @param {{key:function(string):string, wait:function(number):Promise<void>, append:function(string,*):void, update:function(string,*):void, scrollTerminal:function():void, idleActiveRef:import('react').RefObject<boolean>, signal:AbortSignal}} ctx - Idle sequence context.
  * @returns {Promise<void>}
  */
 export default async function idleCyberdeck(ctx) {
-  const { key, wait, append, update, scrollTerminal, idleActiveRef } = ctx;
+  const { key, wait, append, update, scrollTerminal, idleActiveRef, signal } = ctx;
 
   const BAR_W = 24;
   const FILLED = '█';
@@ -24,7 +23,9 @@ export default async function idleCyberdeck(ctx) {
   const renderBar = (pct) => {
     const filled = Math.round(pct / 100 * BAR_W);
     const bar = FILLED.repeat(filled) + EMPTY.repeat(BAR_W - filled);
-    const level = pct >= 80 ? 'CRITICAL!!' : pct >= 70 ? 'WARNING   ' : 'ELEVATED  ';
+    let level = 'ELEVATED  ';
+    if (pct >= 80) level = 'CRITICAL!!';
+    else if (pct >= 70) level = 'WARNING   ';
     return `CORE-TEMP: [${bar}] ${pct}% // ${level}`;
   };
 
@@ -54,15 +55,13 @@ export default async function idleCyberdeck(ctx) {
   append(key('cta'), '*** TAP ANY KEY TO DISCHARGE THE CYBERDECK ***');
   scrollTerminal();
 
-  let aborted = false;
   const done = new Promise((res) => {
     const onKey = () => { document.removeEventListener('keydown', onKey, true); res(); };
-    document.addEventListener('keydown', onKey, true);
+    document.addEventListener('keydown', onKey, { capture: true, signal });
   });
-  done.then(() => { aborted = true; });
 
   let waveIdx = 0;
-  while (!aborted && idleActiveRef.current) {
+  while (idleActiveRef.current) {
     waveIdx = (waveIdx + 1) % WAVE.length;
     const pct = WAVE[waveIdx];
     update(barKey, renderBar(pct));
@@ -70,7 +69,8 @@ export default async function idleCyberdeck(ctx) {
     scrollTerminal();
     // slower at peaks, faster in middle — mimics a heartbeat
     const atPeak = pct >= 84 || pct <= 60;
-    await wait(atPeak ? 300 : 150);
+    const interrupted = await Promise.race([wait(atPeak ? 300 : 150).then(() => false), done.then(() => true)]);
+    if (interrupted || !idleActiveRef.current) break;
   }
 
   if (!idleActiveRef.current) return;

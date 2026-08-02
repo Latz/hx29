@@ -41,7 +41,7 @@ add_action('rest_api_init', function () {
 // Invalidate REST transients when a post is saved or deleted.
 add_action('save_post', 'hx29_invalidate_rest_cache');
 add_action('delete_post', 'hx29_invalidate_rest_cache');
-function hx29_invalidate_rest_cache(int $post_id): void {
+function hx29_invalidate_rest_cache(): void {
     // Clear list cache (all offsets/limits are keyed separately; wipe by group prefix).
     global $wpdb;
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_hx29_posts_%'");
@@ -61,8 +61,12 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
     $offset = (int) $request->get_param('offset');
     $limit  = (int) $request->get_param('limit');
 
-    if ($limit < 1)  $limit = 5;
-    if ($limit > 50) $limit = 50;
+    if ($limit < 1) {
+        $limit = 5;
+    }
+    if ($limit > 50) {
+        $limit = 50;
+    }
 
     $cache_key = "hx29_posts_{$offset}_{$limit}";
     $cached    = get_transient($cache_key);
@@ -109,19 +113,15 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
     return new WP_REST_Response($data, 200);
 }
 
-function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
-    $number = (int) $request->get_param('number');
-
-    if ($number < 1) {
-        return new WP_REST_Response(['error' => __('Invalid post number.', 'hx29')], 400);
-    }
-
-    $cache_key = "hx29_post_{$number}";
-    $cached    = get_transient($cache_key);
-    if (false !== $cached) {
-        return new WP_REST_Response($cached, 200);
-    }
-
+/**
+ * Builds the response payload for a single post by 1-based ordinal number.
+ * Caches the rendered/stripped content separately to avoid repeated
+ * shortcode/oEmbed processing on cache misses for the outer transient.
+ * @param int $number 1-based ordinal position among published posts, newest first.
+ * @return array{total:int,post:array{title:string,date:string,author:string,content:string}}|null
+ *         The payload, or null if there is no post at that position.
+ */
+function hx29_build_post_data(int $number): ?array {
     $query = new WP_Query([
         'post_type'              => 'post',
         'posts_per_page'         => 1,
@@ -135,12 +135,11 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
     ]);
 
     if (!$query->have_posts()) {
-        return new WP_REST_Response(['error' => sprintf(__('Post #%d not found.', 'hx29'), $number)], 404);
+        return null;
     }
 
-    $post     = $query->posts[0];
+    $post = $query->posts[0];
 
-    // Cache rendered content to avoid repeated shortcode/oEmbed processing.
     $content_key = "hx29_post_{$post->ID}_content";
     $content     = wp_cache_get($content_key);
     if (false === $content) {
@@ -155,7 +154,7 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
     $total = hx29_get_total_posts();
     wp_reset_postdata();
 
-    $data = [
+    return [
         'total' => $total,
         'post'  => [
             'title'   => $post->post_title,
@@ -164,7 +163,25 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
             'content' => $content,
         ],
     ];
-    set_transient($cache_key, $data, HOUR_IN_SECONDS);
+}
+
+function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
+    $number = (int) $request->get_param('number');
+
+    if ($number < 1) {
+        return new WP_REST_Response(['error' => __('Invalid post number.', 'hx29')], 400);
+    }
+
+    $cache_key = "hx29_post_{$number}";
+    $data      = get_transient($cache_key);
+
+    if (false === $data) {
+        $data = hx29_build_post_data($number);
+        if (null === $data) {
+            return new WP_REST_Response(['error' => sprintf(__('Post #%d not found.', 'hx29'), $number)], 404);
+        }
+        set_transient($cache_key, $data, HOUR_IN_SECONDS);
+    }
 
     return new WP_REST_Response($data, 200);
 }

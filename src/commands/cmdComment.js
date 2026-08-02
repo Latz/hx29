@@ -9,8 +9,8 @@ import { postComment } from "../api/comments.js";
  * @returns {Promise<string[]>} Confirmation or error message.
  */
 export default async function cmdComment(args, pager) {
-  const n = parseInt(args[0], 10);
-  if (isNaN(n) || args.length < 2) return [t.comment_usage];
+  const n = Number.parseInt(args[0], 10);
+  if (Number.isNaN(n) || args.length < 2) return [t.comment_usage];
   const text = args.slice(1).join(" ").trim();
   if (!text) return [t.comment_no_text];
   const entry = pager.current?.slugMap?.[n];

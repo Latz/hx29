@@ -9,7 +9,7 @@ import apiFetch from "./apiFetch.js";
 export async function fetchPages(page = 1, pageSize = 10) {
   const res = await apiFetch(`/pages?per_page=${pageSize}&page=${page}&_fields=id,slug,title,link`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const total = parseInt(res.headers.get("X-WP-Total") || "0", 10);
+  const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const pages = await res.json();
   return { pages, total };
 }

@@ -1,6 +1,7 @@
 import intros from "./intro.json";
 import returning from "./returning.json";
 import { t } from "./i18n/index.js";
+import { cosmeticRandom } from "./random.js";
 
 const CORRUPT_CHARS = '▒░█▓╬╪╫╗╝╚╔║═╠╣╦╩╤╧▐▌▄▀■□▪▫◘◙';
 
@@ -12,8 +13,8 @@ const CORRUPT_CHARS = '▒░█▓╬╪╫╗╝╚╔║═╠╣╦╩╤╧
 function corrupt(text) {
   return text.split('').map(ch => {
     if (ch === ' ') return ch;
-    return Math.random() < 0.45
-      ? CORRUPT_CHARS[Math.floor(Math.random() * CORRUPT_CHARS.length)]
+    return cosmeticRandom() < 0.45
+      ? CORRUPT_CHARS[Math.floor(cosmeticRandom() * CORRUPT_CHARS.length)]
       : ch;
   }).join('');
 }
@@ -28,12 +29,12 @@ function corrupt(text) {
 function expandItem(item, vars) {
   if (item.__phases) {
     const first = item.__phases[0];
-    const last = item.__phases[item.__phases.length - 1];
+    const last = item.__phases.at(-1);
     return {
       ...item,
       __phases: [
-        { text: first.text, hold: 200 + Math.floor(Math.random() * 300) },
-        { text: corrupt(first.text), hold: 100 + Math.floor(Math.random() * 200) },
+        { text: first.text, hold: 200 + Math.floor(cosmeticRandom() * 300) },
+        { text: corrupt(first.text), hold: 100 + Math.floor(cosmeticRandom() * 200) },
         { text: last.text, hold: last.hold },
       ],
     };
@@ -61,9 +62,9 @@ function loadSession() {
     localStorage.setItem('hx29_sig', sig);
   }
   const lastVisit = localStorage.getItem('hx29_last_visit') || null;
-  const hourPassed = lastVisit && (Date.now() - new Date(lastVisit)) >= 3600_000;
+  const hourPassed = lastVisit && (Date.now() - new Date(lastVisit)) >= 3_600_000;
   const isFirstVisit = !lastVisit;
-  let visits = parseInt(localStorage.getItem('hx29_visits') || '0', 10);
+  let visits = Number.parseInt(localStorage.getItem('hx29_visits') || '0', 10);
   if (isFirstVisit || hourPassed) {
     visits += 1;
     localStorage.setItem('hx29_visits', visits);
@@ -122,6 +123,6 @@ export function getSessionIntro(siteName) {
  * @returns {Array<{text?:string,delay:number,__phases?:Array}>} Expanded intro items.
  */
 export function getIntro(siteName) {
-  const intro = intros[Math.floor(Math.random() * intros.length)];
+  const intro = intros[Math.floor(cosmeticRandom() * intros.length)];
   return intro.map(item => expandItem(item, { SITE_NAME: siteName, HELP_TIP: t.help_tip_boot }));
 }

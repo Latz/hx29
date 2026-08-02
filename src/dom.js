@@ -1,4 +1,5 @@
 import { LINE_W } from "./format.js";
+import { cosmeticRandom } from "./random.js";
 
 /**
  * Calculates how many terminal lines fit in the visible `.react-terminal` element.
@@ -37,21 +38,29 @@ export function getLineWidth() {
   return _lineWidthCache;
 }
 
+let _scrollScheduled = false;
+
 /**
  * Scrolls the terminal to the bottom with a brief CRT opacity flash.
+ * Coalesces repeated calls within the same frame into a single scroll/reflow via `requestAnimationFrame`.
  * @returns {void}
  */
 export function scrollTerminal() {
-  const el = document.querySelector(".react-terminal");
-  if (!el) return;
-  const wrapper = document.querySelector(".react-terminal-wrapper");
-  if (wrapper) {
-    wrapper.classList.add("hx29-scroll-flash");
-    setTimeout(() => {
-      wrapper.classList.replace("hx29-scroll-flash", "hx29-scroll-flash-restore");
-    }, 50);
-  }
-  el.scrollTop = el.scrollHeight;
+  if (_scrollScheduled) return;
+  _scrollScheduled = true;
+  requestAnimationFrame(() => {
+    _scrollScheduled = false;
+    const el = document.querySelector(".react-terminal");
+    if (!el) return;
+    const wrapper = document.querySelector(".react-terminal-wrapper");
+    if (wrapper) {
+      wrapper.classList.add("hx29-scroll-flash");
+      setTimeout(() => {
+        wrapper.classList.replace("hx29-scroll-flash", "hx29-scroll-flash-restore");
+      }, 50);
+    }
+    el.scrollTop = el.scrollHeight;
+  });
 }
 
 /**
@@ -67,11 +76,11 @@ export function getRenderedLineCount() {
  * @returns {void}
  */
 export function maybeSyncTear() {
-  if (Math.random() >= 0.03) return;
+  if (cosmeticRandom() >= 0.03) return;
   const lines = document.querySelectorAll(".react-terminal .react-terminal-line");
   if (!lines.length) return;
   const target = lines[lines.length - 1];
-  const duration = 40 + Math.random() * 40;
+  const duration = 40 + cosmeticRandom() * 40;
   target.classList.add("sync-tear");
   target.style.setProperty("--tear-duration", `${duration}ms`);
   setTimeout(() => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "@wordpress/element";
 import { TerminalOutput } from "react-terminal-ui";
 import { scrollTerminal } from "../utils.js";
+import { cosmeticRandom } from "../random.js";
 
 const IDLE_MS = 5 * 60 * 1000;
 
@@ -29,6 +30,25 @@ export default function useIdleSequence(introPlayingRef, printingRef, setTermina
 
   useEffect(() => {
     let lastSeq = -1;
+    let ts = 0;
+    const controller = new AbortController();
+
+    const key = (suffix) => `idle-${ts}-${suffix}`;
+    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+    const append = (k, text) => setTerminalLines((prev) => [...prev, <TerminalOutput key={k}>{text}</TerminalOutput>]);
+    const findByKey = (l, k) => l?.key === k;
+    const update = (k, text) => setTerminalLines((prev) => {
+      const arr = [...prev];
+      const i = arr.findIndex((l) => findByKey(l, k));
+      if (i !== -1) arr[i] = <TerminalOutput key={k}>{text}</TerminalOutput>;
+      return arr;
+    });
+
+    const pickSequence = () => {
+      let pick;
+      do { pick = Math.floor(cosmeticRandom() * SEQUENCE_LOADERS.length); } while (pick === lastSeq && SEQUENCE_LOADERS.length > 1);
+      return pick;
+    };
 
     const runIdleSequence = async () => {
       if (introPlayingRef.current || printingRef.current) {
@@ -37,23 +57,12 @@ export default function useIdleSequence(introPlayingRef, printingRef, setTermina
       }
       idleActiveRef.current = true;
 
-      let pick;
-      do { pick = Math.floor(Math.random() * SEQUENCE_LOADERS.length); } while (pick === lastSeq && SEQUENCE_LOADERS.length > 1);
+      const pick = pickSequence();
       lastSeq = pick;
-
-      const ts = Date.now();
-      const key = (suffix) => `idle-${ts}-${suffix}`;
-      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
-      const append = (k, text) => setTerminalLines((prev) => [...prev, <TerminalOutput key={k}>{text}</TerminalOutput>]);
-      const update = (k, text) => setTerminalLines((prev) => {
-        const arr = [...prev];
-        const i = arr.findIndex((l) => l?.key === k);
-        if (i !== -1) arr[i] = <TerminalOutput key={k}>{text}</TerminalOutput>;
-        return arr;
-      });
+      ts = Date.now();
 
       const seq = await SEQUENCE_LOADERS[pick]();
-      await seq({ key, wait, append, update, scrollTerminal, idleActiveRef });
+      await seq({ key, wait, append, update, scrollTerminal, idleActiveRef, signal: controller.signal });
     };
 
     const scheduleIdle = () => {
@@ -64,7 +73,11 @@ export default function useIdleSequence(introPlayingRef, printingRef, setTermina
     idleTimerRef.schedule = scheduleIdle;
     scheduleIdle();
 
-    return () => { clearTimeout(idleTimerRef.current); };
+    return () => {
+      clearTimeout(idleTimerRef.current);
+      idleActiveRef.current = false;
+      controller.abort();
+    };
   }, []);
 
   return { idleTimerRef, idleActiveRef };

@@ -3,3 +3,4 @@ export { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, maybe
 export { loadConfig, saveConfig, applyConfig, loadHistory, pushHistory } from "./storage.js";
 export { fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
 export { fmtApiError } from "./apiError.js";
+export { cosmeticRandom } from "./random.js";
