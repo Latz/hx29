@@ -3,6 +3,11 @@ import { cosmeticRandom } from "./random.js";
 
 /**
  * Calculates how many terminal lines fit in the visible `.react-terminal` element.
+ * Reserves 7 lines beyond the page content: the echoed input line, a blank
+ * line, the "more" continuation message, the active prompt/input row, and
+ * extra slack for the `fontSize * 1.4` line-height estimate under-measuring
+ * the actual rendered row height (empirically ~3 lines of drift over a full
+ * page — see commit history for `getPageLines`).
  * Falls back to 20 if the element is not yet in the DOM.
  * @returns {number}
  */
@@ -10,7 +15,7 @@ export function getPageLines() {
   const el = document.querySelector(".react-terminal");
   if (!el) return 20;
   const lineH = Number.parseFloat(getComputedStyle(el).fontSize) * 1.4;
-  return Math.max(5, Math.floor(el.clientHeight / lineH) - 3);
+  return Math.max(5, Math.floor(el.clientHeight / lineH) - 7);
 }
 
 let _lineWidthCache = 0;

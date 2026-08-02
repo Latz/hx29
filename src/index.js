@@ -190,7 +190,7 @@ function WPTerminal() {
   useEffect(() => {
     clearTimeout(scrollDebounceRef.current);
     scrollDebounceRef.current = setTimeout(scrollTerminal, 50);
-  }, [terminalLines]);
+  }, [terminalLines, printing]);
 
   const introPlaying = useIntro(_session.items, setTerminalLines);
   useEffect(() => { introPlayingRef.current = introPlaying; }, [introPlaying]);
