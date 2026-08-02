@@ -44,10 +44,14 @@ export function getLineWidth() {
 }
 
 let _scrollScheduled = false;
+let _followScheduled = false;
 
 /**
  * Scrolls the terminal to the bottom with a brief CRT opacity flash.
  * Coalesces repeated calls within the same frame into a single scroll/reflow via `requestAnimationFrame`.
+ * Intended for one-off "settle" scrolls (e.g. after a command finishes) — for scrolling to
+ * follow output line-by-line during printing, use `followTerminal()` instead, which skips the
+ * flash so rapid successive calls don't flicker.
  * @returns {void}
  */
 export function scrollTerminal() {
@@ -64,6 +68,23 @@ export function scrollTerminal() {
         wrapper.classList.replace("hx29-scroll-flash", "hx29-scroll-flash-restore");
       }, 50);
     }
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+/**
+ * Scrolls the terminal to the bottom without the CRT flash, so it can be called once per
+ * printed line during output without flickering. Coalesces repeated calls within the same
+ * frame via `requestAnimationFrame`.
+ * @returns {void}
+ */
+export function followTerminal() {
+  if (_followScheduled) return;
+  _followScheduled = true;
+  requestAnimationFrame(() => {
+    _followScheduled = false;
+    const el = document.querySelector(".react-terminal");
+    if (!el) return;
     el.scrollTop = el.scrollHeight;
   });
 }

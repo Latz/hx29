@@ -114,9 +114,10 @@ export default {
   config_theme:     (v) => `  --theme  ${v}  (a=green, b=dark, c=purple, d=light, e=amber)`,
   config_order:     (v) => `  --order  ${v}  (asc=oldest first, desc=newest first)`,
   config_glow:      (v) => `  --glow   ${v}  (0=off, 0.3=medium, 1.0=max phosphor glow)`,
-  config_usage:     "Usage: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc> --glow <0..1>",
+  config_scroll:    (v) => `  --scroll ${v}  (jump=instant, smooth=VT100 smooth scroll)`,
+  config_usage:     "Usage: config --font <px> --posts <n> --theme <a|b|c|d|e> --order <asc|desc> --glow <0..1> --scroll <jump|smooth>",
   config_saved:     "Configuration saved.",
-  config_unknown:   "Unknown option. Try: config --font 22 --posts 10 --theme a --order desc --glow 0",
+  config_unknown:   "Unknown option. Try: config --font 22 --posts 10 --theme a --order desc --glow 0 --scroll jump",
 
   // errors / unknown command
   error:            (msg) => `Error: ${msg}`,

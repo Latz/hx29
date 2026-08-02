@@ -4,7 +4,7 @@ import { getSessionIntro } from "./intros";
 import { t } from "./i18n/index.js";
 import { SITE_NAME } from "./config.js";
 import { executeCommand } from "./commands/registry.js";
-import { loadConfig, loadHistory, pushHistory, applyConfig, scrollTerminal, maybeSyncTear } from "./utils.js";
+import { loadConfig, loadHistory, pushHistory, applyConfig, scrollTerminal, followTerminal, maybeSyncTear } from "./utils.js";
 import { cosmeticRandom } from "./random.js";
 import useIntro from "./hooks/useIntro.js";
 import useGlitch from "./hooks/useGlitch.js";
@@ -15,20 +15,15 @@ import useHistoryNav from "./hooks/useHistoryNav.js";
 const _session = getSessionIntro(SITE_NAME);
 
 const MAX_LINES = 500;
-const LINE_DELAY = 4;
+const LINE_DELAY = 1;
 
 /**
- * Computes the per-character typing delay for animated output, with an
- * occasional longer pause mid-word to feel less mechanical.
- * @param {string} [ch] - Character just printed.
- * @param {string} [nextCh] - Next character to print.
+ * Computes the per-character typing delay for animated output.
+ * 9600 baud, 8N1 (10 bits/char): ~1.04ms/char baseline, with slight jitter.
  * @returns {number} Delay in milliseconds before printing the next character.
  */
-function charDelay(ch, nextCh) {
-  const base = 3 + cosmeticRandom() * 2;
-  const midWord = ch !== " " && nextCh && nextCh !== " ";
-  if (midWord && cosmeticRandom() < 0.02) return base + 60 + cosmeticRandom() * 80;
-  return base;
+function charDelay() {
+  return 0.8 + cosmeticRandom() * 0.5;
 }
 
 /**
@@ -85,7 +80,9 @@ function printPhasedLine(text, key, setTerminalLines) {
 
 /**
  * Prints a line character-by-character with variable typing delay.
- * @param {string|{__animText:string,__suffix?:import('react').ReactNode}} text - Plain text or animated-text descriptor.
+ * @param {string|{__animText:string,__suffix?:import('react').ReactNode,__final?:import('react').ReactNode}} text - Plain
+ *   text or animated-text descriptor. `__suffix` is appended after the typed text; `__final`, if given, replaces the
+ *   typed text entirely once done (e.g. to swap in styled link spans without skipping the animation).
  * @param {string} key - React key for the line.
  * @param {function(function(Array):Array):void} setTerminalLines - React state setter for terminal lines.
  * @returns {Promise<void>} Resolves once the line has fully printed.
@@ -93,6 +90,7 @@ function printPhasedLine(text, key, setTerminalLines) {
 function printAnimatedLine(text, key, setTerminalLines) {
   const animText = text?.__animText ?? text;
   const suffix = text?.__suffix ?? null;
+  const final = text?.__final ?? null;
 
   return new Promise((resolve) => {
     let charIndex = 0;
@@ -104,15 +102,16 @@ function printAnimatedLine(text, key, setTerminalLines) {
       setTerminalLines((prev) => {
         const next = [...prev];
         const last = next.at(-1);
+        const content = isDone && final ? final : (isDone && suffix ? <>{partial}{suffix}</> : partial);
         if (last?.key === key) {
-          next[next.length - 1] = <TerminalOutput key={key}>{isDone && suffix ? <>{partial}{suffix}</> : partial}</TerminalOutput>;
+          next[next.length - 1] = <TerminalOutput key={key}>{content}</TerminalOutput>;
         } else {
-          next.push(<TerminalOutput key={key}>{partial}</TerminalOutput>);
+          next.push(<TerminalOutput key={key}>{content}</TerminalOutput>);
         }
         return next;
       });
       if (charIndex < animText.length) {
-        setTimeout(tick, charDelay(animText[charIndex - 1], animText[charIndex]));
+        setTimeout(tick, charDelay());
       } else {
         resolve();
       }
@@ -159,6 +158,7 @@ async function printLines(lines, setTerminalLines, lineId) {
     await new Promise((resolve) => setTimeout(resolve, LINE_DELAY));
     const key = `out-${++lineId.current}`;
     await printLine(text, key, setTerminalLines);
+    followTerminal();
   }
 }
 

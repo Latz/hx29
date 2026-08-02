@@ -159,6 +159,17 @@ describe("applyConfig", () => {
     applyConfig({ font: 22, theme: "a" });
     expect(document.documentElement.dataset.theme).toBeUndefined();
   });
+
+  it("sets data-scroll attribute for smooth scroll", () => {
+    applyConfig({ font: 22, theme: "a", scroll: "smooth" });
+    expect(document.documentElement.dataset.scroll).toBe("smooth");
+  });
+
+  it("removes data-scroll attribute for jump scroll (default)", () => {
+    document.documentElement.dataset.scroll = "smooth";
+    applyConfig({ font: 22, theme: "a", scroll: "jump" });
+    expect(document.documentElement.dataset.scroll).toBeUndefined();
+  });
 });
 
 // ─── loadConfig / saveConfig ──────────────────────────────────────────────────

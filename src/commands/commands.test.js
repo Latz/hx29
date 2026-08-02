@@ -31,6 +31,7 @@ vi.mock("../i18n/index.js", () => ({
     config_theme: (v) => `  --theme  ${v}`,
     config_order: (v) => `  --order  ${v}`,
     config_glow: (v) => `  --glow   ${v}`,
+    config_scroll: (v) => `  --scroll ${v}`,
     config_usage: "Usage: config …",
     config_saved: "Configuration saved.",
     config_unknown: "Unknown option.",
@@ -184,6 +185,16 @@ describe("cmdConfig", () => {
     expect(configRef.current.glow).toBeUndefined();
     cmdConfig(["--glow", "-0.1"], configRef);
     expect(configRef.current.glow).toBeUndefined();
+  });
+
+  it("updates scroll to smooth", () => {
+    cmdConfig(["--scroll", "smooth"], configRef);
+    expect(configRef.current.scroll).toBe("smooth");
+  });
+
+  it("rejects an invalid scroll value", () => {
+    cmdConfig(["--scroll", "sideways"], configRef);
+    expect(configRef.current.scroll).toBeUndefined();
   });
 
   it("calls saveConfig and applyConfig on change", () => {

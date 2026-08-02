@@ -72,8 +72,9 @@ export function parseBodyWithLinks(html, width) {
   const markerRe = /«([^»]*)»​(\d+)‌/g; // NOSONAR javascript:S8786
 
   // Deliberately polymorphic: returns the plain string unchanged when a line has no
-  // link markers (so it's typed out character-by-character by the caller), or a
-  // <span> when it does (rendered statically). Downstream code branches on this.
+  // link markers (so it's typed out character-by-character by the caller), or an
+  // animated-text descriptor when it does — typed out the same as any other line,
+  // with the styled <span> swapped in only once typing completes (__final).
   const lines = wrapped.map((line) => { // NOSONAR javascript:S3800
     const lineKey = line.slice(0, 40);
     if (!line.includes("«")) return line;
@@ -90,7 +91,10 @@ export function parseBodyWithLinks(html, width) {
       last = m.index + m[0].length;
     }
     if (last < line.length) parts.push(line.slice(last));
-    return <span key={lineKey}>{parts}</span>;
+    return {
+      __animText: line.replace(markerRe, (_, label, num) => `${label} [${num}]`),
+      __final: <span key={lineKey}>{parts}</span>,
+    };
   });
 
   const footerLines = footnotes.length

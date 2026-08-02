@@ -99,10 +99,10 @@ describe("parseBodyWithLinks", () => {
     expect(lines.every((l) => typeof l === "string")).toBe(true);
   });
 
-  it("returns React elements for lines containing links", () => {
+  it("returns animated-text descriptors for lines containing links", () => {
     const html = '<p>Check <a href="https://example.com">this link</a> out</p>';
     const { lines } = parseBodyWithLinks(html, 80);
-    expect(lines.some((l) => isValidElement(l))).toBe(true);
+    expect(lines.some((l) => typeof l === "object" && typeof l.__animText === "string" && isValidElement(l.__final))).toBe(true);
   });
 
   it("collects footnote URLs", () => {
@@ -136,9 +136,10 @@ describe("parseBodyWithLinks", () => {
   it("renders link label as underlined text in output", () => {
     const html = '<p><a href="https://example.com">click here</a></p>';
     const { lines } = parseBodyWithLinks(html, 80);
-    const elementLines = lines.filter((l) => isValidElement(l));
-    expect(elementLines.length).toBeGreaterThan(0);
-    const { container } = render(elementLines[0]);
+    const linkLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(linkLines.length).toBeGreaterThan(0);
+    expect(linkLines[0].__animText).toContain("click here");
+    const { container } = render(linkLines[0].__final);
     expect(container.textContent).toContain("click here");
     expect(container.innerHTML).toContain("underline");
   });

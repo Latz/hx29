@@ -25,12 +25,16 @@ const FLAG_PARSERS = {
     if (!Number.isNaN(n) && n >= 0 && n <= 1) { cfg.glow = n; return true; }
     return false;
   },
+  "--scroll": (v, cfg) => {
+    if (["jump", "smooth"].includes(v)) { cfg.scroll = v; return true; }
+    return false;
+  },
 };
 
 /**
  * Applies recognised `--flag value` pairs to `cfg` in place.
  * @param {string[]} args - Flag/value pairs.
- * @param {{font:number,posts:number,theme:string,order:string,glow?:number}} cfg - Config object, mutated in place.
+ * @param {{font:number,posts:number,theme:string,order:string,glow?:number,scroll?:string}} cfg - Config object, mutated in place.
  * @returns {boolean} `true` if any flag was applied.
  */
 function applyConfigFlags(args, cfg) {
@@ -62,6 +66,7 @@ export default function cmdConfig(args, configRef) {
       t.config_theme(cfg.theme),
       t.config_order(cfg.order),
       t.config_glow(cfg.glow ?? 0),
+      t.config_scroll(cfg.scroll ?? "jump"),
       "",
       t.config_usage,
     ];

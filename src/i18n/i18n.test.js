@@ -66,6 +66,7 @@ const FUNCTION_KEYS = [
   "config_posts",
   "config_theme",
   "config_order",
+  "config_scroll",
   "error",
   "unknown_command",
 ];

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("./random.js", () => ({ cosmeticRandom: vi.fn(() => 0.5) }));
 
 import { cosmeticRandom } from "./random.js";
-import { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, maybeSyncTear } from "./dom.js";
+import { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, followTerminal, maybeSyncTear } from "./dom.js";
 
 beforeEach(() => {
   document.body.innerHTML = "";
@@ -114,6 +114,57 @@ describe("scrollTerminal", () => {
     scrollTerminal();
     scrollTerminal();
     scrollTerminal();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(el.scrollTop).toBe(0);
+  });
+});
+
+describe("followTerminal", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "setTimeout", "clearTimeout"] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does nothing when the terminal element is absent", async () => {
+    expect(() => followTerminal()).not.toThrow();
+    await vi.advanceTimersByTimeAsync(100);
+  });
+
+  it("scrolls to bottom without flashing the wrapper class", async () => {
+    const el = document.createElement("div");
+    el.className = "react-terminal";
+    Object.defineProperty(el, "scrollHeight", { value: 500, configurable: true });
+    let scrollTop = 0;
+    Object.defineProperty(el, "scrollTop", {
+      get: () => scrollTop,
+      set: (v) => { scrollTop = v; },
+      configurable: true,
+    });
+    document.body.appendChild(el);
+    const wrapper = document.createElement("div");
+    wrapper.className = "react-terminal-wrapper";
+    document.body.appendChild(wrapper);
+
+    followTerminal();
+    await vi.advanceTimersByTimeAsync(20);
+
+    expect(el.scrollTop).toBe(500);
+    expect(wrapper.classList.contains("hx29-scroll-flash")).toBe(false);
+    expect(wrapper.classList.contains("hx29-scroll-flash-restore")).toBe(false);
+  });
+
+  it("coalesces repeated calls within the same frame into a single scroll", async () => {
+    const el = document.createElement("div");
+    el.className = "react-terminal";
+    document.body.appendChild(el);
+
+    followTerminal();
+    followTerminal();
+    followTerminal();
     await vi.advanceTimersByTimeAsync(0);
 
     expect(el.scrollTop).toBe(0);

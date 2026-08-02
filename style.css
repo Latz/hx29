@@ -5,6 +5,7 @@ Version: 4.0.0
 Requires at least: 6.0
 License: GNU General Public License v2 or later
 Text Domain: hx29
+Domain Path: /languages
 */
 
 /* ── Cascade layers ──────────────────────────────────────────────── */
@@ -150,25 +151,6 @@ html, body {
     min-height: 0;
 }
 
-/* ── react-terminal-ui prompt & cursor ───────────────────────────── */
-#hx29-root .react-terminal-input[data-terminal-prompt]:before {
-    margin-right: 0.25em;
-    color: var(--accent);
-}
-
-#hx29-root .react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
-    background: var(--fg);
-    background-image: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 1px,
-        oklch(0% 0 0 / 0.45) 1px,
-        oklch(0% 0 0 / 0.45) 2px
-    );
-    width: 0.55em;
-    box-shadow: 0 0 4px var(--fg);
-}
-
 /* ── Terminal container (legacy / no-JS fallback) ────────────────── */
 #terminal-container {
     display: block flex;
@@ -212,7 +194,7 @@ html, body {
 }
 
 #terminal-input-line span {
-    color: var(--accent);
+    color: var(--fg);
     font-weight: bold;
     font-size: var(--fsize);
     flex-shrink: 0;
@@ -399,6 +381,25 @@ a { color: var(--accent); }
     color: var(--fg);
 }
 
+/* ── react-terminal-ui prompt & cursor ───────────────────────────── */
+#hx29-root .react-terminal-input[data-terminal-prompt]:before {
+    margin-right: 0.25em;
+    color: var(--fg);
+}
+
+#hx29-root .react-terminal-wrapper:focus-within .react-terminal-active-input .cursor {
+    background: var(--fg);
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 1px,
+        oklch(0% 0 0 / 0.45) 1px,
+        oklch(0% 0 0 / 0.45) 2px
+    );
+    width: 0.55em;
+    box-shadow: 0 0 4px var(--fg);
+}
+
 .react-terminal-line {
     color: var(--fg);
     font-family: var(--font);
@@ -422,4 +423,9 @@ a { color: var(--accent); }
     scrollbar-width: none;
     scroll-behavior: auto;
     padding-bottom: 0;
+}
+
+/* VT100 smooth-scroll mode (config --scroll smooth) — jump scroll (default) is instant. */
+[data-scroll="smooth"] #hx29-root .react-terminal {
+    scroll-behavior: smooth;
 }

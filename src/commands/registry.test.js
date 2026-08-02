@@ -16,6 +16,7 @@ vi.mock("../i18n/index.js", () => ({
     config_theme: (v) => `  --theme  ${v}`,
     config_order: (v) => `  --order  ${v}`,
     config_glow: (v) => `  --glow   ${v}`,
+    config_scroll: (v) => `  --scroll ${v}`,
     config_usage: "Usage: config …",
     link_usage: "Usage: link <number>",
     cat_usage: "Usage: cat <number> or cat <slug>",

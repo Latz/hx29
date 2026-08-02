@@ -25,8 +25,9 @@ export function saveConfig(cfg) {
 }
 
 /**
- * Applies config values to the DOM: `--fsize` CSS variable and `data-theme` attribute.
- * @param {{font:number,theme:string}} cfg
+ * Applies config values to the DOM: `--fsize`/`--glow` CSS variables and
+ * `data-theme`/`data-scroll` attributes.
+ * @param {{font:number,theme:string,scroll?:string}} cfg
  * @returns {void}
  */
 export function applyConfig(cfg) {
@@ -36,6 +37,11 @@ export function applyConfig(cfg) {
     document.documentElement.dataset.theme = cfg.theme;
   } else {
     delete document.documentElement.dataset.theme;
+  }
+  if (cfg.scroll === "smooth") {
+    document.documentElement.dataset.scroll = "smooth";
+  } else {
+    delete document.documentElement.dataset.scroll;
   }
 }
 
