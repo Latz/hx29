@@ -7,7 +7,7 @@ export const NONCE = HX29.nonce || "";
 export const SITE_NAME = HX29.site_name || "my-terminal";
 export const UID = HX29.uid || "guest";
 
-export const CONFIG_DEFAULTS = { font: 22, posts: 10, theme: "a", order: "desc", glow: 0 };
+export const CONFIG_DEFAULTS = Object.freeze({ font: 22, posts: 10, theme: "a", order: "desc", glow: 0 });
 
 if (HX29.rest_root) apiFetch.use(apiFetch.createRootURLMiddleware(HX29.rest_root));
 if (NONCE) apiFetch.use(apiFetch.createNonceMiddleware(NONCE));

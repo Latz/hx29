@@ -48,6 +48,11 @@ function animateLine(key, text, setTerminalLines, cancelledRef) {
   });
 }
 
+/**
+ * Resolves after `ms` milliseconds.
+ * @param {number} ms - Delay in milliseconds.
+ * @returns {Promise<void>}
+ */
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**

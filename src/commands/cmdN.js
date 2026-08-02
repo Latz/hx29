@@ -80,6 +80,16 @@ function paginateListResult({ type, items, fetchedTotal, pager, nextPage, offset
   ];
 }
 
+/**
+ * Fetches and paginates the next page of search results.
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @param {number} ps - Page size.
+ * @param {number} nextPage - The page number to fetch.
+ * @param {number} offset - slugMap index offset.
+ * @param {number} cols - Terminal column width.
+ * @param {number|undefined} total - Previously known total, if any.
+ * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
+ */
 async function nextSearchPage(pager, ps, nextPage, offset, cols, total) {
   const { searchTerm } = pager.current;
   const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
@@ -94,6 +104,16 @@ async function nextSearchPage(pager, ps, nextPage, offset, cols, total) {
   });
 }
 
+/**
+ * Fetches and paginates the next page of posts.
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @param {number} ps - Page size.
+ * @param {number} nextPage - The page number to fetch.
+ * @param {number} offset - slugMap index offset.
+ * @param {number} cols - Terminal column width.
+ * @param {number|undefined} total - Previously known total, if any.
+ * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
+ */
 async function nextPostsPage(pager, ps, nextPage, offset, cols, total) {
   const ord = pager.current.order || "desc";
   const fil = pager.current.filter || {};
@@ -106,6 +126,16 @@ async function nextPostsPage(pager, ps, nextPage, offset, cols, total) {
   });
 }
 
+/**
+ * Fetches and paginates the next page of pages.
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @param {number} ps - Page size.
+ * @param {number} nextPage - The page number to fetch.
+ * @param {number} offset - slugMap index offset.
+ * @param {number} cols - Terminal column width.
+ * @param {number|undefined} total - Previously known total, if any.
+ * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
+ */
 async function nextPagesPage(pager, ps, nextPage, offset, cols, total) {
   const { pages, total: fetchedTotal } = await fetchPages(nextPage, ps);
   return paginateListResult({
@@ -116,6 +146,16 @@ async function nextPagesPage(pager, ps, nextPage, offset, cols, total) {
   });
 }
 
+/**
+ * Fetches and paginates the next page of categories.
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @param {number} ps - Page size.
+ * @param {number} nextPage - The page number to fetch.
+ * @param {number} offset - slugMap index offset.
+ * @param {number} cols - Terminal column width.
+ * @param {number|undefined} total - Previously known total, if any.
+ * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
+ */
 async function nextCategoriesPage(pager, ps, nextPage, offset, cols, total) {
   const { cats, total: fetchedTotal } = await fetchCategories(nextPage, ps);
   return paginateListResult({
@@ -126,6 +166,16 @@ async function nextCategoriesPage(pager, ps, nextPage, offset, cols, total) {
   });
 }
 
+/**
+ * Fetches and paginates the next page of tags.
+ * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
+ * @param {number} ps - Page size.
+ * @param {number} nextPage - The page number to fetch.
+ * @param {number} offset - slugMap index offset.
+ * @param {number} cols - Terminal column width.
+ * @param {number|undefined} total - Previously known total, if any.
+ * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
+ */
 async function nextTagsPage(pager, ps, nextPage, offset, cols, total) {
   const { tags, total: fetchedTotal } = await fetchTags(nextPage, ps);
   return paginateListResult({

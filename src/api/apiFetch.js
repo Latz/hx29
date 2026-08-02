@@ -13,6 +13,13 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Builds a `Response`-like object from cached/parsed JSON data so cache hits
+ * can be returned through the same interface as a live fetch.
+ * @param {*} data - Parsed JSON body.
+ * @param {Object<string,string>} [extraHeaders] - Additional response headers to attach.
+ * @returns {Response} A `Response` wrapping the given data.
+ */
 function makeFakeResponse(data, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status: 200,
@@ -20,6 +27,11 @@ function makeFakeResponse(data, extraHeaders = {}) {
   });
 }
 
+/**
+ * Runs `wpApiFetch` against a WP v2 path, aborting after `FETCH_TIMEOUT` ms.
+ * @param {string} path - API path relative to the WP v2 base URL.
+ * @returns {Promise<Response>} The raw (unparsed) fetch response.
+ */
 function fetchWithTimeout(path) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
