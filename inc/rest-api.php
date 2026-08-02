@@ -44,8 +44,8 @@ add_action('delete_post', 'hx29_invalidate_rest_cache');
 function hx29_invalidate_rest_cache(): void {
     // Clear list cache (all offsets/limits are keyed separately; wipe by group prefix).
     global $wpdb;
-    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_hx29_posts_%'");
-    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_hx29_post_%'");
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_hx29_posts_%'));
+    $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_hx29_post_%'));
 }
 
 function hx29_get_total_posts(): int {
