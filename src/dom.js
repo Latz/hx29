@@ -45,6 +45,56 @@ export function getLineWidth() {
 
 let _scrollScheduled = false;
 let _followScheduled = false;
+let _scrollAnimId = 0;
+const SMOOTH_SCROLL_DURATION_MS = 180;
+
+/**
+ * Whether scrolling should animate: config is set to "smooth" (`data-scroll` on `<html>`,
+ * set by `applyConfig()`) and the user hasn't requested reduced motion at the OS level.
+ * Driving the animation ourselves (rather than relying on CSS `scroll-behavior: smooth`)
+ * sidesteps browser-specific quirks — e.g. Firefox silently forces `scroll-behavior` to act
+ * instant under `prefers-reduced-motion: reduce` regardless of author CSS — while still
+ * respecting that same preference here, deliberately.
+ * @returns {boolean}
+ */
+function _isSmoothScrollMode() {
+  if (document.documentElement.dataset.scroll !== "smooth") return false;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return true;
+  try {
+    return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Scrolls `el` to the bottom, animating over `SMOOTH_SCROLL_DURATION_MS` when smooth-scroll
+ * mode is active, or jumping instantly otherwise. A newer call cancels any animation still
+ * in flight from a previous call so they don't fight over `scrollTop`.
+ * @param {Element} el - The scrollable `.react-terminal` element.
+ * @returns {void}
+ */
+function _scrollToBottom(el) {
+  const target = el.scrollHeight;
+  if (!_isSmoothScrollMode()) {
+    el.scrollTop = target;
+    return;
+  }
+  const myId = ++_scrollAnimId;
+  const start = el.scrollTop;
+  const change = target - start;
+  if (change === 0) return;
+  let startTime = null;
+  const step = (now) => {
+    if (myId !== _scrollAnimId) return; // superseded by a newer scroll
+    if (startTime === null) startTime = now;
+    const t = Math.min(1, (now - startTime) / SMOOTH_SCROLL_DURATION_MS);
+    const eased = 1 - (1 - t) ** 3; // ease-out cubic
+    el.scrollTop = start + change * eased;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 /**
  * Scrolls the terminal to the bottom with a brief CRT opacity flash.
@@ -68,25 +118,77 @@ export function scrollTerminal() {
         wrapper.classList.replace("hx29-scroll-flash", "hx29-scroll-flash-restore");
       }, 50);
     }
-    el.scrollTop = el.scrollHeight;
+    _scrollToBottom(el);
   });
 }
+
+const FOLLOW_THROTTLE_MS = 150;
+let _followLastRun = 0;
+let _followTrailingTimer = null;
 
 /**
  * Scrolls the terminal to the bottom without the CRT flash, so it can be called once per
  * printed line during output without flickering. Coalesces repeated calls within the same
- * frame via `requestAnimationFrame`.
+ * frame via `requestAnimationFrame`, and throttles actual scrolls to at most once per
+ * `FOLLOW_THROTTLE_MS` (with a trailing call) so a smooth-scroll animation (see
+ * `_scrollToBottom`) has time to visibly progress instead of being retargeted before it can
+ * move — at typing speeds well under that interval, back-to-back calls would otherwise keep
+ * restarting the animation, making it look identical to an instant jump.
  * @returns {void}
  */
 export function followTerminal() {
+  const now = Date.now();
+  const elapsed = now - _followLastRun;
+  if (elapsed >= FOLLOW_THROTTLE_MS) {
+    _followLastRun = now;
+    _scheduleFollowScroll();
+    return;
+  }
+  // A trailing call is already queued for this throttle window — later calls within the
+  // same window are no-ops, so the window has a fixed end rather than being pushed out by
+  // every call (which would starve the trailing call during continuous printing).
+  if (_followTrailingTimer) return;
+  _followTrailingTimer = setTimeout(() => {
+    _followLastRun = Date.now();
+    _followTrailingTimer = null;
+    _scheduleFollowScroll();
+  }, FOLLOW_THROTTLE_MS - elapsed);
+}
+
+/**
+ * Coalesces repeated calls within the same frame into a single scroll via `requestAnimationFrame`.
+ * @returns {void}
+ */
+function _scheduleFollowScroll() {
   if (_followScheduled) return;
   _followScheduled = true;
   requestAnimationFrame(() => {
     _followScheduled = false;
     const el = document.querySelector(".react-terminal");
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    _scrollToBottom(el);
   });
+}
+
+/**
+ * Test-only: resets `followTerminal()`'s throttle/coalescing state so tests don't leak state
+ * across cases (e.g. a pending `requestAnimationFrame` left un-flushed by a prior test).
+ * @returns {void}
+ */
+export function _resetFollowThrottleForTests() {
+  _followLastRun = 0;
+  _followScheduled = false;
+  clearTimeout(_followTrailingTimer);
+  _followTrailingTimer = null;
+}
+
+/**
+ * Test-only: resets `scrollTerminal()`'s coalescing state so tests don't leak a pending
+ * `requestAnimationFrame` left un-flushed by a prior test.
+ * @returns {void}
+ */
+export function _resetScrollScheduledForTests() {
+  _scrollScheduled = false;
 }
 
 /**

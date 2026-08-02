@@ -425,7 +425,6 @@ a { color: var(--accent); }
     padding-bottom: 0;
 }
 
-/* VT100 smooth-scroll mode (config --scroll smooth) — jump scroll (default) is instant. */
-[data-scroll="smooth"] #hx29-root .react-terminal {
-    scroll-behavior: smooth;
-}
+/* VT100 smooth-scroll mode (config --scroll smooth) is animated in JS (src/dom.js,
+   _scrollToBottom) rather than via this scroll-behavior, so a browser-level smooth-scroll
+   doesn't additionally interpolate each of our own incremental scrollTop writes. */

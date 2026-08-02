@@ -22,9 +22,9 @@ function nextArticlePage(pager) {
     : { type: "article", lines: [], offset: 0, slugMap, footnotes, slug };
   if (hasMore) {
     const charsLeft = lines.slice(nextOffset).reduce((s, l) => s + (typeof l === "string" ? l.length : 0), 0);
-    return ["__REPLACE__", ...slice, "", t.more_chars_left(charsLeft)];
+    return [...slice, "", t.more_chars_left(charsLeft)];
   }
-  return ["__REPLACE__", ...slice, ""];
+  return [...slice, ""];
 }
 
 /**

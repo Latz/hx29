@@ -43,11 +43,12 @@ describe("cmdN — no pager", () => {
 });
 
 describe("cmdN — article type", () => {
-  it("returns __REPLACE__ as first element", async () => {
+  it("does not clear the screen (no __REPLACE__ sentinel)", async () => {
     const lines = Array.from({ length: 25 }, (_, i) => `Line ${i}`);
     const pager = { current: { type: "article", lines, offset: 10, slugMap: {}, footnotes: [], slug: "test" } };
     const result = await cmdN(pager, configRef);
-    expect(result[0]).toBe("__REPLACE__");
+    expect(result[0]).not.toBe("__REPLACE__");
+    expect(result[0]).toBe("Line 10");
   });
 
   it("advances offset by pageLines", async () => {

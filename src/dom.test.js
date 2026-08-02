@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("./random.js", () => ({ cosmeticRandom: vi.fn(() => 0.5) }));
 
 import { cosmeticRandom } from "./random.js";
-import { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, followTerminal, maybeSyncTear } from "./dom.js";
+import { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, followTerminal, _resetFollowThrottleForTests, _resetScrollScheduledForTests, maybeSyncTear } from "./dom.js";
 
 beforeEach(() => {
   document.body.innerHTML = "";
@@ -67,6 +67,7 @@ describe("getRenderedLineCount", () => {
 describe("scrollTerminal", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["requestAnimationFrame", "setTimeout", "clearTimeout"] });
+    _resetScrollScheduledForTests();
   });
 
   afterEach(() => {
@@ -120,9 +121,75 @@ describe("scrollTerminal", () => {
   });
 });
 
+describe("smooth scroll mode", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "setTimeout", "clearTimeout"] });
+    _resetScrollScheduledForTests();
+    document.documentElement.dataset.scroll = "smooth";
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    delete document.documentElement.dataset.scroll;
+  });
+
+  function makeTerminal(scrollHeight) {
+    const el = document.createElement("div");
+    el.className = "react-terminal";
+    Object.defineProperty(el, "scrollHeight", { value: scrollHeight, configurable: true });
+    let scrollTop = 0;
+    Object.defineProperty(el, "scrollTop", {
+      get: () => scrollTop,
+      set: (v) => { scrollTop = v; },
+      configurable: true,
+    });
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it("animates scrollTop gradually toward the bottom instead of jumping instantly", async () => {
+    const el = makeTerminal(500);
+
+    scrollTerminal();
+    // First frame just establishes the animation's start time (no movement yet);
+    // advance a couple more frames in to see it actually progress.
+    await vi.advanceTimersByTimeAsync(50);
+
+    expect(el.scrollTop).toBeGreaterThan(0);
+    expect(el.scrollTop).toBeLessThan(500);
+
+    await vi.advanceTimersByTimeAsync(200); // past the animation duration
+
+    expect(el.scrollTop).toBe(500);
+  });
+
+  it("falls back to an instant jump when prefers-reduced-motion is set", async () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn(() => ({ matches: true }));
+    const el = makeTerminal(500);
+
+    scrollTerminal();
+    await vi.advanceTimersByTimeAsync(20);
+
+    expect(el.scrollTop).toBe(500);
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("falls back to an instant jump when data-scroll is not smooth", async () => {
+    delete document.documentElement.dataset.scroll;
+    const el = makeTerminal(500);
+
+    scrollTerminal();
+    await vi.advanceTimersByTimeAsync(20);
+
+    expect(el.scrollTop).toBe(500);
+  });
+});
+
 describe("followTerminal", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["requestAnimationFrame", "setTimeout", "clearTimeout"] });
+    _resetFollowThrottleForTests();
   });
 
   afterEach(() => {
@@ -168,6 +235,33 @@ describe("followTerminal", () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(el.scrollTop).toBe(0);
+  });
+
+  it("throttles rapid successive calls to a trailing call ~150ms later", async () => {
+    const el = document.createElement("div");
+    el.className = "react-terminal";
+    let scrollHeight = 100;
+    Object.defineProperty(el, "scrollHeight", { get: () => scrollHeight });
+    let scrollTop = 0;
+    Object.defineProperty(el, "scrollTop", {
+      get: () => scrollTop,
+      set: (v) => { scrollTop = v; },
+      configurable: true,
+    });
+    document.body.appendChild(el);
+
+    followTerminal(); // runs immediately (first call)
+    await vi.advanceTimersByTimeAsync(20);
+    expect(el.scrollTop).toBe(100);
+
+    scrollHeight = 500;
+    followTerminal(); // within the throttle window — queues a trailing call, doesn't run yet
+    await vi.advanceTimersByTimeAsync(20);
+    expect(el.scrollTop).toBe(100);
+
+    followTerminal(); // still within the window — no-op, coalesces into the same trailing call
+    await vi.advanceTimersByTimeAsync(200);
+    expect(el.scrollTop).toBe(500);
   });
 });
 
