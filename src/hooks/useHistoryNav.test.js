@@ -5,8 +5,10 @@ import userEvent from "@testing-library/user-event";
 vi.mock("../complete.js", () => ({
   complete: vi.fn(() => null),
 }));
+vi.mock("../random.js", () => ({ cosmeticRandom: vi.fn(() => 1) }));
 
 import { complete } from "../complete.js";
+import { cosmeticRandom } from "../random.js";
 import useHistoryNav from "./useHistoryNav.js";
 
 function makeInput() {
@@ -27,6 +29,7 @@ function makeRefs({ history = [], printing = false, intro = false } = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  cosmeticRandom.mockReturnValue(1); // never bounce by default
 });
 
 afterEach(() => {
@@ -198,5 +201,80 @@ describe("useHistoryNav — reset()", () => {
     });
 
     expect(input.value).toBe("read hello");
+  });
+});
+
+describe("useHistoryNav — key-bounce simulation", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("duplicates the keystroke then self-corrects when the random roll passes", async () => {
+    cosmeticRandom.mockReturnValue(0); // 0 < 0.005 → triggers the bounce
+    const input = makeInput();
+    input.value = "ab";
+    input.setSelectionRange(2, 2);
+    const { historyRef, printingRef, introPlayingRef, pager } = makeRefs();
+    renderHook(() => useHistoryNav(historyRef, printingRef, introPlayingRef, pager));
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true, cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(input.value).toBe("abc");
+    expect(document.querySelector(".hx29-key-bounce-notice")).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(130);
+    expect(input.value).toBe("ab");
+    expect(document.querySelector(".hx29-key-bounce-notice").classList.contains("is-hidden")).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(330);
+    expect(document.querySelector(".hx29-key-bounce-notice")).toBeNull();
+  });
+
+  it("does not bounce when the random roll is above the threshold", async () => {
+    cosmeticRandom.mockReturnValue(0.5);
+    const input = makeInput();
+    input.value = "ab";
+    const { historyRef, printingRef, introPlayingRef, pager } = makeRefs();
+    renderHook(() => useHistoryNav(historyRef, printingRef, introPlayingRef, pager));
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true, cancelable: true }));
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(document.querySelector(".hx29-key-bounce-notice")).toBeNull();
+  });
+
+  it("does not bounce for multi-character keys (e.g. ArrowUp) even when the roll passes", async () => {
+    cosmeticRandom.mockReturnValue(0);
+    const input = makeInput();
+    const { historyRef, printingRef, introPlayingRef, pager } = makeRefs({ history: ["ls posts"] });
+    renderHook(() => useHistoryNav(historyRef, printingRef, introPlayingRef, pager));
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(document.querySelector(".hx29-key-bounce-notice")).toBeNull();
+  });
+});
+
+describe("useHistoryNav — deferred attach", () => {
+  it("attaches to the hidden input once it appears, if it wasn't there at mount", async () => {
+    vi.useFakeTimers();
+    const { historyRef, printingRef, introPlayingRef, pager } = makeRefs({ history: ["ls posts"] });
+    renderHook(() => useHistoryNav(historyRef, printingRef, introPlayingRef, pager));
+
+    await vi.advanceTimersByTimeAsync(250);
+    const input = makeInput();
+    await vi.advanceTimersByTimeAsync(100); // past the 300ms retry
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(input.value).toBe("ls posts");
+    vi.useRealTimers();
   });
 });

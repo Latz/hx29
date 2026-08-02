@@ -143,6 +143,13 @@ describe("cmdN — posts type", () => {
     const result = await cmdN(pager, configRef);
     expect(result).toContain("[n]ext posts");
   });
+
+  it("returns a formatted error when the next-page fetch rejects", async () => {
+    fetchPosts.mockRejectedValue(new Error("network down"));
+    const pager = { current: { type: "posts", page: 1, total: 50, slugMap: {}, order: "desc", filter: {} } };
+    const result = await cmdN(pager, configRef);
+    expect(result).toEqual(["Error: network down"]);
+  });
 });
 
 describe("cmdN — pages type", () => {
@@ -193,5 +200,13 @@ describe("cmdN — search type", () => {
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("search=hello"));
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=2"));
     expect(result).toContain("[n]ext results");
+  });
+});
+
+describe("cmdN — unknown pager type", () => {
+  it("returns an empty array for an unrecognized pager type", async () => {
+    const pager = { current: { type: "bogus", page: 1, total: 1, slugMap: {} } };
+    const result = await cmdN(pager, configRef);
+    expect(result).toEqual([]);
   });
 });

@@ -10,11 +10,20 @@ vi.mock("./i18n/index.js", () => ({
   },
 }));
 
+vi.mock("./random.js", () => ({ cosmeticRandom: vi.fn(() => 0) }));
+
 vi.mock("./intro.json", () => ({
   default: [
     [
       { text: "Hello {{SITE_NAME}}", delay: 100 },
       { text: null, delay: 50 },
+      {
+        delay: 10,
+        __phases: [
+          { text: "Boot ing", hold: 10 },
+          { text: "Ready", hold: 20 },
+        ],
+      },
     ],
   ],
 }));
@@ -27,10 +36,12 @@ vi.mock("./returning.json", () => ({
     },
     {
       stage: 1,
-      items: [{ text: "Visit {{VISITS}}", delay: 100 }],
+      items: [{ text: "Visit {{VISITS}}, last seen {{TIME_AGO}}", delay: 100 }],
     },
   ],
 }));
+
+import { cosmeticRandom } from "./random.js";
 
 let localStorageStore = {};
 beforeEach(() => {
@@ -40,7 +51,7 @@ beforeEach(() => {
     setItem: (k, v) => { localStorageStore[k] = v; },
     removeItem: (k) => { delete localStorageStore[k]; },
   });
-  vi.clearAllMocks();
+  cosmeticRandom.mockReturnValue(0);
 });
 
 import { getIntro, getSessionIntro } from "./intros.js";
@@ -63,6 +74,28 @@ describe("getIntro", () => {
     const result = getIntro("MyBlog");
     const textItems = result.filter((item) => typeof item.text === "string");
     expect(textItems.some((item) => item.text.includes("MyBlog"))).toBe(true);
+  });
+
+  it("corrupts the middle phase of a phased item, preserving spaces (cosmeticRandom below threshold)", () => {
+    cosmeticRandom.mockReturnValue(0); // every char rolls "corrupt" (0 < 0.45) and picks CORRUPT_CHARS[0]
+    const result = getIntro("TestSite");
+    const phased = result.find((item) => item.__phases);
+
+    expect(phased).toBeDefined();
+    expect(phased.__phases).toHaveLength(3);
+    expect(phased.__phases[0].text).toBe("Boot ing");
+    expect(phased.__phases[1].text).toBe("▒▒▒▒ ▒▒▒"); // "Boot ing" with every non-space char replaced
+    expect(phased.__phases[1].text[4]).toBe(" "); // space position preserved
+    expect(phased.__phases[2].text).toBe("Ready");
+    expect(phased.__phases[2].hold).toBe(20);
+  });
+
+  it("leaves text uncorrupted when cosmeticRandom rolls above the 45% threshold", () => {
+    cosmeticRandom.mockReturnValue(0.9);
+    const result = getIntro("TestSite");
+    const phased = result.find((item) => item.__phases);
+
+    expect(phased.__phases[1].text).toBe("Boot ing");
   });
 });
 
@@ -88,5 +121,68 @@ describe("getSessionIntro", () => {
     const first = getSessionIntro("TestSite");
     const second = getSessionIntro("TestSite");
     expect(first.stage).toBe(second.stage);
+  });
+
+  it("increments the visit counter on first visit", () => {
+    getSessionIntro("TestSite");
+    expect(localStorageStore["hx29_visits"]).toBe(1);
+    expect(localStorageStore["hx29_last_visit"]).toBeDefined();
+  });
+
+  it("increments the visit counter again once an hour has passed", () => {
+    // Keep the resulting visit count at 1 so it resolves to the mocked stage-1 entry
+    // (Math.min(visits, 4) would otherwise select an unmocked stage).
+    const twoHoursAgo = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "0";
+    localStorageStore["hx29_last_visit"] = twoHoursAgo;
+
+    getSessionIntro("TestSite");
+
+    expect(localStorageStore["hx29_visits"]).toBe(1);
+  });
+
+  it("does not increment the visit counter within the same hour", () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "1";
+    localStorageStore["hx29_last_visit"] = fiveMinAgo;
+
+    getSessionIntro("TestSite");
+
+    expect(localStorageStore["hx29_visits"]).toBe("1");
+  });
+
+  it("expands TIME_AGO in minutes for a last visit under an hour ago", () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "1";
+    localStorageStore["hx29_last_visit"] = fiveMinAgo;
+
+    const result = getSessionIntro("TestSite");
+
+    expect(result.items[0].text).toContain("5 minutes ago");
+  });
+
+  it("expands TIME_AGO in hours for a last visit under a day ago", () => {
+    const threeHoursAgo = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "0";
+    localStorageStore["hx29_last_visit"] = threeHoursAgo;
+
+    const result = getSessionIntro("TestSite");
+
+    expect(result.items[0].text).toContain("3 hours ago");
+  });
+
+  it("expands TIME_AGO in days for a last visit over a day ago", () => {
+    const twoDaysAgo = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "0";
+    localStorageStore["hx29_last_visit"] = twoDaysAgo;
+
+    const result = getSessionIntro("TestSite");
+
+    expect(result.items[0].text).toContain("2 days ago");
   });
 });

@@ -145,9 +145,45 @@ describe("cmdConfig", () => {
     expect(configRef.current.theme).toBe("a");
   });
 
+  it("rejects a zero/negative font size", () => {
+    cmdConfig(["--font", "0"], configRef);
+    expect(configRef.current.font).toBe(22);
+    cmdConfig(["--font", "-5"], configRef);
+    expect(configRef.current.font).toBe(22);
+  });
+
+  it("rejects a zero/negative posts-per-page value", () => {
+    cmdConfig(["--posts", "0"], configRef);
+    expect(configRef.current.posts).toBe(10);
+    cmdConfig(["--posts", "-1"], configRef);
+    expect(configRef.current.posts).toBe(10);
+  });
+
   it("updates order to asc", () => {
     cmdConfig(["--order", "asc"], configRef);
     expect(configRef.current.order).toBe("asc");
+  });
+
+  it("rejects an invalid order value", () => {
+    cmdConfig(["--order", "sideways"], configRef);
+    expect(configRef.current.order).toBe("desc");
+  });
+
+  it("updates the glow value", () => {
+    cmdConfig(["--glow", "0.5"], configRef);
+    expect(configRef.current.glow).toBe(0.5);
+  });
+
+  it("rejects a non-numeric glow value", () => {
+    cmdConfig(["--glow", "bright"], configRef);
+    expect(configRef.current.glow).toBeUndefined();
+  });
+
+  it("rejects an out-of-range glow value", () => {
+    cmdConfig(["--glow", "1.5"], configRef);
+    expect(configRef.current.glow).toBeUndefined();
+    cmdConfig(["--glow", "-0.1"], configRef);
+    expect(configRef.current.glow).toBeUndefined();
   });
 
   it("calls saveConfig and applyConfig on change", () => {
@@ -222,11 +258,36 @@ describe("cmdCd", () => {
     expect(result[0]).toContain("Tech");
   });
 
+  // Must run before any other cmdCd test sets the module-level _prevContext.
+  it("cd - with no previous context reports no context active", async () => {
+    const result = await cmdCd(["-"], contextRef, setCtxDisplay, pendingRef);
+    expect(result).toContain("No context active.");
+  });
+
   it("resets context on cd ..", async () => {
     contextRef.current = { type: "category", id: 1, name: "Tech" };
     const result = await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
     expect(contextRef.current.type).toBeNull();
     expect(result).toContain("Back to root.");
+  });
+
+  it("cd - returns to the previous context after cd ..", async () => {
+    fetchCategories.mockResolvedValue({ cats: [{ id: 1, slug: "tech", name: "Tech" }], total: 1 });
+    fetchTags.mockResolvedValue({ tags: [], total: 0 });
+    await cmdCd(["tech"], contextRef, setCtxDisplay, pendingRef);
+    await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
+
+    const result = await cmdCd(["-"], contextRef, setCtxDisplay, pendingRef);
+
+    expect(contextRef.current).toMatchObject({ type: "category", id: 1, name: "Tech" });
+    expect(result[0]).toContain("Tech");
+  });
+
+  it("returns a formatted error when the taxonomy fetch rejects", async () => {
+    fetchCategories.mockRejectedValue(new Error("network down"));
+    fetchTags.mockResolvedValue({ tags: [], total: 0 });
+    const result = await cmdCd(["tech"], contextRef, setCtxDisplay, pendingRef);
+    expect(result[0]).toContain("Error:");
   });
 
   it("resets context on cd /", async () => {

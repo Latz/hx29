@@ -109,6 +109,32 @@ describe("cmdLs — posts", () => {
     await cmdLs([], { current: null }, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledWith(1, 5, "desc", { tag: 7 });
   });
+
+  it("filters by a tag name argument", async () => {
+    fetchTags.mockResolvedValue({ tags: [{ id: 9, slug: "rust", name: "Rust" }] });
+    fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
+    await cmdLs(["posts", "rust"], { current: null }, configRef, contextRef);
+    expect(fetchPosts).toHaveBeenCalledWith(1, 5, "desc", { tag: 9 });
+  });
+
+  it("returns not-found for an unknown tag name argument", async () => {
+    fetchTags.mockResolvedValue({ tags: [] });
+    const result = await cmdLs(["posts", "nonexistent"], { current: null }, configRef, contextRef);
+    expect(result).toContain("cd: not found: nonexistent");
+    expect(fetchPosts).not.toHaveBeenCalled();
+  });
+
+  it("returns a formatted error when the tag-name lookup rejects", async () => {
+    fetchTags.mockRejectedValue(new Error("network down"));
+    const result = await cmdLs(["posts", "rust"], { current: null }, configRef, contextRef);
+    expect(result).toContain("Error: network down");
+  });
+
+  it("returns a formatted error when the posts fetch itself rejects", async () => {
+    fetchPosts.mockRejectedValue(new Error("server error"));
+    const result = await cmdLs([], { current: null }, configRef, contextRef);
+    expect(result).toContain("Error: server error");
+  });
 });
 
 describe("cmdLs — pages", () => {
@@ -124,6 +150,12 @@ describe("cmdLs — pages", () => {
     fetchPages.mockResolvedValue({ pages: [], total: 0 });
     const result = await cmdLs(["pages"], { current: null }, configRef, contextRef);
     expect(result).toEqual(["No pages found."]);
+  });
+
+  it("returns a formatted error when the pages fetch rejects", async () => {
+    fetchPages.mockRejectedValue(new Error("server error"));
+    const result = await cmdLs(["pages"], { current: null }, configRef, contextRef);
+    expect(result).toContain("Error: server error");
   });
 });
 
@@ -142,6 +174,12 @@ describe("cmdLs — categories", () => {
     await cmdLs(["cats"], pager, configRef, contextRef);
     expect(fetchCategories).toHaveBeenCalled();
   });
+
+  it("returns a formatted error when the categories fetch rejects", async () => {
+    fetchCategories.mockRejectedValue(new Error("server error"));
+    const result = await cmdLs(["categories"], { current: null }, configRef, contextRef);
+    expect(result).toContain("Error: server error");
+  });
 });
 
 describe("cmdLs — tags", () => {
@@ -151,6 +189,12 @@ describe("cmdLs — tags", () => {
     const result = await cmdLs(["tags"], pager, configRef, contextRef);
     expect(result).toContainLineWithText("1 tags found");
     expect(pager).toHavePagerType("tags");
+  });
+
+  it("returns a formatted error when the tags fetch rejects", async () => {
+    fetchTags.mockRejectedValue(new Error("server error"));
+    const result = await cmdLs(["tags"], { current: null }, configRef, contextRef);
+    expect(result).toContain("Error: server error");
   });
 });
 
@@ -173,6 +217,19 @@ describe("cmdLs — --all flag", () => {
     const result = await cmdLs(["posts", "--all"], pager, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledTimes(1);
     expect(result).toContainLineWithText("3 posts found");
+  });
+});
+
+describe("cmdLs — --help flag", () => {
+  it("returns the man page when no target-specific help exists", async () => {
+    const result = await cmdLs(["--help"], { current: null }, configRef, contextRef);
+    expect(result).toEqual(["ls help text"]);
+  });
+
+  it("normalizes the 'cats' alias to 'categories' for help lookup", async () => {
+    const result = await cmdLs(["cats", "--help"], { current: null }, configRef, contextRef);
+    // ls_help is mocked as {} (no "categories" key), so it still falls back to man_pages.ls.
+    expect(result).toEqual(["ls help text"]);
   });
 });
 
