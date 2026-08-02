@@ -11,13 +11,15 @@ import apiFetch from "../api/apiFetch.js";
 export async function resolvePost(slugArg, savedSlugMap) {
   let slug = slugArg;
   const num = Number.parseInt(slug, 10);
+  let resolvedFromMap = false;
   if (!Number.isNaN(num) && savedSlugMap[num]) {
     const entry = savedSlugMap[num];
     slug = typeof entry === "object" ? entry.slug : entry;
+    resolvedFromMap = true;
   }
 
-  let post = Number.isNaN(num) ? await fetchPostBySlug(slug) : null;
-  if (!post && !Number.isNaN(num)) {
+  let post = (Number.isNaN(num) || resolvedFromMap) ? await fetchPostBySlug(slug) : null;
+  if (!post && !Number.isNaN(num) && !resolvedFromMap) {
     const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_embed=wp:term`);
     if (res.ok) {
       const posts = await res.json();

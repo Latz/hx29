@@ -66,18 +66,22 @@ describe("cmdSearch", () => {
     expect(result).toContain("[n]ext results");
   });
 
-  it("does not set pager when all results fit", async () => {
+  it("still preserves the pager/slugMap when all results fit on one page", async () => {
     apiFetch.mockResolvedValue(mockRes([POST(1)], 1));
     const pager = { current: null };
-    await cmdSearch(["hello"], pager, configRef);
-    expect(pager.current).toBeNull();
+    const result = await cmdSearch(["hello"], pager, configRef);
+    expect(pager.current).not.toBeNull();
+    expect(result).not.toContain("[n]ext results");
   });
 
   it("builds slugMap for results", async () => {
     apiFetch.mockResolvedValue(mockRes([POST(1), POST(2)], 2));
     const pager = { current: null };
     await cmdSearch(["hello"], pager, configRef);
-    expect(pager.current).toBeNull(); // fits on one page
+    expect(pager.current.slugMap).toEqual({
+      1: { slug: "post-1", id: 1, url: "/" },
+      2: { slug: "post-2", id: 2, url: "/" },
+    });
   });
 
   it("returns error on API failure", async () => {

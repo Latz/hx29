@@ -68,12 +68,12 @@ describe("cmdRead", () => {
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=3"));
   });
 
-  it("resolves number from pager slugMap and fetches via apiFetch ordinal", async () => {
-    // slugMap resolves slug var but ordinal fetch still goes through apiFetch
-    apiFetch.mockResolvedValue({ ok: true, json: async () => [MOCK_POST], headers: { get: () => null } });
+  it("resolves number from pager slugMap and fetches that post by slug, not by ordinal", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
     const pager = { current: { slugMap: { 1: { slug: "hello-world" } } } };
     await cmdRead(["1"], pager);
-    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=1"));
+    expect(fetchPostBySlug).toHaveBeenCalledWith("hello-world");
+    expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("sets pager.current with hasMore=false for short posts", async () => {

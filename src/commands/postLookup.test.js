@@ -27,18 +27,19 @@ describe("resolvePost", () => {
     expect(slug).toBe("test-post");
   });
 
-  it("resolves the display slug from the pager slugMap for a numeric ordinal, still fetching by ordinal", async () => {
-    apiFetch.mockResolvedValue({ ok: true, json: async () => [MOCK_POST] });
+  it("resolves the display slug from the pager slugMap for a numeric ordinal and fetches by that slug", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
     const { post, slug } = await resolvePost("1", { 1: { slug: "test-post" } });
-    expect(fetchPostBySlug).not.toHaveBeenCalled();
-    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=1"));
+    expect(fetchPostBySlug).toHaveBeenCalledWith("test-post");
+    expect(apiFetch).not.toHaveBeenCalled();
     expect(post).toBe(MOCK_POST);
     expect(slug).toBe("test-post");
   });
 
-  it("resolves the display slug from a plain-string slugMap entry", async () => {
-    apiFetch.mockResolvedValue({ ok: true, json: async () => [MOCK_POST] });
+  it("resolves the display slug from a plain-string slugMap entry and fetches by that slug", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
     const { slug } = await resolvePost("1", { 1: "test-post" });
+    expect(fetchPostBySlug).toHaveBeenCalledWith("test-post");
     expect(slug).toBe("test-post");
   });
 

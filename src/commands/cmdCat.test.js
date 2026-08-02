@@ -81,16 +81,12 @@ describe("cmdCat", () => {
     expect(hasNextPrompt).toBe(false);
   });
 
-  it("resolves post number from pager slugMap", async () => {
-    fetchPostBySlug.mockResolvedValue(null);
-    apiFetch.mockResolvedValue({
-      ok: true,
-      json: async () => [MOCK_POST],
-      headers: { get: () => "1" },
-    });
+  it("resolves post number from pager slugMap by fetching that slug", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
     const pager = { current: { slugMap: { 1: { slug: "test-post" } } } };
-    fetchPostBySlug.mockResolvedValueOnce(MOCK_POST);
     const result = await cmdCat(["1"], pager);
+    expect(fetchPostBySlug).toHaveBeenCalledWith("test-post");
+    expect(apiFetch).not.toHaveBeenCalled();
     expect(result).toContain("Line one.");
   });
 

@@ -23,7 +23,7 @@ export default async function cmdSearch(args, pager, configRef) {
     const hasMore = total > ps;
     const slugMap = {};
     posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-    pager.current = hasMore ? { type: "search", page: 1, total, slugMap, searchTerm: term } : null;
+    pager.current = { type: "search", page: 1, total, slugMap, searchTerm: term };
     const cols = getLineWidth();
     const lines = [t.search_found(total, term), ""];
     posts.forEach((p, i) => {
