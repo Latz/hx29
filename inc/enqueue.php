@@ -43,6 +43,9 @@ function hx29_enqueue_scripts() {
         'uid_new'   => $is_new ? '1' : '0',
         'site_name' => esc_html(get_bloginfo('name')),
         'author'    => esc_html(get_bloginfo('name')),
+
+        'prompt_prefix' => esc_html(get_option('hx29_terminal_prompt_prefix', 'user@system')),
+        'typing_speed'  => (int) get_option('hx29_terminal_typing_speed', 1),
     ]);
 }
 add_action('wp_enqueue_scripts', 'hx29_enqueue_scripts');

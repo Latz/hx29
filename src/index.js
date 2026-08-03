@@ -4,7 +4,7 @@ import domReady from "@wordpress/dom-ready";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
 import { t } from "./i18n/index.js";
-import { SITE_NAME } from "./config.js";
+import { SITE_NAME, PROMPT_PREFIX, TYPING_SPEED } from "./config.js";
 import { executeCommand } from "./commands/registry.js";
 import { applyCdPick } from "./commands/cmdCd.js";
 import { loadConfig, loadHistory, pushHistory, applyConfig, scrollTerminal, followTerminal, maybeSyncTear } from "./utils.js";
@@ -22,11 +22,12 @@ const LINE_DELAY = 1;
 
 /**
  * Computes the per-character typing delay for animated output.
- * 9600 baud, 8N1 (10 bits/char): ~1.04ms/char baseline, with slight jitter.
+ * Baseline is the admin-configured `TYPING_SPEED` (ms/char), with the same
+ * jitter ratio as the original hardcoded 9600-baud values (0.8-1.3ms/char).
  * @returns {number} Delay in milliseconds before printing the next character.
  */
 function charDelay() {
-  return 0.8 + cosmeticRandom() * 0.5;
+  return TYPING_SPEED + cosmeticRandom() * TYPING_SPEED * 0.625;
 }
 
 /**
@@ -259,7 +260,7 @@ function WPTerminal() {
 
   const prompt = pendingPrompt ?? (() => {
     const STAGE_PROMPTS = [
-      { prefix: "guest@aeon-gateway", home: "~", suffix: "$" },
+      { prefix: PROMPT_PREFIX, home: "~", suffix: "$" },
       { prefix: "intruder@aeon-gateway", home: "", suffix: "#" },
       { prefix: "anon@apex-mainframe", home: "", suffix: "#" },
       { prefix: "operator@aeon-core", home: "", suffix: "#" },

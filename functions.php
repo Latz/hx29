@@ -9,6 +9,8 @@ require_once get_template_directory() . '/inc/setup.php';
 require_once get_template_directory() . '/inc/uid.php';
 require_once get_template_directory() . '/inc/enqueue.php';
 require_once get_template_directory() . '/inc/rest-api.php';
+require_once get_template_directory() . '/inc/settings.php';
+require_once get_template_directory() . '/inc/admin-ui.php';
 
 // Seed the visitor counter with a random 3-digit hex value on first run.
 add_action('after_setup_theme', function () {
