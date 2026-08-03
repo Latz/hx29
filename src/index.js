@@ -6,6 +6,7 @@ import { getSessionIntro } from "./intros";
 import { t } from "./i18n/index.js";
 import { SITE_NAME } from "./config.js";
 import { executeCommand } from "./commands/registry.js";
+import { applyCdPick } from "./commands/cmdCd.js";
 import { loadConfig, loadHistory, pushHistory, applyConfig, scrollTerminal, followTerminal, maybeSyncTear } from "./utils.js";
 import { cosmeticRandom } from "./random.js";
 import useIntro from "./hooks/useIntro.js";
@@ -32,8 +33,8 @@ function charDelay() {
  * Resolves a pending `cd` disambiguation prompt using the user's numeric reply.
  * @param {{candidates: Array<{type:string,id:*,name:string,slug:string}>}} pending - Pending disambiguation state.
  * @param {string} raw - Raw user input (expected to be a 1-based index).
- * @param {import('react').RefObject<{type:*,id:*,name:*}>} contextRef - Current cd context ref.
- * @param {function(*):void} setCtxDisplay - React state setter for the displayed cd context.
+ * @param {import('react').RefObject<{category:Object|null,tag:Object|null}>} contextRef - Current cd context ref.
+ * @param {function({category:Object|null,tag:Object|null}|null):void} setCtxDisplay - React state setter for the displayed cd context.
  * @param {function(function(Array):Array):void} setTerminalLines - React state setter for terminal lines.
  * @param {import('react').RefObject<number>} lineId - Monotonic id ref used to derive React keys.
  * @returns {void}
@@ -41,15 +42,25 @@ function charDelay() {
 function resolvePendingCd(pending, raw, contextRef, setCtxDisplay, setTerminalLines, lineId) {
   const n = Number.parseInt(raw, 10);
   if (!Number.isNaN(n) && pending.candidates[n - 1]) {
-    const pick = pending.candidates[n - 1];
-    contextRef.current = { type: pick.type, id: pick.id, name: pick.name };
-    setCtxDisplay({ type: pick.type, name: pick.slug });
-    const lines = [t.cd_now_in(pick.name, pick.type)];
-    if (pick.type === "category") lines.push(t.cd_hint_combine);
+    const lines = applyCdPick(pending.candidates[n - 1], contextRef, setCtxDisplay);
     setTerminalLines((prev) => [...prev, ...lines.map((line) => <TerminalOutput key={`cd-${++lineId.current}`}>{line}</TerminalOutput>)].slice(-MAX_LINES));
   } else {
     setTerminalLines((prev) => [...prev, <TerminalOutput key={`cd-${++lineId.current}`}>{t.cd_cancelled}</TerminalOutput>].slice(-MAX_LINES));
   }
+}
+
+/**
+ * Builds the `cd`-context path segment shown in the prompt from the active
+ * category and/or tag slots.
+ * @param {{category:{slug:string}|null,tag:{slug:string}|null}|null} ctx - Active prompt context display.
+ * @returns {string|null} Path segment (without leading `~/`), or null when no context is active.
+ */
+function formatCtxPath(ctx) {
+  if (!ctx || (!ctx.category && !ctx.tag)) return null;
+  const parts = [];
+  if (ctx.category) parts.push(`categories/${ctx.category.slug}`);
+  if (ctx.tag) parts.push(ctx.category ? `tag/${ctx.tag.slug}` : `tags/${ctx.tag.slug}`);
+  return parts.join("/");
 }
 
 /**
@@ -180,7 +191,7 @@ function WPTerminal() {
   const lineId = useRef(0);
   const pager = useRef(null);
   const configRef = useRef(loadConfig());
-  const contextRef = useRef({ type: null, id: null, name: null });
+  const contextRef = useRef({ category: null, tag: null });
   const historyRef = useRef(loadHistory());
   const pendingRef = useRef(null);
   const introPlayingRef = useRef(true);
@@ -247,13 +258,15 @@ function WPTerminal() {
   }, []);
 
   const prompt = pendingPrompt ?? (() => {
-    const base = [
-      `guest@aeon-gateway:~$`,
-      `intruder@aeon-gateway:#`,
-      `anon@apex-mainframe:#`,
-      `operator@aeon-core:#`,
-    ][visitStage - 1];
-    return ctxDisplay ? base.replace("~", `~/${ctxDisplay.name}`) : base;
+    const STAGE_PROMPTS = [
+      { prefix: "guest@aeon-gateway", home: "~", suffix: "$" },
+      { prefix: "intruder@aeon-gateway", home: "", suffix: "#" },
+      { prefix: "anon@apex-mainframe", home: "", suffix: "#" },
+      { prefix: "operator@aeon-core", home: "", suffix: "#" },
+    ];
+    const { prefix, home, suffix } = STAGE_PROMPTS[visitStage - 1];
+    const path = formatCtxPath(ctxDisplay);
+    return `${prefix}:${path ? `~/${path}` : home}${suffix}`;
   })();
 
   return (

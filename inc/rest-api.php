@@ -178,6 +178,7 @@ function hx29_rest_read_post(WP_REST_Request $request): WP_REST_Response {
     if (false === $data) {
         $data = hx29_build_post_data($number);
         if (null === $data) {
+            /* translators: %d: 1-based ordinal position of the requested post. */
             return new WP_REST_Response(['error' => sprintf(__('Post #%d not found.', 'hx29'), $number)], 404);
         }
         set_transient($cache_key, $data, HOUR_IN_SECONDS);

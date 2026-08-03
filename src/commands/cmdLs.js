@@ -58,7 +58,7 @@ async function fetchListItems(fetcher, showAll, ps) {
 /**
  * Resolves the sort order and category/tag filter for `ls posts` from context + args.
  * @param {string[]} args - Full `ls` argument list (target already consumed at index 0).
- * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context.
+ * @param {import('react').RefObject<{category:{id:number}|null,tag:{id:number}|null}>} contextRef - Active taxonomy context.
  * @param {"asc"|"desc"} configOrder - Fallback sort order from user config.
  * @returns {Promise<{order:string,filter:Object}|{error:string[]}>} Resolved order/filter, or an error to return immediately.
  */
@@ -67,8 +67,8 @@ async function resolvePostsFilter(args, contextRef, configOrder) {
   const order = orderArg === "asc" || orderArg === "desc" ? orderArg : configOrder;
   const filter = {};
   const ctx = contextRef.current;
-  if (ctx.type === "category") filter.category = ctx.id;
-  if (ctx.type === "tag") filter.tag = ctx.id;
+  if (ctx.category) filter.category = ctx.category.id;
+  if (ctx.tag) filter.tag = ctx.tag.id;
 
   const tagArg = args.slice(1).find((a) => a !== "asc" && a !== "desc" && !a.startsWith("--"));
   if (!tagArg) return { order, filter };
@@ -91,7 +91,7 @@ async function resolvePostsFilter(args, contextRef, configOrder) {
  * @param {boolean} showAll - Whether `--all` was passed.
  * @param {number} ps - Page size.
  * @param {number} cols - Terminal column width.
- * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context.
+ * @param {import('react').RefObject<{category:Object|null,tag:Object|null}>} contextRef - Active taxonomy context.
  * @param {"asc"|"desc"} configOrder - Fallback sort order from user config.
  * @returns {Promise<string[]>} Formatted listing lines.
  */
@@ -208,7 +208,7 @@ async function listTags(pager, showAll, ps, cols) {
  * @param {string[]} args - `[target?, ...flags]` where target is posts|pages|categories|cats|tags.
  * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref; updated with the new listing.
  * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
- * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
+ * @param {import('react').RefObject<{category:Object|null,tag:Object|null}>} contextRef - Active taxonomy context ref.
  * @returns {Promise<string[]>} Formatted listing lines.
  */
 export default async function cmdLs(args, pager, configRef, contextRef) {

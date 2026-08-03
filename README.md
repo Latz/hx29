@@ -45,7 +45,9 @@ Then activate **HX29 Terminal** in WP Admin → Appearance → Themes.
 | `ls tags` | List all tags |
 | `ls <sub> --help` | Inline help for any `ls` subcommand |
 | `cd <slug or partial name>` | Enter a category or tag filter context; shows a numbered list on multiple matches |
-| `cd ..` / `cd /` | Return to root (remove filter) |
+| `cd ..` | Drop one path level (tag first, then category) |
+| `cd /` | Return straight to root (remove all filters) |
+| `cd -` | Return to the previous context |
 | `cd` | Show current filter context |
 | `read <n>` / `r <n>` | Open article by number from the last list |
 | `n` / `m` | Next page — more list results or next article page |
@@ -71,7 +73,14 @@ Example: `c 1 Ada: Great article!`
 
 ### Browsing by Category and Tag
 
-`cd` sets a persistent filter context — all subsequent `ls posts` calls are automatically filtered to that category or tag. The shell prompt reflects the active context.
+`cd` sets a persistent filter context — all subsequent `ls posts` calls are automatically filtered to that category and/or tag. The shell prompt reflects the active context as a path:
+
+| Active context | Prompt |
+|---|---|
+| none | `~$` |
+| category only | `~/categories/<slug>$` |
+| tag only | `~/tags/<slug>$` |
+| category + tag | `~/categories/<cat-slug>/tag/<tag-slug>$` |
 
 `cd` accepts a full slug, a full name, or a partial string. A single match enters the context directly. Multiple matches show a numbered list; the prompt changes to `Enter number to select:` so you type the number inline. Any non-number input cancels. Use `man cd` for full details.
 
@@ -96,35 +105,41 @@ guest@aeon-gateway:~$ ls categories
 
 guest@aeon-gateway:~$ cd system-logs
 Entered category context: System Logs
-Tip: ls posts <tag-slug> additionally filters by tag
+Tip: cd <tag-slug> also combines a tag filter
 
-guest@aeon-gateway:~/system-logs$ ls posts
+guest@aeon-gateway:~/categories/system-logs$ ls posts
 6 posts found:
    1  Der VT100: Ein Terminal wird zur Legende      2026-01-14
    2  Warum das Terminal immer noch gewinnt         2026-01-10
    ...
 
-guest@aeon-gateway:~/system-logs$ ls posts exploit
+guest@aeon-gateway:~/categories/system-logs$ cd exploit
+Entered tag context: exploit
+
+guest@aeon-gateway:~/categories/system-logs/tag/exploit$ ls posts
 2 posts found:
    1  Zero-Day im Kernel                            2026-02-01
    2  Buffer Overflow: Eine Analyse                 2026-01-22
 
-guest@aeon-gateway:~/system-logs$ cd ..
+guest@aeon-gateway:~/categories/system-logs/tag/exploit$ cd ..
+Dropped tag filter — back in category context.
+
+guest@aeon-gateway:~/categories/system-logs$ cd ..
 Back to root — no filter active.
 
 guest@aeon-gateway:~$ cd zero-trust
 Entered tag context: zero-trust
 
-guest@aeon-gateway:~/zero-trust$ ls posts
+guest@aeon-gateway:~/tags/zero-trust$ ls posts
 4 posts found:
    1  Hardened Systems                              2026-03-05
    ...
 
-guest@aeon-gateway:~/zero-trust$ cd /
+guest@aeon-gateway:~/tags/zero-trust$ cd /
 Back to root — no filter active.
 ```
 
-**Combining category and tag:** `cd` into a category, then pass a tag slug as the first argument to `ls posts`. The two filters stack — only posts matching both are returned.
+**Combining category and tag:** `cd` into a category, then `cd` into a tag (or vice versa) — the new pick only replaces its own slot, so the other one stays active and the two filters stack in every `ls posts` call. `cd ..` removes one level at a time (tag first, then category); `cd /` always clears both in one step.
 
 **Sort order hint:** after every `ls posts` listing, a hint line shows the active sort order and the command to flip it:
 

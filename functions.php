@@ -16,3 +16,8 @@ add_action('after_setup_theme', function () {
         update_option('hx29_user_counter', random_int(0x100, 0xfff), false);
     }
 });
+
+// Remove theme-scoped state when switching away from this theme.
+add_action('switch_theme', function () {
+    delete_option('hx29_user_counter');
+});

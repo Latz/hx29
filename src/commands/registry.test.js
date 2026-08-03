@@ -62,7 +62,7 @@ import { executeCommand } from "./registry.js";
 
 const makePager = () => ({ current: null });
 const makeConfig = () => ({ current: { font: 22, posts: 10, theme: "a", order: "desc" } });
-const makeContext = () => ({ current: { type: null, id: null, name: null } });
+const makeContext = () => ({ current: { category: null, tag: null } });
 const makeHistory = () => ({ current: [] });
 
 describe("executeCommand", () => {

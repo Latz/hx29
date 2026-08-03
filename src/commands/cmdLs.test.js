@@ -40,11 +40,11 @@ import cmdLs from "./cmdLs.js";
 import { POST, PAGE, CATEGORY as CAT, TAG } from "../__mocks__/fixtures.js";
 
 const configRef  = { current: { posts: 5, order: "desc" } };
-const contextRef = { current: { type: null, id: null, name: null } };
+const contextRef = { current: { category: null, tag: null } };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  contextRef.current = { type: null, id: null, name: null };
+  contextRef.current = { category: null, tag: null };
 });
 
 describe("cmdLs — posts", () => {
@@ -97,17 +97,24 @@ describe("cmdLs — posts", () => {
   });
 
   it("applies category context filter", async () => {
-    contextRef.current = { type: "category", id: 3, name: "Tech" };
+    contextRef.current = { category: { id: 3, slug: "tech", name: "Tech" }, tag: null };
     fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
     await cmdLs([], { current: null }, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledWith(1, 5, "desc", { category: 3 });
   });
 
   it("applies tag context filter", async () => {
-    contextRef.current = { type: "tag", id: 7, name: "rust" };
+    contextRef.current = { category: null, tag: { id: 7, slug: "rust", name: "rust" } };
     fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
     await cmdLs([], { current: null }, configRef, contextRef);
     expect(fetchPosts).toHaveBeenCalledWith(1, 5, "desc", { tag: 7 });
+  });
+
+  it("applies combined category and tag context filter", async () => {
+    contextRef.current = { category: { id: 3, slug: "tech", name: "Tech" }, tag: { id: 7, slug: "rust", name: "rust" } };
+    fetchPosts.mockResolvedValue({ posts: [POST(1)], total: 1 });
+    await cmdLs([], { current: null }, configRef, contextRef);
+    expect(fetchPosts).toHaveBeenCalledWith(1, 5, "desc", { category: 3, tag: 7 });
   });
 
   it("filters by a tag name argument", async () => {

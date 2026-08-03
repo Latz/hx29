@@ -51,7 +51,8 @@ vi.mock("../i18n/index.js", () => ({
     cd_current: (n, type) => `Current context: ${n} [${type}]`,
     cd_back_to_root: "Back to root.",
     cd_now_in: (n, type) => `Entered ${type} context: ${n}`,
-    cd_hint_combine: "Tip: combine filters",
+    cd_hint_combine: (otherType) => `Tip: combine ${otherType} filter`,
+    cd_popped_tag: "Dropped tag filter.",
     cd_not_found: (s) => `cd: '${s}': not found`,
     cd_matches_found: "Multiple matches:",
     cd_match_item: (n, name, type) => `  ${n}  ${name}  [${type}]`,
@@ -302,7 +303,7 @@ describe("cmdCd", () => {
   let contextRef, setCtxDisplay, pendingRef;
 
   beforeEach(() => {
-    contextRef = { current: { type: null, id: null, name: null } };
+    contextRef = { current: { category: null, tag: null } };
     setCtxDisplay = vi.fn();
     pendingRef = { current: null };
     vi.clearAllMocks();
@@ -314,7 +315,7 @@ describe("cmdCd", () => {
   });
 
   it("shows current context when called with no args", async () => {
-    contextRef.current = { type: "category", id: 1, name: "Tech" };
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: null };
     const result = await cmdCd([], contextRef, setCtxDisplay, pendingRef);
     expect(result[0]).toContain("Tech");
   });
@@ -326,9 +327,9 @@ describe("cmdCd", () => {
   });
 
   it("resets context on cd ..", async () => {
-    contextRef.current = { type: "category", id: 1, name: "Tech" };
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: null };
     const result = await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
-    expect(contextRef.current.type).toBeNull();
+    expect(contextRef.current.category).toBeNull();
     expect(result).toContain("Back to root.");
   });
 
@@ -340,7 +341,7 @@ describe("cmdCd", () => {
 
     const result = await cmdCd(["-"], contextRef, setCtxDisplay, pendingRef);
 
-    expect(contextRef.current).toMatchObject({ type: "category", id: 1, name: "Tech" });
+    expect(contextRef.current.category).toMatchObject({ id: 1, name: "Tech" });
     expect(result[0]).toContain("Tech");
   });
 
@@ -360,7 +361,7 @@ describe("cmdCd", () => {
     fetchCategories.mockResolvedValue({ cats: [{ id: 1, slug: "tech", name: "Tech" }], total: 1 });
     fetchTags.mockResolvedValue({ tags: [], total: 0 });
     const result = await cmdCd(["tech"], contextRef, setCtxDisplay, pendingRef);
-    expect(contextRef.current).toMatchObject({ type: "category", id: 1, name: "Tech" });
+    expect(contextRef.current.category).toMatchObject({ id: 1, name: "Tech" });
     expect(result[0]).toContain("category");
   });
 
@@ -368,7 +369,7 @@ describe("cmdCd", () => {
     fetchCategories.mockResolvedValue({ cats: [], total: 0 });
     fetchTags.mockResolvedValue({ tags: [{ id: 5, slug: "rust", name: "Rust" }], total: 1 });
     const result = await cmdCd(["rust"], contextRef, setCtxDisplay, pendingRef);
-    expect(contextRef.current).toMatchObject({ type: "tag", id: 5 });
+    expect(contextRef.current.tag).toMatchObject({ id: 5 });
     expect(result[0]).toContain("tag");
   });
 
@@ -391,6 +392,47 @@ describe("cmdCd", () => {
     fetchCategories.mockResolvedValue({ cats: [{ id: 3, slug: "zero-day", name: "Zero-Day" }], total: 1 });
     fetchTags.mockResolvedValue({ tags: [], total: 0 });
     await cmdCd(["zero"], contextRef, setCtxDisplay, pendingRef);
-    expect(contextRef.current.name).toBe("Zero-Day");
+    expect(contextRef.current.category.name).toBe("Zero-Day");
+  });
+
+  it("cd into a tag while a category is active only changes the tag", async () => {
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: null };
+    fetchCategories.mockResolvedValue({ cats: [], total: 0 });
+    fetchTags.mockResolvedValue({ tags: [{ id: 5, slug: "rust", name: "Rust" }], total: 1 });
+    await cmdCd(["rust"], contextRef, setCtxDisplay, pendingRef);
+    expect(contextRef.current.category).toMatchObject({ id: 1, name: "Tech" });
+    expect(contextRef.current.tag).toMatchObject({ id: 5, name: "Rust" });
+  });
+
+  it("cd into a category while a tag is active only changes the category", async () => {
+    contextRef.current = { category: null, tag: { id: 5, slug: "rust", name: "Rust" } };
+    fetchCategories.mockResolvedValue({ cats: [{ id: 1, slug: "tech", name: "Tech" }], total: 1 });
+    fetchTags.mockResolvedValue({ tags: [], total: 0 });
+    await cmdCd(["tech"], contextRef, setCtxDisplay, pendingRef);
+    expect(contextRef.current.tag).toMatchObject({ id: 5, name: "Rust" });
+    expect(contextRef.current.category).toMatchObject({ id: 1, name: "Tech" });
+  });
+
+  it("cd .. drops the tag first when both slots are active", async () => {
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: { id: 5, slug: "rust", name: "Rust" } };
+    const result = await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
+    expect(contextRef.current.tag).toBeNull();
+    expect(contextRef.current.category).toMatchObject({ id: 1, name: "Tech" });
+    expect(result).toContain("Dropped tag filter.");
+  });
+
+  it("cd .. drops the category on the second call after the tag is gone", async () => {
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: { id: 5, slug: "rust", name: "Rust" } };
+    await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
+    const result = await cmdCd([".."], contextRef, setCtxDisplay, pendingRef);
+    expect(contextRef.current).toEqual({ category: null, tag: null });
+    expect(result).toContain("Back to root.");
+  });
+
+  it("cd / resets both slots straight to root", async () => {
+    contextRef.current = { category: { id: 1, slug: "tech", name: "Tech" }, tag: { id: 5, slug: "rust", name: "Rust" } };
+    const result = await cmdCd(["/"], contextRef, setCtxDisplay, pendingRef);
+    expect(contextRef.current).toEqual({ category: null, tag: null });
+    expect(result).toContain("Back to root.");
   });
 });

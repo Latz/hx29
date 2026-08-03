@@ -20,9 +20,9 @@ import cmdTree from "./cmdTree.js";
  * @param {string} rawInput - The full input string typed by the user.
  * @param {import('react').RefObject<{type:string,page:number,total:number,slugMap:Object,lines?:Array,offset?:number}|null>} pager - Shared pager state ref.
  * @param {import('react').RefObject<{font:number,posts:number,theme:string,order:string}>} configRef - User config ref.
- * @param {import('react').RefObject<{type:string|null,id:number|null,name:string|null}>} contextRef - Active taxonomy context ref.
+ * @param {import('react').RefObject<{category:Object|null,tag:Object|null}>} contextRef - Active taxonomy context ref.
  * @param {import('react').RefObject<string[]>} historyRef - Command history ref.
- * @param {function({type:string,name:string}|null):void} setCtxDisplay - Updates the prompt context display.
+ * @param {function({category:Object|null,tag:Object|null}|null):void} setCtxDisplay - Updates the prompt context display.
  * @param {import('react').RefObject<{candidates:Array}|null>} pendingRef - Pending disambiguation ref.
  * @returns {Promise<Array<string|import('react').ReactElement>|"__CLEAR__">}
  */
