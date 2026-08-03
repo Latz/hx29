@@ -3,6 +3,7 @@ import { fmtApiError } from "../apiError.js";
 import { parseBodyWithLinks, getLineWidth, formatDate } from "../utils.js";
 import { resolvePost } from "./postLookup.js";
 import { buildArticleHeader } from "./articleHeader.js";
+import { fetchCommentCount } from "../api/comments.js";
 
 /**
  * Dumps a post's full content without pagination.
@@ -21,12 +22,17 @@ export default async function cmdCat(args, pager) {
     const { post, slug } = await resolvePost(slugArg, savedSlugMap);
     if (!post) return [t.read_not_found(slug)];
 
+    const commentCountPromise = fetchCommentCount(post.id).catch(() => 0);
+
     const cols = getLineWidth();
     const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
     const dateLine = t.read_published(formatDate(post.date));
     const { headerLines } = buildArticleHeader(post, dateLine, cols);
 
-    const allLines = [...headerLines, "", ...bodyLines, ...footerLines, ""];
+    const commentCount = await commentCountPromise;
+    const commentLines = commentCount > 0 ? [t.read_comment_count(commentCount)] : [];
+
+    const allLines = [...headerLines, "", ...bodyLines, ...footerLines, ...commentLines, ""];
 
     pager.current = { type: "article", lines: [], offset: 0, slugMap: savedSlugMap, footnotes, slug };
 

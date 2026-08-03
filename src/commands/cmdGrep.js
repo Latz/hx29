@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import { t } from "../i18n/index.js";
 import { fmtApiError } from "../apiError.js";
 import apiFetch from "../api/apiFetch.js";
@@ -22,7 +23,7 @@ export default async function cmdGrep(args, pager) {
   const term = args.join(" ");
   const termLower = term.toLowerCase();
   try {
-    const res = await apiFetch(`/posts?search=${encodeURIComponent(term)}&per_page=100&_fields=id,slug,title,date,content`);
+    const res = await apiFetch(addQueryArgs("/posts", { search: term, per_page: 100, _fields: "id,slug,title,date,content" }));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const posts = await res.json();
     const cols = getLineWidth();

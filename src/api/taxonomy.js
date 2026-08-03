@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import apiFetch from "./apiFetch.js";
 
 /**
@@ -7,7 +8,7 @@ import apiFetch from "./apiFetch.js";
  * @returns {Promise<{cats: Array<{id:number,slug:string,name:string,link:string}>, total: number}>}
  */
 export async function fetchCategories(page = 1, pageSize = 10) {
-  const res = await apiFetch(`/categories?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
+  const res = await apiFetch(addQueryArgs("/categories", { per_page: pageSize, page, _fields: "id,slug,name,link", hide_empty: false }));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const cats = await res.json();
@@ -21,7 +22,7 @@ export async function fetchCategories(page = 1, pageSize = 10) {
  * @returns {Promise<{tags: Array<{id:number,slug:string,name:string,link:string}>, total: number}>}
  */
 export async function fetchTags(page = 1, pageSize = 10) {
-  const res = await apiFetch(`/tags?per_page=${pageSize}&page=${page}&_fields=id,slug,name,link&hide_empty=false`);
+  const res = await apiFetch(addQueryArgs("/tags", { per_page: pageSize, page, _fields: "id,slug,name,link", hide_empty: false }));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const tags = await res.json();

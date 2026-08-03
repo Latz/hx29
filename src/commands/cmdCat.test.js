@@ -6,6 +6,7 @@ vi.mock("../api/posts.js", () => ({
 vi.mock("../api/apiFetch.js", () => ({
   default: vi.fn(),
 }));
+vi.mock("../api/comments.js", () => ({ fetchCommentCount: vi.fn(() => Promise.resolve(0)) }));
 vi.mock("../utils.js", () => ({
   parseBodyWithLinks: vi.fn(() => ({
     lines: ["Line one.", "Line two.", "Line three."],
@@ -24,6 +25,7 @@ vi.mock("../i18n/index.js", () => ({
     read_published: (d) => `Published: ${d}`,
     read_categories: (s) => `Categories: ${s}`,
     read_tags: (s) => `Tags: ${s}`,
+    read_comment_count: (n) => `[${n} ${n === 1 ? "comment" : "comments"}]`,
     error: (m) => `Error: ${m}`,
     error_timeout: "Connection timed out.",
     error_rate_limit: "Server busy (429).",
@@ -34,9 +36,11 @@ vi.mock("../i18n/index.js", () => ({
 
 import { fetchPostBySlug } from "../api/posts.js";
 import apiFetch from "../api/apiFetch.js";
+import { fetchCommentCount } from "../api/comments.js";
 import cmdCat from "./cmdCat.js";
 
 const MOCK_POST = {
+  id: 1,
   slug: "test-post",
   title: { rendered: "Test Post" },
   date: "2025-01-01T00:00:00",
@@ -46,6 +50,7 @@ const MOCK_POST = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchCommentCount.mockResolvedValue(0);
 });
 
 describe("cmdCat", () => {
@@ -86,7 +91,7 @@ describe("cmdCat", () => {
     const pager = { current: { slugMap: { 1: { slug: "test-post" } } } };
     const result = await cmdCat(["1"], pager);
     expect(fetchPostBySlug).toHaveBeenCalledWith("test-post");
-    expect(apiFetch).not.toHaveBeenCalled();
+    expect(apiFetch).not.toHaveBeenCalledWith(expect.stringContaining("page="));
     expect(result).toContain("Line one.");
   });
 
@@ -121,5 +126,39 @@ describe("cmdCat", () => {
     );
     // Either combined on one line or two separate lines — both are valid depending on width
     expect(combined !== undefined || separate.length === 2).toBe(true);
+  });
+
+  it("shows the comment count when the post has comments", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(5);
+    const pager = { current: null };
+    const result = await cmdCat(["test-post"], pager);
+    expect(fetchCommentCount).toHaveBeenCalledWith(1);
+    expect(result).toContain("[5 comments]");
+  });
+
+  it("uses the singular form for exactly 1 comment", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(1);
+    const pager = { current: null };
+    const result = await cmdCat(["test-post"], pager);
+    expect(result).toContain("[1 comment]");
+  });
+
+  it("omits the comment count line when the post has no comments", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(0);
+    const pager = { current: null };
+    const result = await cmdCat(["test-post"], pager);
+    expect(result.some((l) => typeof l === "string" && l.includes("comments"))).toBe(false);
+  });
+
+  it("does not break article display when the comment count fetch fails", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockRejectedValue(new Error("timeout"));
+    const pager = { current: null };
+    const result = await cmdCat(["test-post"], pager);
+    expect(result).toContain("Line one.");
+    expect(result.some((l) => typeof l === "string" && l.includes("comments"))).toBe(false);
   });
 });

@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import { fetchPostBySlug } from "../api/posts.js";
 import apiFetch from "../api/apiFetch.js";
 
@@ -20,7 +21,7 @@ export async function resolvePost(slugArg, savedSlugMap) {
 
   let post = (Number.isNaN(num) || resolvedFromMap) ? await fetchPostBySlug(slug) : null;
   if (!post && !Number.isNaN(num) && !resolvedFromMap) {
-    const res = await apiFetch(`/posts?per_page=1&page=${num}&orderby=date&order=desc&_embed=wp:term`);
+    const res = await apiFetch(addQueryArgs("/posts", { per_page: 1, page: num, orderby: "date", order: "desc", _embed: "wp:term" }));
     if (res.ok) {
       const posts = await res.json();
       if (posts.length) post = posts[0];

@@ -1,3 +1,5 @@
+import { _n } from "@wordpress/i18n";
+
 export default {
   locale: "en-US",
   help_tip_boot: "Type 'help' for available commands.",
@@ -67,6 +69,7 @@ export default {
   read_published:   (d) => `Published: ${d}`,
   read_categories:  (s) => `Categories: ${s}`,
   read_tags:        (s) => `Tags: ${s}`,
+  read_comment_count: (n) => `[${n} ${_n("comment", "comments", n)}]`,
 
   // link
   link_usage:       "Usage: link <number>",

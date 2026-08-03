@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import { t } from "../i18n/index.js";
 import { fmtApiError } from "../apiError.js";
 import apiFetch from "../api/apiFetch.js";
@@ -15,7 +16,7 @@ export default async function cmdSearch(args, pager, configRef) {
   const term = args.join(" ");
   const ps = configRef.current.posts;
   try {
-    const res = await apiFetch(`/posts?search=${encodeURIComponent(term)}&per_page=${ps}&_fields=id,slug,title,date,link,excerpt`);
+    const res = await apiFetch(addQueryArgs("/posts", { search: term, per_page: ps, _fields: "id,slug,title,date,link,excerpt" }));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
     const posts = await res.json();

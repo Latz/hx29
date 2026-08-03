@@ -16,7 +16,7 @@ import wpApiFetch from "@wordpress/api-fetch";
 import { fetchPosts, fetchPostBySlug } from "./posts.js";
 import { fetchPages } from "./pages.js";
 import { fetchCategories, fetchTags } from "./taxonomy.js";
-import { fetchComments, postComment } from "./comments.js";
+import { fetchComments, postComment, fetchCommentCount } from "./comments.js";
 
 function makeRes(data, headers = {}) {
   return {
@@ -66,7 +66,7 @@ describe("fetchPostBySlug", () => {
     apiFetch.mockResolvedValue(makeRes([{ id: 1 }]));
     await fetchPostBySlug("my post");
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("slug=my%20post"));
-    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("_embed=wp:term"));
+    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("_embed=wp%3Aterm"));
   });
 
   it("returns first post when found", async () => {
@@ -144,6 +144,32 @@ describe("fetchComments", () => {
     apiFetch.mockResolvedValue(makeRes(comments));
     const result = await fetchComments(1);
     expect(result).toEqual(comments);
+  });
+});
+
+describe("fetchCommentCount", () => {
+  it("calls the comments endpoint with per_page=1", async () => {
+    apiFetch.mockResolvedValue(makeRes([], { "X-WP-Total": "0" }));
+    await fetchCommentCount(99);
+    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("/comments?post=99"));
+    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("per_page=1"));
+  });
+
+  it("returns the total from the X-WP-Total header", async () => {
+    apiFetch.mockResolvedValue(makeRes([], { "X-WP-Total": "7" }));
+    const result = await fetchCommentCount(1);
+    expect(result).toBe(7);
+  });
+
+  it("returns 0 when the header is missing", async () => {
+    apiFetch.mockResolvedValue(makeRes([]));
+    const result = await fetchCommentCount(1);
+    expect(result).toBe(0);
+  });
+
+  it("throws on a non-ok response", async () => {
+    apiFetch.mockResolvedValue({ ok: false, status: 500 });
+    await expect(fetchCommentCount(1)).rejects.toThrow("HTTP 500");
   });
 });
 

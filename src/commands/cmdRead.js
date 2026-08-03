@@ -3,6 +3,7 @@ import { fmtApiError } from "../apiError.js";
 import { parseBodyWithLinks, getPageLines, getLineWidth, formatDate, stripHtml } from "../utils.js";
 import { resolvePost } from "./postLookup.js";
 import { buildArticleHeader } from "./articleHeader.js";
+import { fetchCommentCount } from "../api/comments.js";
 
 /**
  * Estimates reading time in whole minutes at ~200 words per minute.
@@ -32,13 +33,18 @@ export default async function cmdRead(args, pager) {
     const { post, slug } = await resolvePost(slugArg, savedSlugMap);
     if (!post) return [t.read_not_found(slug)];
 
+    const commentCountPromise = fetchCommentCount(post.id).catch(() => 0);
+
     const cols = getLineWidth();
     const { lines: bodyLines, footerLines, footnotes } = parseBodyWithLinks(post.content.rendered, cols);
     const readMins = estimateReadMinutes(post.content.rendered);
     const dateLine = t.read_published(formatDate(post.date)) + `  (~${readMins} min read)`;
     const { headerLines } = buildArticleHeader(post, dateLine, cols);
 
-    const allLines = [...headerLines, "", ...bodyLines, ...footerLines, ""];
+    const commentCount = await commentCountPromise;
+    const commentLines = commentCount > 0 ? [t.read_comment_count(commentCount)] : [];
+
+    const allLines = [...headerLines, "", ...bodyLines, ...footerLines, ...commentLines, ""];
 
     const pageLines = getPageLines();
     const hasMore = allLines.length > pageLines;

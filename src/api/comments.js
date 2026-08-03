@@ -1,4 +1,5 @@
 import wpApiFetch from "@wordpress/api-fetch";
+import { addQueryArgs } from "@wordpress/url";
 import apiFetch from "./apiFetch.js";
 
 /**
@@ -8,9 +9,20 @@ import apiFetch from "./apiFetch.js";
  * @returns {Promise<Array<{id:number,author_name:string,date:string,content:{rendered:string}}>>}
  */
 export async function fetchComments(postId, perPage = 20) {
-  const res = await apiFetch(`/comments?post=${postId}&per_page=${perPage}&_fields=id,author_name,date,content`);
+  const res = await apiFetch(addQueryArgs("/comments", { post: postId, per_page: perPage, _fields: "id,author_name,date,content" }));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+/**
+ * Fetches the total comment count for a post without downloading comment bodies.
+ * @param {number} postId - WordPress post ID.
+ * @returns {Promise<number>} Total number of comments.
+ */
+export async function fetchCommentCount(postId) {
+  const res = await apiFetch(addQueryArgs("/comments", { post: postId, per_page: 1, _fields: "id" }));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
 }
 
 /**

@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import { t } from "../i18n/index.js";
 import { fmtApiError } from "../apiError.js";
 import { fetchPosts } from "../api/posts.js";
@@ -92,7 +93,7 @@ function paginateListResult({ type, items, fetchedTotal, pager, nextPage, offset
  */
 async function nextSearchPage(pager, ps, nextPage, offset, cols, total) {
   const { searchTerm } = pager.current;
-  const res = await apiFetch(`/posts?search=${encodeURIComponent(searchTerm)}&per_page=${ps}&page=${nextPage}&_fields=id,slug,title,date,link`);
+  const res = await apiFetch(addQueryArgs("/posts", { search: searchTerm, per_page: ps, page: nextPage, _fields: "id,slug,title,date,link" }));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const fetchedTotal = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();

@@ -1,3 +1,4 @@
+import { addQueryArgs } from "@wordpress/url";
 import apiFetch from "./apiFetch.js";
 
 /**
@@ -9,10 +10,16 @@ import apiFetch from "./apiFetch.js";
  * @returns {Promise<{posts: Array<{id:number,slug:string,title:{rendered:string},date:string,link:string}>, total: number}>}
  */
 export async function fetchPosts(page = 1, pageSize = 10, order = "desc", filter = {}) {
-  let qs = `/posts?per_page=${pageSize}&page=${page}&orderby=date&order=${order}&_fields=id,slug,title,date,link`;
-  if (filter.category) qs += `&categories=${filter.category}`;
-  if (filter.tag)      qs += `&tags=${filter.tag}`;
-  const res = await apiFetch(qs);
+  const url = addQueryArgs("/posts", {
+    per_page: pageSize,
+    page,
+    orderby: "date",
+    order,
+    _fields: "id,slug,title,date,link",
+    ...(filter.category ? { categories: filter.category } : {}),
+    ...(filter.tag ? { tags: filter.tag } : {}),
+  });
+  const res = await apiFetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const total = Number.parseInt(res.headers.get("X-WP-Total") || "0", 10);
   const posts = await res.json();
@@ -25,7 +32,7 @@ export async function fetchPosts(page = 1, pageSize = 10, order = "desc", filter
  * @returns {Promise<Object|null>} Full post object with `_embedded["wp:term"]`, or null if not found.
  */
 export async function fetchPostBySlug(slug) {
-  const res = await apiFetch(`/posts?slug=${encodeURIComponent(slug)}&_embed=wp:term`);
+  const res = await apiFetch(addQueryArgs("/posts", { slug, _embed: "wp:term" }));
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const posts = await res.json();
   if (!posts.length) return null;

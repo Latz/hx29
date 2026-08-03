@@ -54,6 +54,7 @@ const FUNCTION_KEYS = [
   "read_published",
   "read_categories",
   "read_tags",
+  "read_comment_count",
   "link_unknown_num",
   "link_opening",
   "search_no_results",

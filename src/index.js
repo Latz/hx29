@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createRoot } from "@wordpress/element";
+import { useDebounce } from "@wordpress/compose";
+import domReady from "@wordpress/dom-ready";
 import Terminal, { ColorMode, TerminalOutput, TerminalInput } from "react-terminal-ui";
 import { getSessionIntro } from "./intros";
 import { t } from "./i18n/index.js";
@@ -184,13 +186,12 @@ function WPTerminal() {
   const introPlayingRef = useRef(true);
   const printingRef = useRef(false);
 
-  const scrollDebounceRef = useRef(null);
+  const debouncedScroll = useDebounce(scrollTerminal, 50);
 
   useEffect(() => { applyConfig(configRef.current); }, []);
   useEffect(() => {
-    clearTimeout(scrollDebounceRef.current);
-    scrollDebounceRef.current = setTimeout(scrollTerminal, 50);
-  }, [terminalLines, printing]);
+    debouncedScroll();
+  }, [terminalLines, printing, debouncedScroll]);
 
   const introPlaying = useIntro(_session.items, setTerminalLines);
   useEffect(() => { introPlayingRef.current = introPlaying; }, [introPlaying]);
@@ -269,7 +270,7 @@ function WPTerminal() {
   );
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+domReady(() => {
   const el = document.getElementById("hx29-root");
   if (el) createRoot(el).render(<WPTerminal />);
 });

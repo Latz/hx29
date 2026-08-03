@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../api/posts.js", () => ({ fetchPostBySlug: vi.fn() }));
 vi.mock("../api/apiFetch.js", () => ({ default: vi.fn() }));
+vi.mock("../api/comments.js", () => ({ fetchCommentCount: vi.fn(() => Promise.resolve(0)) }));
 vi.mock("../utils.js", () => ({
   parseBodyWithLinks: vi.fn(() => ({ lines: Array.from({ length: 5 }, (_, i) => `Body line ${i + 1}`), footerLines: [], footnotes: [] })),
   getPageLines: vi.fn(() => 100),
@@ -17,6 +18,7 @@ vi.mock("../i18n/index.js", () => ({
     read_published: (d) => `Published: ${d}`,
     read_categories: (s) => `Categories: ${s}`,
     read_tags: (s) => `Tags: ${s}`,
+    read_comment_count: (n) => `[${n} ${n === 1 ? "comment" : "comments"}]`,
     more_chars_left: (n) => `[n]ext (${n} chars remaining)`,
   },
 }));
@@ -24,10 +26,12 @@ vi.mock("../apiError.js", () => ({ fmtApiError: (e) => `Error: ${e.message}` }))
 
 import { fetchPostBySlug } from "../api/posts.js";
 import apiFetch from "../api/apiFetch.js";
+import { fetchCommentCount } from "../api/comments.js";
 import { getPageLines, parseBodyWithLinks } from "../utils.js";
 import cmdRead from "./cmdRead.js";
 
 const MOCK_POST = {
+  id: 1,
   slug: "hello-world",
   title: { rendered: "Hello World" },
   date: "2025-01-01T00:00:00",
@@ -38,6 +42,7 @@ const MOCK_POST = {
 beforeEach(() => {
   vi.clearAllMocks();
   getPageLines.mockReturnValue(100);
+  fetchCommentCount.mockResolvedValue(0);
 });
 
 describe("cmdRead", () => {
@@ -73,7 +78,7 @@ describe("cmdRead", () => {
     const pager = { current: { slugMap: { 1: { slug: "hello-world" } } } };
     await cmdRead(["1"], pager);
     expect(fetchPostBySlug).toHaveBeenCalledWith("hello-world");
-    expect(apiFetch).not.toHaveBeenCalled();
+    expect(apiFetch).not.toHaveBeenCalledWith(expect.stringContaining("page="));
   });
 
   it("sets pager.current with hasMore=false for short posts", async () => {
@@ -130,5 +135,35 @@ describe("cmdRead", () => {
     const result = await cmdRead(["hello-world"], { current: null });
     const text = result.filter((l) => typeof l === "string").join("\n");
     expect(text).toMatch(/Tech|rust/);
+  });
+
+  it("shows the comment count when the post has comments", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(3);
+    const result = await cmdRead(["hello-world"], { current: null });
+    expect(fetchCommentCount).toHaveBeenCalledWith(1);
+    expect(result).toContainLineWithText("[3 comments]");
+  });
+
+  it("uses the singular form for exactly 1 comment", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(1);
+    const result = await cmdRead(["hello-world"], { current: null });
+    expect(result).toContainLineWithText("[1 comment]");
+  });
+
+  it("omits the comment count line when the post has no comments", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockResolvedValue(0);
+    const result = await cmdRead(["hello-world"], { current: null });
+    expect(result.some((l) => typeof l === "string" && l.includes("comments"))).toBe(false);
+  });
+
+  it("does not break article display when the comment count fetch fails", async () => {
+    fetchPostBySlug.mockResolvedValue(MOCK_POST);
+    fetchCommentCount.mockRejectedValue(new Error("timeout"));
+    const result = await cmdRead(["hello-world"], { current: null });
+    expect(result).toContainLineWithText("Hello World");
+    expect(result.some((l) => typeof l === "string" && l.includes("comments"))).toBe(false);
   });
 });
