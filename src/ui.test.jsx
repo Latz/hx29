@@ -236,4 +236,149 @@ describe("parseBodyWithLinks", () => {
     expect(footnotes).toContain("https://example.com");
     expect(lines).toContain(" | See this [1].");
   });
+
+  it("indents and prefixes unordered list items with '* '", () => {
+    const html = "<ul><li>First</li><li>Second</li></ul>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["  * First", "  * Second"]);
+  });
+
+  it("indents and prefixes ordered list items with sequential numbers", () => {
+    const html = "<ol><li>First</li><li>Second</li></ol>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["  1. First", "  2. Second"]);
+  });
+
+  it("surrounds a list block with blank lines when it follows and precedes other content", () => {
+    const html = "<p>Intro</p>\n\n<ul><li>First</li><li>Second</li></ul>\n\n<p>Outro</p>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["Intro", "", "  * First", "  * Second", "", "Outro"]);
+  });
+
+  it("word-wraps a long list item, hanging-indenting continuation lines without repeating the marker", () => {
+    const longItem = "word ".repeat(30).trim();
+    const html = `<ul><li>${longItem}</li></ul>`;
+    const { lines } = parseBodyWithLinks(html, 20);
+    const itemLines = lines.filter((l) => typeof l === "string" && l.trim());
+    expect(itemLines.length).toBeGreaterThan(1);
+    expect(itemLines[0].startsWith("  * ")).toBe(true);
+    itemLines.slice(1).forEach((l) => {
+      expect(l.startsWith("  * ")).toBe(false);
+      expect(l.startsWith("    ")).toBe(true);
+    });
+  });
+
+  it("does not insert a blank line between list items", () => {
+    const html = "<p>Intro</p>\n\n<ul><li>First</li><li>Second</li><li>Third</li></ul>\n\n<p>Outro</p>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines.filter((l) => l === "")).toHaveLength(2);
+  });
+
+  it("resolves a link inside a list item to plain text with its footnote suffix", () => {
+    const html = '<ul><li>See <a href="https://example.com">this</a>.</li></ul>';
+    const { lines, footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+    const itemLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(itemLines.length).toBeGreaterThan(0);
+    expect(itemLines[0].__animText).toBe("  * See this [1].");
+  });
+
+  it("does not double up blank lines when a heading directly follows a list", () => {
+    const html = "<ul><li>Item</li></ul>\n\n<h2>Heading</h2>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    const headingIdx = lines.findIndex((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingIdx).toBeGreaterThan(0);
+    expect(lines[headingIdx - 1]).toBe("");
+    expect(lines[headingIdx - 2]).not.toBe("");
+  });
+
+  it("indents and prefixes code block lines with ':> ' and surrounds the block with blank lines", () => {
+    const html = "<p>Intro</p>\n\n<pre><code>line one\nline two</code></pre>\n\n<p>Outro</p>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["Intro", "", "  :> line one", "  :> line two", "", "Outro"]);
+  });
+
+  it("preserves an internal blank line inside a code block without indenting/prefixing it", () => {
+    const html = "<pre><code>line one\n\nline two</code></pre>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["  :> line one", "", "  :> line two"]);
+  });
+
+  it("word-wraps a long code line, prefixing every wrapped line with the indent + ':> '", () => {
+    const longLine = "word ".repeat(30).trim();
+    const html = `<pre><code>${longLine}</code></pre>`;
+    const { lines } = parseBodyWithLinks(html, 20);
+    expect(lines.length).toBeGreaterThan(1);
+    lines.forEach((l) => expect(l.startsWith("  :> ")).toBe(true));
+  });
+
+  it("does not double up blank lines when a heading directly follows a code block", () => {
+    const html = "<pre><code>x = 1</code></pre>\n\n<h2>Heading</h2>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    const headingIdx = lines.findIndex((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingIdx).toBeGreaterThan(0);
+    expect(lines[headingIdx - 1]).toBe("");
+    expect(lines[headingIdx - 2]).not.toBe("");
+  });
+
+  it("resolves a link inside a code block to plain text with its footnote suffix", () => {
+    const html = '<pre><code>see <a href="https://example.com">this</a></code></pre>';
+    const { lines, footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+    expect(lines).toContain("  :> see this [1]");
+  });
+
+  it("renders a pullquote as a dashed-border box without a citation", () => {
+    const html = '<figure class="wp-block-pullquote"><blockquote><p>Bold statement.</p></blockquote></figure>';
+    const { lines } = parseBodyWithLinks(html, 20);
+    const boxWidth = "Bold statement.".length + 4;
+    expect(lines).toEqual(["-".repeat(boxWidth), "  Bold statement.", "-".repeat(boxWidth)]);
+  });
+
+  it("sizes the border to the content, not the full terminal width", () => {
+    const html = '<figure class="wp-block-pullquote"><blockquote><p>Short</p></blockquote></figure>';
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["-".repeat(9), "  Short", "-".repeat(9)]);
+  });
+
+  it("renders a pullquote with a right-aligned citation line", () => {
+    const html =
+      '<figure class="wp-block-pullquote"><blockquote><p>Bold statement.</p><cite>Author</cite></blockquote></figure>';
+    const { lines } = parseBodyWithLinks(html, 20);
+    const boxWidth = "Bold statement.".length + 4;
+    expect(lines[0]).toBe("-".repeat(boxWidth));
+    expect(lines[1]).toBe("  Bold statement.");
+    expect(lines[2]).toBe("-".repeat(boxWidth));
+    expect(lines[3].endsWith("-- Author")).toBe(true);
+    expect(lines[3]).toHaveLength(boxWidth - 2);
+  });
+
+  it("word-wraps a long pullquote body, indenting every wrapped line", () => {
+    const longBody = "word ".repeat(30).trim();
+    const html = `<figure class="wp-block-pullquote"><blockquote><p>${longBody}</p></blockquote></figure>`;
+    const { lines } = parseBodyWithLinks(html, 20);
+    const bodyLines = lines.slice(1, -1);
+    expect(bodyLines.length).toBeGreaterThan(1);
+    bodyLines.forEach((l) => expect(l.startsWith("  ")).toBe(true));
+  });
+
+  it("surrounds a pullquote with blank lines and does not double them up before a heading", () => {
+    const html = '<p>Intro</p>\n\n<figure class="wp-block-pullquote"><blockquote><p>Quote</p></blockquote></figure>\n\n<h2>Heading</h2>';
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines[0]).toBe("Intro");
+    expect(lines[1]).toBe("");
+    expect(lines[2]).toBe("-".repeat("Quote".length + 4));
+    const headingIdx = lines.findIndex((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingIdx).toBeGreaterThan(0);
+    expect(lines[headingIdx - 1]).toBe("");
+    expect(lines[headingIdx - 2]).not.toBe("");
+  });
+
+  it("resolves a link inside a pullquote body to plain text with its footnote suffix", () => {
+    const html =
+      '<figure class="wp-block-pullquote"><blockquote><p>See <a href="https://example.com">this</a>.</p></blockquote></figure>';
+    const { lines, footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+    expect(lines).toContain("  See this [1].");
+  });
 });
