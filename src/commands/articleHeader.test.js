@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("../i18n/index.js", () => ({
   t: {
-    read_categories: (s) => `Categories: ${s}`,
+    read_categories: (s, n) => `${n === 1 ? "Category" : "Categories"}: ${s}`,
     read_tags: (s) => `Tags: ${s}`,
   },
 }));
@@ -31,10 +31,16 @@ describe("buildArticleHeader", () => {
   });
 
   it("includes only the categories line when there are no tags", () => {
+    const post = makePost({ terms: [[{ name: "Tech" }, { name: "Web" }], []] });
+    const { headerLines } = buildArticleHeader(post, "Published: 1 Jan 2025", 80);
+    expect(headerLines).toContain("Categories: Tech, Web");
+    expect(headerLines.some((l) => l.startsWith("Tags:"))).toBe(false);
+  });
+
+  it("uses the singular label for a single category", () => {
     const post = makePost({ terms: [[{ name: "Tech" }], []] });
     const { headerLines } = buildArticleHeader(post, "Published: 1 Jan 2025", 80);
-    expect(headerLines).toContain("Categories: Tech");
-    expect(headerLines.some((l) => l.startsWith("Tags:"))).toBe(false);
+    expect(headerLines).toContain("Category: Tech");
   });
 
   it("includes only the tags line when there are no categories", () => {
@@ -49,7 +55,7 @@ describe("buildArticleHeader", () => {
     // A wide date line pushes baseW well past the combined "Categories: Tech  Tags: rust" length.
     const wideDateLine = "Published: 1 January 2025, in the distant cyber-future";
     const { headerLines } = buildArticleHeader(post, wideDateLine, 80);
-    expect(headerLines).toContain("Categories: Tech  Tags: rust");
+    expect(headerLines).toContain("Category: Tech  Tags: rust");
   });
 
   it("splits categories and tags onto separate lines when combined they exceed the header width", () => {
@@ -57,9 +63,9 @@ describe("buildArticleHeader", () => {
     const longTag = "B".repeat(60);
     const post = makePost({ terms: [[{ name: longCat }], [{ name: longTag }]] });
     const { headerLines } = buildArticleHeader(post, "Published: 1 Jan 2025", 80);
-    expect(headerLines).toContain(`Categories: ${longCat}`);
+    expect(headerLines).toContain(`Category: ${longCat}`);
     expect(headerLines).toContain(`Tags: ${longTag}`);
-    expect(headerLines).not.toContain(`Categories: ${longCat}  Tags: ${longTag}`);
+    expect(headerLines).not.toContain(`Category: ${longCat}  Tags: ${longTag}`);
   });
 
   it("sizes the rule lines to the widest line in the header", () => {

@@ -91,7 +91,7 @@ export default {
   read_usage:       "Usage: read <number> or r <number>",
   read_not_found:   (s) => `read: ${s}: No post found`,
   read_published:   (d) => `Published: ${d}`,
-  read_categories:  (s) => `Categories: ${s}`,
+  read_categories:  (s, n) => `${_n("Category", "Categories", n)}: ${s}`,
   read_tags:        (s) => `Tags: ${s}`,
   read_comment_count: (n) => `[${n} ${_n("comment", "comments", n)}]`,
 

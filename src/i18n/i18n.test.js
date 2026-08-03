@@ -91,6 +91,11 @@ describe("i18n/en", () => {
   it("locale is en-US", () => {
     expect(en.locale).toBe("en-US");
   });
+
+  it("read_categories pluralizes the label by count", () => {
+    expect(en.read_categories("Tech", 1)).toBe("Category: Tech");
+    expect(en.read_categories("Tech, Rust", 2)).toBe("Categories: Tech, Rust");
+  });
 });
 
 describe("i18n/de", () => {
@@ -116,5 +121,10 @@ describe("i18n/de", () => {
     const enKeys = Object.keys(en).sort();
     const deKeys = Object.keys(de).sort();
     expect(deKeys).toEqual(enKeys);
+  });
+
+  it("read_categories pluralizes the label by count", () => {
+    expect(de.read_categories("Tech", 1)).toBe("Kategorie: Tech");
+    expect(de.read_categories("Tech, Rust", 2)).toBe("Kategorien: Tech, Rust");
   });
 });
