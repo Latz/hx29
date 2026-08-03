@@ -4,21 +4,33 @@ vi.mock("../i18n/index.js", () => ({
   t: {
     locale: "en-US",
     help_available_commands: "Available commands:",
-    help_ls: "  ls …",
-    help_cd: "  cd …",
-    help_read: "  read …",
-    help_link: "  link …",
-    help_search: "  search …",
-    help_grep: "  grep …",
-    help_comments: "  comments …",
-    help_reply: "  reply …",
-    help_cat: "  cat …",
-    help_history: "  history …",
-    help_config: "  config …",
-    help_clear: "  clear …",
-    help_help: "  help …",
-    help_man: "  man …",
+    help_sections: [
+      {
+        title: "SEARCH & NAVIGATE CONTENT",
+        items: [
+          ["ls <posts|pages|categories|cats|tags>", "List content"],
+          ["tree", "Show categories as a nested hierarchy"],
+        ],
+        note: "search finds relevant posts; grep finds exact text matches within them.",
+      },
+      {
+        title: "SYSTEM & UTILITIES",
+        items: [
+          ["help", "Show this help overview"],
+          ["man <command>", "Show detailed help for a specific command"],
+        ],
+      },
+    ],
+    help_footer_hint: "Type 'man <command>' for detailed help on any command.",
     help_tip: "Tip: Arrow keys",
+    man_usage: "Usage: man <command>",
+    man_available: "Available manual pages: ",
+    man_not_found: (cmd) => `man: no manual entry for ${cmd}`,
+    man_available_list: "Available: ",
+    more_chars_left: (n) => `[n]ext (${n} chars remaining)`,
+    man_pages: {
+      ls: ["NAME", "  ls - list content"],
+    },
     history_empty: "No command history.",
     history_title: "Command history:",
     link_usage: "Usage: link <number>",
@@ -53,6 +65,7 @@ vi.mock("../utils.js", () => ({
   saveConfig: vi.fn(),
   applyConfig: vi.fn(),
   getPageLines: vi.fn(() => 20),
+  stripHtml: vi.fn((s) => s),
 }));
 
 vi.mock("../api/taxonomy.js", () => ({
@@ -84,6 +97,43 @@ describe("cmdHelp", () => {
   it("includes tip line", () => {
     const result = cmdHelp();
     expect(result).toContainLineWithText("Arrow keys");
+  });
+
+  it("renders each section's title followed by its commands", () => {
+    const result = cmdHelp();
+    expect(result).toContain("SEARCH & NAVIGATE CONTENT:");
+    expect(result).toContainLineWithText("List content");
+    expect(result).toContain("SYSTEM & UTILITIES:");
+    expect(result).toContainLineWithText("Show this help overview");
+  });
+
+  it("aligns descriptions to the longest command in each section", () => {
+    const result = cmdHelp();
+    const lsLine = result.find((l) => l.includes("List content"));
+    const treeLine = result.find((l) => l.includes("Show categories"));
+    const lsDescCol = lsLine.indexOf("List content");
+    const treeDescCol = treeLine.indexOf("Show categories");
+    expect(lsDescCol).toBe(treeDescCol);
+  });
+
+  it("renders a section's clarifying note after its commands", () => {
+    const result = cmdHelp();
+    expect(result).toContainLineWithText("search finds relevant posts");
+  });
+
+  it("includes the footer hint pointing at man <command>", () => {
+    const result = cmdHelp();
+    expect(result).toContainLineWithText("man <command>");
+  });
+
+  it("delegates to man when given a command name", () => {
+    const result = cmdHelp(["ls"], { current: null });
+    expect(result).toContainLineWithText("ls - list content");
+  });
+
+  it("delegating to man still reports unknown commands correctly", () => {
+    const result = cmdHelp(["bogus"], { current: null });
+    expect(result[0]).toContain("no manual entry for bogus");
   });
 });
 

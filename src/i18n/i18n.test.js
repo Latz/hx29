@@ -19,6 +19,7 @@ const REQUIRED_KEYS = [
   "ls_no_pages",
   "ls_no_categories",
   "ls_no_tags",
+  "tree_no_categories",
   "read_usage",
   "read_not_found",
   "read_published",

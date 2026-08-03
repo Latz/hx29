@@ -13,6 +13,7 @@ import cmdMan from "./cmdMan.js";
 import cmdConfig from "./cmdConfig.js";
 import cmdCd from "./cmdCd.js";
 import cmdCat from "./cmdCat.js";
+import cmdTree from "./cmdTree.js";
 
 /**
  * Parses raw terminal input and dispatches to the matching command handler.
@@ -31,10 +32,11 @@ export async function executeCommand(rawInput, pager, configRef, contextRef, his
   const args = parts.slice(1);
 
   switch (cmd) {
-    case "help":    return cmdHelp();
+    case "help":    return cmdHelp(args, pager);
     case "n":
     case "m":       return cmdN(pager, configRef);
     case "ls":      return cmdLs(args, pager, configRef, contextRef);
+    case "tree":    return cmdTree(pager);
     case "cat":     return cmdCat(args, pager);
     case "r":
     case "read":    return cmdRead(args, pager);
@@ -43,7 +45,6 @@ export async function executeCommand(rawInput, pager, configRef, contextRef, his
     case "search":  return cmdSearch(args, pager, configRef);
     case "grep":    return cmdGrep(args, pager);
     case "comments": return cmdComments(args, pager);
-    case "c":
     case "reply":   return cmdReply(args, pager);
     case "history": return cmdHistory(historyRef);
     case "man":     return cmdMan(args, pager);

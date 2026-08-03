@@ -162,7 +162,7 @@ async function nextCategoriesPage(pager, ps, nextPage, offset, cols, total) {
   return paginateListResult({
     type: "categories", items: cats, fetchedTotal, pager, nextPage, offset, ps, total,
     extraPagerFields: {},
-    mapItem: (c, n) => ({ n, slug: c.slug, id: c.id, url: c.link, title: c.name, date: "" }),
+    mapItem: (c, n) => ({ n, slug: c.slug, id: c.id, url: c.link, title: stripHtml(c.name), date: "" }),
     moreMessage: t.more_categories, cols,
   });
 }
@@ -182,7 +182,7 @@ async function nextTagsPage(pager, ps, nextPage, offset, cols, total) {
   return paginateListResult({
     type: "tags", items: tags, fetchedTotal, pager, nextPage, offset, ps, total,
     extraPagerFields: {},
-    mapItem: (tg, n) => ({ n, slug: tg.slug, id: tg.id, url: tg.link, title: tg.name, date: "" }),
+    mapItem: (tg, n) => ({ n, slug: tg.slug, id: tg.id, url: tg.link, title: stripHtml(tg.name), date: "" }),
     moreMessage: t.more_tags, cols,
   });
 }

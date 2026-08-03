@@ -1,0 +1,5 @@
+# Apache's default mod_mime Content-Type for .js/.css has no charset
+# parameter, unlike PHP-served .html (which correctly sends charset=UTF-8).
+# Without this, some browsers/proxies can misinterpret this theme's UTF-8
+# source (e.g. German umlauts in src/i18n/de.js) as a different encoding.
+AddCharset UTF-8 .js .css

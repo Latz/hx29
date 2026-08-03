@@ -4,9 +4,8 @@ vi.mock("../i18n/index.js", () => ({
   t: {
     unknown_command: (c) => `${c}: command not found`,
     help_available_commands: "Available commands:",
-    help_ls: "", help_cd: "", help_read: "", help_link: "", help_search: "",
-    help_grep: "", help_comments: "", help_reply: "", help_cat: "", help_history: "",
-    help_config: "", help_clear: "", help_help: "", help_man: "", help_tip: "",
+    help_sections: [],
+    help_tip: "",
     history_empty: "No command history.",
     history_title: "Command history:",
     no_active_pager: "No active pager.",
@@ -33,6 +32,7 @@ vi.mock("../i18n/index.js", () => ({
     man_not_found: (t) => `No manual page for '${t}'.`,
     man_available_list: "Available: ",
     man_pages: { ls: ["ls help text"], cd: ["cd help text"], read: ["read help text"] },
+    tree_no_categories: "No categories found.",
     error: (m) => `Error: ${m}`,
   },
 }));
@@ -144,9 +144,16 @@ describe("executeCommand", () => {
     expect(result).toContain("Usage: comments <number>");
   });
 
-  it("dispatches c as alias for reply", async () => {
+  it("no longer treats c as an alias for reply", async () => {
     const result = await run("c");
-    expect(result).toContain("Usage: reply <number> <text>");
+    expect(result).toContain("c: command not found");
+  });
+
+  it("dispatches tree", async () => {
+    const { fetchCategories } = await import("../api/taxonomy.js");
+    fetchCategories.mockResolvedValue({ cats: [], total: 0 });
+    const result = await run("tree");
+    expect(result).toContain("No categories found.");
   });
 
   it("dispatches cd with no args and no context", async () => {

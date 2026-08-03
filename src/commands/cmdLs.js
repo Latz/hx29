@@ -75,7 +75,7 @@ async function resolvePostsFilter(args, contextRef, configOrder) {
 
   try {
     const { tags: allTags } = await fetchTags(1, 100);
-    const found = allTags.find((tg) => tg.slug === tagArg || tg.name.toLowerCase() === tagArg.toLowerCase());
+    const found = allTags.find((tg) => tg.slug === tagArg || stripHtml(tg.name).toLowerCase() === tagArg.toLowerCase());
     if (!found) return { error: [t.cd_not_found(tagArg)] };
     filter.tag = found.id;
     return { order, filter };
@@ -167,7 +167,7 @@ async function listCategories(pager, showAll, ps, cols) {
     return [
       t.ls_categories_found(total),
       "",
-      ...batchFmtLineEls(cats.map((c, i) => ({ n: i + 1, title: c.name, date: "" })), cols),
+      ...batchFmtLineEls(cats.map((c, i) => ({ n: i + 1, title: stripHtml(c.name), date: "" })), cols),
       ...(hasMore ? ["", t.more_categories] : []),
     ];
   } catch (e) {
@@ -194,7 +194,7 @@ async function listTags(pager, showAll, ps, cols) {
     return [
       t.ls_tags_found(total),
       "",
-      ...batchFmtLineEls(tags.map((tg, i) => ({ n: i + 1, title: tg.name, date: "" })), cols),
+      ...batchFmtLineEls(tags.map((tg, i) => ({ n: i + 1, title: stripHtml(tg.name), date: "" })), cols),
       ...(hasMore ? ["", t.more_tags] : []),
     ];
   } catch (e) {

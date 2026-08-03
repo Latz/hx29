@@ -132,6 +132,10 @@ describe("stripHtml", () => {
     expect(stripHtml("&lt;p&gt;")).toBe("<p>");
   });
 
+  it("decodes named umlaut entities (e.g. from WP category/tag names)", () => {
+    expect(stripHtml("tagt&auml;glich")).toBe("tagtäglich");
+  });
+
   it("trims whitespace", () => {
     expect(stripHtml("  <p>  hello  </p>  ")).toBe("hello");
   });

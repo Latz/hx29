@@ -210,7 +210,7 @@ function WPTerminal() {
     const raw = input.trim();
     setTerminalLines((prev) => [...prev, <TerminalInput key={`in-${++lineId.current}`}>{raw}</TerminalInput>].slice(-MAX_LINES));
 
-    if (!raw) return;
+    if (!raw && !pendingRef.current) return;
 
     // Handle pending cd disambiguation
     if (pendingRef.current) {

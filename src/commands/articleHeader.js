@@ -28,8 +28,8 @@ export function buildArticleHeader(post, dateLine, cols) {
   const titleLines = wordWrap(stripHtml(post.title.rendered), cols);
 
   const terms = post._embedded?.["wp:term"] ?? [];
-  const catNames = (terms[0] ?? []).map((term) => term.name).filter(Boolean);
-  const tagNames = (terms[1] ?? []).map((term) => term.name).filter(Boolean);
+  const catNames = (terms[0] ?? []).map((term) => stripHtml(term.name)).filter(Boolean);
+  const tagNames = (terms[1] ?? []).map((term) => stripHtml(term.name)).filter(Boolean);
   const catLine = catNames.length ? t.read_categories(catNames.join(", ")) : null;
   const tagLine = tagNames.length ? t.read_tags(tagNames.join(", ")) : null;
 

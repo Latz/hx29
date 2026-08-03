@@ -1,6 +1,7 @@
 import { t } from "../i18n/index.js";
 import { fmtApiError } from "../apiError.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
+import { stripHtml } from "../utils.js";
 
 let _prevContext = { type: null, id: null, name: null };
 
@@ -114,7 +115,9 @@ export default async function cmdCd(args, contextRef, setCtxDisplay, pendingRef)
   try {
     const { cats } = await fetchCategories(1, 100);
     const { tags } = await fetchTags(1, 100);
-    const resolved = resolveCdTarget(target, cats, tags);
+    const decodedCats = cats.map((c) => ({ ...c, name: stripHtml(c.name) }));
+    const decodedTags = tags.map((tg) => ({ ...tg, name: stripHtml(tg.name) }));
+    const resolved = resolveCdTarget(target, decodedCats, decodedTags);
     return applyCdResolution(resolved, target, contextRef, setCtxDisplay, pendingRef);
   } catch (e) {
     return [fmtApiError(e)];

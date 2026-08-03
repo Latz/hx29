@@ -56,9 +56,9 @@ describe("cmdMan", () => {
     expect(result).toContainLineWithText("read - display a post");
   });
 
-  it("resolves alias 'c' to 'reply'", async () => {
+  it("no longer resolves 'c' as an alias (removed, no short command)", async () => {
     const result = await cmdMan(["c"], { current: null });
-    expect(result).toContainLineWithText("reply");
+    expect(result[0]).toContain("no manual entry for c");
   });
 
   it("returns an array of strings", async () => {
