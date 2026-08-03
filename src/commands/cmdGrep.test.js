@@ -71,10 +71,11 @@ describe("cmdGrep", () => {
     expect(Array.isArray(pager.current.blocks)).toBe(true);
   });
 
-  it("fetches /posts with per_page=100", async () => {
+  it("fetches /posts with per_page=100 pre-filtered by search term", async () => {
     apiFetch.mockResolvedValue(mockApiFetch([makePost(1, "match")]));
     await cmdGrep(["match"], { current: null }, configRef);
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("per_page=100"));
+    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("search=match"));
   });
 
   it("appends more_grep when blocks exceed one page", async () => {

@@ -11,7 +11,7 @@ export default {
   help_search:      "  search <…>        – search posts",
   help_grep:        "  grep <…>          – full-text search in posts",
   help_comments:    "  comments <n>      – show comments for post n",
-  help_comment:     "  comment <n> <…>, c <n> <…>   – write comment on post n",
+  help_reply:       "  reply <n> <…>, c <n> <…>   – write comment on post n",
   help_cat:         "  cat <n>           – dump full article without pagination",
   help_history:     "  history           – show command history",
   help_config:      "  config            – view / change settings",
@@ -90,12 +90,12 @@ export default {
   comments_no_id:       "Post ID not available.",
   comments_none:        "No comments.",
 
-  // comment (write)
-  comment_usage:    "Usage: comment <number> <text>",
-  comment_no_text:  "No comment text provided.",
-  comment_unknown_num: (n) => `Number ${n} unknown. Run 'ls posts' first.`,
-  comment_no_id:    "Post ID not available.",
-  comment_saved:    "Comment saved.",
+  // reply (write a comment)
+  reply_usage:    "Usage: reply <number> <text>",
+  reply_no_text:  "No comment text provided.",
+  reply_unknown_num: (n) => `Number ${n} unknown. Run 'ls posts' first.`,
+  reply_no_id:    "Post ID not available.",
+  reply_saved:    "Comment saved.",
 
   // history
   history_empty:    "No command history.",
@@ -301,14 +301,14 @@ export default {
       "  n is the number from the last ls posts list.",
       "",
       "SEE ALSO",
-      "  comment, c",
+      "  reply, c",
     ],
-    comment: [
+    reply: [
       "NAME",
-      "  comment, c – write a comment",
+      "  reply, c – write a comment",
       "",
       "SYNOPSIS",
-      "  comment <n> <Name>: <Text>",
+      "  reply <n> <Name>: <Text>",
       "  c <n> <Name>: <Text>",
       "",
       "EXAMPLE",

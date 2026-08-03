@@ -16,7 +16,7 @@ vi.mock("../i18n/index.js", () => ({
       grep:    ["NAME", "  grep - filter posts by keyword"],
       cat:     ["NAME", "  cat - display a page"],
       n:       ["NAME", "  n - next page"],
-      comment: ["NAME", "  comment - post a comment"],
+      reply:   ["NAME", "  reply - post a comment"],
       cd:      ["NAME", "  cd - change directory filter"],
       man:     ["NAME", "  man - display manual"],
       pwd:     ["NAME", "  pwd - show current path"],
@@ -56,9 +56,9 @@ describe("cmdMan", () => {
     expect(result).toContainLineWithText("read - display a post");
   });
 
-  it("resolves alias 'c' to 'comment'", async () => {
+  it("resolves alias 'c' to 'reply'", async () => {
     const result = await cmdMan(["c"], { current: null });
-    expect(result).toContainLineWithText("comment");
+    expect(result).toContainLineWithText("reply");
   });
 
   it("returns an array of strings", async () => {

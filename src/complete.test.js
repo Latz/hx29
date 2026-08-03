@@ -30,7 +30,7 @@ describe("complete — top-level commands", () => {
   });
 
   it("returns null for ambiguous prefix with multiple matches", () => {
-    // 'c' matches: cat, cd, clear, comment, comments, config
+    // 'c' matches: cat, cd, clear, comments, config
     expect(complete("c", noPager)).toBeNull();
   });
 

@@ -1,8 +1,8 @@
 // Keep in sync with the switch cases in registry.js
 const TOP_LEVEL = [
-  "c", "cat", "cd", "clear", "comment", "comments", "config",
+  "c", "cat", "cd", "clear", "comments", "config",
   "grep", "help", "history", "l", "link", "ls", "m", "man",
-  "n", "r", "read", "search",
+  "n", "r", "read", "reply", "search",
 ];
 
 const LS_SUBS = ["categories", "cats", "pages", "posts", "tags"];

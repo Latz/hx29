@@ -5,7 +5,7 @@ vi.mock("../i18n/index.js", () => ({
     unknown_command: (c) => `${c}: command not found`,
     help_available_commands: "Available commands:",
     help_ls: "", help_cd: "", help_read: "", help_link: "", help_search: "",
-    help_grep: "", help_comments: "", help_comment: "", help_cat: "", help_history: "",
+    help_grep: "", help_comments: "", help_reply: "", help_cat: "", help_history: "",
     help_config: "", help_clear: "", help_help: "", help_man: "", help_tip: "",
     history_empty: "No command history.",
     history_title: "Command history:",
@@ -27,7 +27,7 @@ vi.mock("../i18n/index.js", () => ({
     search_usage: "Usage: search <term>",
     grep_usage: "Usage: grep <term>",
     comments_usage: "Usage: comments <number>",
-    comment_usage: "Usage: comment <number> <text>",
+    reply_usage: "Usage: reply <number> <text>",
     man_usage: "Usage: man <command>",
     man_available: "Available manual pages: ",
     man_not_found: (t) => `No manual page for '${t}'.`,
@@ -144,9 +144,9 @@ describe("executeCommand", () => {
     expect(result).toContain("Usage: comments <number>");
   });
 
-  it("dispatches c as alias for comment", async () => {
+  it("dispatches c as alias for reply", async () => {
     const result = await run("c");
-    expect(result).toContain("Usage: comment <number> <text>");
+    expect(result).toContain("Usage: reply <number> <text>");
   });
 
   it("dispatches cd with no args and no context", async () => {

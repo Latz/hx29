@@ -11,7 +11,7 @@ export default {
   help_search:      "  search <…>        – Posts durchsuchen",
   help_grep:        "  grep <…>          – Volltext in Posts durchsuchen",
   help_comments:    "  comments <n>      – Kommentare zu Beitrag n anzeigen",
-  help_comment:     "  comment <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
+  help_reply:       "  reply <n> <…>, c <n> <…>   – Kommentar zu Beitrag n schreiben",
   help_cat:         "  cat <n>           – Artikel vollständig ausgeben (ohne Seitenumbruch)",
   help_history:     "  history           – Befehlshistorie anzeigen",
   help_config:      "  config            – Einstellungen anzeigen / ändern",
@@ -90,12 +90,12 @@ export default {
   comments_no_id:       "Post-ID nicht verfügbar.",
   comments_none:        "Keine Kommentare.",
 
-  // comment (write)
-  comment_usage:    "Verwendung: comment <nummer> <text>",
-  comment_no_text:  "Kein Kommentartext angegeben.",
-  comment_unknown_num: (n) => `Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`,
-  comment_no_id:    "Post-ID nicht verfügbar.",
-  comment_saved:    "Kommentar gespeichert.",
+  // reply (write a comment)
+  reply_usage:    "Verwendung: reply <nummer> <text>",
+  reply_no_text:  "Kein Kommentartext angegeben.",
+  reply_unknown_num: (n) => `Nummer ${n} nicht bekannt. Erst 'ls posts' ausführen.`,
+  reply_no_id:    "Post-ID nicht verfügbar.",
+  reply_saved:    "Kommentar gespeichert.",
 
   // history
   history_empty:    "Keine Befehlshistorie.",
@@ -300,14 +300,14 @@ export default {
       "  n ist die Nummer aus der letzten ls posts-Liste.",
       "",
       "VERWANDT",
-      "  comment, c",
+      "  reply, c",
     ],
-    comment: [
+    reply: [
       "NAME",
-      "  comment, c – Kommentar schreiben",
+      "  reply, c – Kommentar schreiben",
       "",
       "SYNTAX",
-      "  comment <n> <Name>: <Text>",
+      "  reply <n> <Name>: <Text>",
       "  c <n> <Name>: <Text>",
       "",
       "BEISPIEL",

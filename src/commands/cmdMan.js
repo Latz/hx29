@@ -2,11 +2,11 @@ import { t } from "../i18n/index.js";
 import { getPageLines } from "../utils.js";
 
 const MAN_PAGES = t.man_pages;
-const ALIASES = { r: "read", l: "link", link: "link", c: "comment" };
+const ALIASES = { r: "read", l: "link", link: "link", c: "reply" };
 
 /**
  * Displays a man page for the given topic, paginating via the pager if needed.
- * @param {string[]} args - `[topic]` to look up (aliases r→read, l/link→link, c→comment).
+ * @param {string[]} args - `[topic]` to look up (aliases r→read, l/link→link, c→reply).
  * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
  * @returns {string[]} Man page lines, possibly truncated with a "more" prompt.
  */

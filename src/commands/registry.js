@@ -7,7 +7,7 @@ import cmdLink from "./cmdLink.js";
 import cmdSearch from "./cmdSearch.js";
 import cmdGrep from "./cmdGrep.js";
 import cmdComments from "./cmdComments.js";
-import cmdComment from "./cmdComment.js";
+import cmdReply from "./cmdReply.js";
 import cmdHistory from "./cmdHistory.js";
 import cmdMan from "./cmdMan.js";
 import cmdConfig from "./cmdConfig.js";
@@ -44,7 +44,7 @@ export async function executeCommand(rawInput, pager, configRef, contextRef, his
     case "grep":    return cmdGrep(args, pager);
     case "comments": return cmdComments(args, pager);
     case "c":
-    case "comment": return cmdComment(args, pager);
+    case "reply":   return cmdReply(args, pager);
     case "history": return cmdHistory(historyRef);
     case "man":     return cmdMan(args, pager);
     case "config":  return cmdConfig(args, configRef);
