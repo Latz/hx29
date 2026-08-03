@@ -133,14 +133,107 @@ describe("parseBodyWithLinks", () => {
     expect(lines.some((l) => typeof l === "string" && l.trim() === "")).toBe(false);
   });
 
-  it("renders link label as underlined text in output", () => {
+  it("renders link label as plain (non-underlined) text with a footnote suffix", () => {
     const html = '<p><a href="https://example.com">click here</a></p>';
     const { lines } = parseBodyWithLinks(html, 80);
     const linkLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
     expect(linkLines.length).toBeGreaterThan(0);
     expect(linkLines[0].__animText).toContain("click here");
     const { container } = render(linkLines[0].__final);
-    expect(container.textContent).toContain("click here");
+    expect(container.textContent).toContain("click here [1]");
+    expect(container.innerHTML).not.toContain("underline");
+  });
+
+  it("renders a heading as underlined text", () => {
+    const html = "<h2>Some Heading</h2>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    const headingLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingLines.length).toBeGreaterThan(0);
+    expect(headingLines[0].__animText).toBe("Some Heading");
+    const { container } = render(headingLines[0].__final);
+    expect(container.textContent).toContain("Some Heading");
     expect(container.innerHTML).toContain("underline");
+  });
+
+  it("underlines all heading levels h1 through h6", () => {
+    for (let level = 1; level <= 6; level++) {
+      const html = `<h${level}>Heading ${level}</h${level}>`;
+      const { lines } = parseBodyWithLinks(html, 80);
+      const headingLine = lines.find((l) => typeof l === "object" && isValidElement(l.__final));
+      expect(headingLine).toBeDefined();
+      const { container } = render(headingLine.__final);
+      expect(container.textContent).toContain(`Heading ${level}`);
+      expect(container.innerHTML).toContain("underline");
+    }
+  });
+
+  it("keeps a link's own footnote marker inside an underlined heading", () => {
+    const html = '<h2>See <a href="https://example.com">this</a></h2>';
+    const { lines, footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+    const headingLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingLines.length).toBeGreaterThan(0);
+    const { container } = render(headingLines[0].__final);
+    expect(container.textContent).toContain("this [1]");
+    const underlineCount = (container.innerHTML.match(/hx29-underline/g) || []).length;
+    expect(underlineCount).toBe(1);
+  });
+
+  it("word-wraps a long heading across multiple underlined lines", () => {
+    const longHeading = "word ".repeat(30).trim();
+    const html = `<h1>${longHeading}</h1>`;
+    const { lines } = parseBodyWithLinks(html, 20);
+    const headingLines = lines.filter((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingLines.length).toBeGreaterThan(1);
+    headingLines.forEach((l) => {
+      const { container } = render(l.__final);
+      expect(container.innerHTML).toContain("underline");
+    });
+  });
+
+  it("inserts a blank line before a heading that follows other content", () => {
+    const html = "<p>Intro text</p>\n\n<h2>Some Heading</h2>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    const headingIdx = lines.findIndex((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingIdx).toBeGreaterThan(0);
+    expect(lines[headingIdx - 1]).toBe("");
+  });
+
+  it("does not insert a leading blank line when a heading opens the content", () => {
+    const html = "<h1>Opening Heading</h1>\n\n<p>Body text</p>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines[0]).not.toBe("");
+    expect(typeof lines[0]).toBe("object");
+  });
+
+  it("prefixes blockquote lines with ' | ' and surrounds the block with blank lines", () => {
+    const html = "<p>Intro</p>\n\n<blockquote><p>A wise quote.</p></blockquote>\n\n<p>Outro</p>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    expect(lines).toEqual(["Intro", "", " | A wise quote.", "", "Outro"]);
+  });
+
+  it("word-wraps a long quote, prefixing every wrapped line", () => {
+    const longQuote = "word ".repeat(30).trim();
+    const html = `<blockquote><p>${longQuote}</p></blockquote>`;
+    const { lines } = parseBodyWithLinks(html, 20);
+    const quoteLines = lines.filter((l) => typeof l === "string" && l.startsWith(" | "));
+    expect(quoteLines.length).toBeGreaterThan(1);
+    quoteLines.forEach((l) => expect(l.startsWith(" | ")).toBe(true));
+  });
+
+  it("does not double up blank lines when a heading directly follows a quote", () => {
+    const html = "<blockquote><p>Quote text</p></blockquote>\n\n<h2>Heading</h2>";
+    const { lines } = parseBodyWithLinks(html, 80);
+    const headingIdx = lines.findIndex((l) => typeof l === "object" && isValidElement(l.__final));
+    expect(headingIdx).toBeGreaterThan(0);
+    expect(lines[headingIdx - 1]).toBe("");
+    expect(lines[headingIdx - 2]).not.toBe("");
+  });
+
+  it("resolves a link inside a quote to plain text with its footnote suffix", () => {
+    const html = '<blockquote><p>See <a href="https://example.com">this</a>.</p></blockquote>';
+    const { lines, footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toContain("https://example.com");
+    expect(lines).toContain(" | See this [1].");
   });
 });
