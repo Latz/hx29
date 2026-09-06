@@ -125,7 +125,9 @@ function buildLinkParts(text) {
  */
 export function parseBodyWithLinks(html, width) {
   const footnotes = [];
-  const urlIndex = {};
+  // No Object.prototype, so a URL like "constructor" or "toString" can't
+  // read a truthy inherited value off the plain-object guard below.
+  const urlIndex = Object.create(null);
 
   // Marked first, before the plain <blockquote> pass, so its nested
   // <blockquote> isn't also caught by that regex.

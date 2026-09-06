@@ -1,6 +1,15 @@
 import { CONFIG_DEFAULTS } from "./config.js";
 
 /**
+ * `; Secure` when served over HTTPS, so persisted cookies aren't sent over
+ * a plaintext connection on a downgraded or mixed-content page.
+ * @returns {string}
+ */
+function secureAttr() {
+  return location.protocol === "https:" ? "; Secure" : "";
+}
+
+/**
  * Loads the user config from the `hx29_config` cookie, merged with defaults.
  * @returns {{font:number,posts:number,theme:string,order:string}}
  */
@@ -21,7 +30,7 @@ export function loadConfig() {
  */
 export function saveConfig(cfg) {
   const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
-  document.cookie = `hx29_config=${encodeURIComponent(JSON.stringify(cfg))}; expires=${exp}; path=/; SameSite=Lax`;
+  document.cookie = `hx29_config=${encodeURIComponent(JSON.stringify(cfg))}; expires=${exp}; path=/; SameSite=Lax${secureAttr()}`;
 }
 
 /**
@@ -72,5 +81,5 @@ export function pushHistory(historyRef, cmd) {
   h.unshift(cmd);
   if (h.length > 25) h.length = 25;
   const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
-  document.cookie = `hx29_history=${encodeURIComponent(JSON.stringify(h))}; expires=${exp}; path=/; SameSite=Lax`;
+  document.cookie = `hx29_history=${encodeURIComponent(JSON.stringify(h))}; expires=${exp}; path=/; SameSite=Lax${secureAttr()}`;
 }

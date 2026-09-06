@@ -24,7 +24,6 @@ function hx29_safe_require_once(string $path): bool {
 hx29_safe_require_once(get_template_directory() . '/inc/setup.php');
 hx29_safe_require_once(get_template_directory() . '/inc/uid.php');
 hx29_safe_require_once(get_template_directory() . '/inc/enqueue.php');
-hx29_safe_require_once(get_template_directory() . '/inc/rest-api.php');
 hx29_safe_require_once(get_template_directory() . '/inc/settings.php');
 hx29_safe_require_once(get_template_directory() . '/inc/admin-ui.php');
 

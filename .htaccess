@@ -3,3 +3,11 @@
 # Without this, some browsers/proxies can misinterpret this theme's UTF-8
 # source (e.g. German umlauts in src/i18n/de.js) as a different encoding.
 AddCharset UTF-8 .js .css
+
+# Defence-in-depth: deny direct access to dotfiles and dev/build metadata.
+# Apache's own <FilesMatch "^\.ht"> only covers .htaccess/.htpasswd — this
+# theme directory is served directly, so anything else here (a stray .env,
+# coverage.xml, package.json, *.log, docs) would otherwise be downloadable.
+<FilesMatch "^\.|\.(log|json|lock|md|xml|yml)$">
+    Require all denied
+</FilesMatch>

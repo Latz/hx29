@@ -200,6 +200,29 @@ describe("loadConfig / saveConfig", () => {
     expect(cfg.posts).toBe(10);
     expect(cfg.font).toBe(14);
   });
+
+  // security.md LOW: cookies lacked the Secure attribute, so they'd be sent
+  // over a plaintext connection on a downgraded/mixed-content page.
+  describe("Secure attribute", () => {
+    const originalLocation = window.location;
+    afterEach(() => {
+      Object.defineProperty(window, "location", { value: originalLocation, configurable: true });
+    });
+
+    it("omits Secure over http:", () => {
+      Object.defineProperty(window, "location", { value: new URL("http://example.test/"), configurable: true });
+      const spy = vi.spyOn(document, "cookie", "set");
+      saveConfig({ font: 14 });
+      expect(spy.mock.calls.at(-1)[0]).not.toContain("Secure");
+    });
+
+    it("appends Secure over https:", () => {
+      Object.defineProperty(window, "location", { value: new URL("https://example.test/"), configurable: true });
+      const spy = vi.spyOn(document, "cookie", "set");
+      saveConfig({ font: 14 });
+      expect(spy.mock.calls.at(-1)[0]).toContain("; Secure");
+    });
+  });
 });
 
 // ─── loadHistory / pushHistory ────────────────────────────────────────────────
@@ -239,5 +262,14 @@ describe("loadHistory / pushHistory", () => {
     pushHistory(ref, "search foo");
     const loaded = loadHistory();
     expect(loaded).toContain("search foo");
+  });
+
+  it("appends Secure over https:", () => {
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", { value: new URL("https://example.test/"), configurable: true });
+    const spy = vi.spyOn(document, "cookie", "set");
+    pushHistory({ current: [] }, "ls");
+    expect(spy.mock.calls.at(-1)[0]).toContain("; Secure");
+    Object.defineProperty(window, "location", { value: originalLocation, configurable: true });
   });
 });

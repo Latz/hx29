@@ -128,6 +128,22 @@ describe("parseBodyWithLinks", () => {
     expect(footnotes).toHaveLength(1);
   });
 
+  // security.md LOW: urlIndex was a plain object, so a link literally
+  // targeting "constructor"/"toString" read a truthy value off
+  // Object.prototype instead of being registered as a real footnote.
+  it("registers a link whose href is an Object.prototype property name (e.g. 'constructor')", () => {
+    const html = '<p><a href="constructor">A</a></p>';
+    const { footnotes, footerLines } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toEqual(["constructor"]);
+    expect(footerLines.some((l) => l.includes("[1]") && l.includes("constructor"))).toBe(true);
+  });
+
+  it("keeps 'toString' and a real URL as two distinct footnotes", () => {
+    const html = '<p><a href="toString">A</a> <a href="https://example.com">B</a></p>';
+    const { footnotes } = parseBodyWithLinks(html, 80);
+    expect(footnotes).toEqual(["toString", "https://example.com"]);
+  });
+
   it("strips empty lines from output", () => {
     const { lines } = parseBodyWithLinks("<p></p><p>Hello</p><p></p>", 80);
     expect(lines.some((l) => typeof l === "string" && l.trim() === "")).toBe(false);

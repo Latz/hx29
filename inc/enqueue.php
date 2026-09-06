@@ -69,7 +69,6 @@ function hx29_enqueue_scripts() {
 
     wp_localize_script('hx29-terminal', 'hx29', [
         'rest_root' => esc_url_raw(rest_url()),
-        'rest_url'  => esc_url_raw(rest_url('hx29/v1/')),
         'nonce'     => wp_create_nonce('wp_rest'),
         'locale'    => substr(get_locale(), 0, 2),
         'uid'       => hx29_get_or_create_uid(),
