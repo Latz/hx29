@@ -1,4 +1,4 @@
-import { fmtLine, stripHtml, wordWrap } from "./format.js";
+import { stripHtml, wordWrap } from "./format.js";
 
 /**
  * Renders a line with highlighted match terms in inverse video.
@@ -22,21 +22,6 @@ export function highlightMatch(line, term, cols) {
       )}
     </span>
   );
-}
-
-/**
- * Like `fmtLine` but returns an animated-text object with an underlined `link [n]` React suffix.
- * @param {number} n - Row number.
- * @param {string} title - Post/page title.
- * @param {string} date - Pre-formatted date string.
- * @param {number} [cols] - Terminal width; defaults to `LINE_W`.
- * @returns {{__animText: string, __suffix: import('react').ReactElement}} Animated line descriptor.
- */
-export function fmtLineEl(n, title, date, cols) {
-  return {
-    __animText: fmtLine(n, title, date, cols) + "  ",
-    __suffix: <span className="hx29-underline">{`link [${n}]`}</span>,
-  };
 }
 
 // Linear-time: a single bounded capture group between two fixed delimiters,

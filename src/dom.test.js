@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 vi.mock("./random.js", () => ({ cosmeticRandom: vi.fn(() => 0.5) }));
 
 import { cosmeticRandom } from "./random.js";
-import { getPageLines, getLineWidth, getRenderedLineCount, scrollTerminal, followTerminal, _resetFollowThrottleForTests, _resetScrollScheduledForTests, maybeSyncTear } from "./dom.js";
+import { getPageLines, getLineWidth, scrollTerminal, followTerminal, _resetFollowThrottleForTests, _resetScrollScheduledForTests, maybeSyncTear } from "./dom.js";
 
 beforeEach(() => {
   document.body.innerHTML = "";
@@ -43,24 +43,6 @@ describe("getLineWidth", () => {
     document.body.appendChild(el);
     const width = getLineWidth();
     expect(width).toBeGreaterThan(0);
-  });
-});
-
-describe("getRenderedLineCount", () => {
-  it("returns 0 when no terminal lines exist", () => {
-    expect(getRenderedLineCount()).toBe(0);
-  });
-
-  it("counts .react-terminal-line elements", () => {
-    const container = document.createElement("div");
-    container.className = "react-terminal";
-    for (let i = 0; i < 5; i++) {
-      const line = document.createElement("div");
-      line.className = "react-terminal-line";
-      container.appendChild(line);
-    }
-    document.body.appendChild(container);
-    expect(getRenderedLineCount()).toBe(5);
   });
 });
 

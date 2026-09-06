@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { isValidElement } from "@wordpress/element";
-import { render, screen } from "@testing-library/react";
-import { highlightMatch, fmtLineEl, parseBodyWithLinks } from "./ui.jsx";
+import { render } from "@testing-library/react";
+import { highlightMatch, parseBodyWithLinks } from "./ui.jsx";
 
 vi.mock("./format.js", () => ({
   fmtLine: vi.fn((n, title) => `${n}. ${title}`),
@@ -57,32 +57,6 @@ describe("highlightMatch", () => {
     expect(innerSpan).not.toBeNull();
     expect(innerSpan.textContent).toBe("WORLD");
     expect(container.innerHTML).toContain("hx29-highlight");
-  });
-});
-
-describe("fmtLineEl", () => {
-  it("returns object with __animText and __suffix keys", () => {
-    const result = fmtLineEl(1, "My Title", "2025-01-01");
-    expect(result).toHaveProperty("__animText");
-    expect(result).toHaveProperty("__suffix");
-  });
-
-  it("__animText contains formatted line", () => {
-    const result = fmtLineEl(3, "My Title", "2025-01-01");
-    expect(result.__animText).toContain("3. My Title");
-  });
-
-  it("__suffix is a React element containing 'link [n]'", () => {
-    const result = fmtLineEl(5, "Title", "2025");
-    expect(isValidElement(result.__suffix)).toBe(true);
-    render(result.__suffix);
-    expect(screen.getByText("link [5]")).not.toBeNull();
-  });
-
-  it("__suffix has underline style", () => {
-    const result = fmtLineEl(2, "Title", "2025");
-    const { container } = render(result.__suffix);
-    expect(container.innerHTML).toContain("underline");
   });
 });
 

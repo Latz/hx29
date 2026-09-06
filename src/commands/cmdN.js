@@ -6,6 +6,7 @@ import { fetchPages } from "../api/pages.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
 import apiFetch from "../api/apiFetch.js";
 import { batchFmtLineEls, getPageLines, getLineWidth, stripHtml, formatDate } from "../utils.js";
+import { RESOURCE_SPECS } from "./resourceSpecs.js";
 
 /**
  * Advances the article pager (already-fetched, locally-paginated lines).
@@ -106,7 +107,9 @@ async function nextSearchPage(pager, ps, nextPage, offset, cols, total) {
 }
 
 /**
- * Fetches and paginates the next page of posts.
+ * Fetches and paginates the next page of posts (the one resource with its
+ * own extra order/filter args, so it keeps a thin wrapper rather than going
+ * through `nextResourcePage` directly).
  * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
  * @param {number} ps - Page size.
  * @param {number} nextPage - The page number to fetch.
@@ -122,13 +125,16 @@ async function nextPostsPage(pager, ps, nextPage, offset, cols, total) {
   return paginateListResult({
     type: "posts", items: posts, fetchedTotal, pager, nextPage, offset, ps, total,
     extraPagerFields: { order: ord, filter: fil },
-    mapItem: (p, n) => ({ n, slug: p.slug, id: p.id, url: p.link, title: stripHtml(p.title.rendered), date: formatDate(p.date) }),
+    mapItem: RESOURCE_SPECS.posts.mapItem,
     moreMessage: t.more_posts, cols,
   });
 }
 
 /**
- * Fetches and paginates the next page of pages.
+ * Fetches and paginates the next page of a plain resource (pages, categories,
+ * or tags — no extra args beyond page/pageSize), driven by its `RESOURCE_SPECS` entry.
+ * @param {string} key - `RESOURCE_SPECS` key (`"pages"|"categories"|"tags"`).
+ * @param {function(page:number, pageSize:number):Promise<Object>} fetcher - API fetch function for this resource.
  * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
  * @param {number} ps - Page size.
  * @param {number} nextPage - The page number to fetch.
@@ -137,62 +143,24 @@ async function nextPostsPage(pager, ps, nextPage, offset, cols, total) {
  * @param {number|undefined} total - Previously known total, if any.
  * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
  */
-async function nextPagesPage(pager, ps, nextPage, offset, cols, total) {
-  const { pages, total: fetchedTotal } = await fetchPages(nextPage, ps);
+async function nextResourcePage(key, fetcher, pager, ps, nextPage, offset, cols, total) {
+  const spec = RESOURCE_SPECS[key];
+  const result = await fetcher(nextPage, ps);
+  const items = result[spec.itemsKey];
   return paginateListResult({
-    type: "pages", items: pages, fetchedTotal, pager, nextPage, offset, ps, total,
+    type: key, items, fetchedTotal: result.total, pager, nextPage, offset, ps, total,
     extraPagerFields: {},
-    mapItem: (p, n) => ({ n, slug: p.slug, id: p.id, url: p.link, title: stripHtml(p.title.rendered), date: "" }),
-    moreMessage: t.more_pages, cols,
-  });
-}
-
-/**
- * Fetches and paginates the next page of categories.
- * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
- * @param {number} ps - Page size.
- * @param {number} nextPage - The page number to fetch.
- * @param {number} offset - slugMap index offset.
- * @param {number} cols - Terminal column width.
- * @param {number|undefined} total - Previously known total, if any.
- * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
- */
-async function nextCategoriesPage(pager, ps, nextPage, offset, cols, total) {
-  const { cats, total: fetchedTotal } = await fetchCategories(nextPage, ps);
-  return paginateListResult({
-    type: "categories", items: cats, fetchedTotal, pager, nextPage, offset, ps, total,
-    extraPagerFields: {},
-    mapItem: (c, n) => ({ n, slug: c.slug, id: c.id, url: c.link, title: stripHtml(c.name), date: "" }),
-    moreMessage: t.more_categories, cols,
-  });
-}
-
-/**
- * Fetches and paginates the next page of tags.
- * @param {import('react').RefObject<Object>} pager - Shared pager state ref.
- * @param {number} ps - Page size.
- * @param {number} nextPage - The page number to fetch.
- * @param {number} offset - slugMap index offset.
- * @param {number} cols - Terminal column width.
- * @param {number|undefined} total - Previously known total, if any.
- * @returns {Promise<Array<string|import('react').ReactElement>>} Rendered result lines.
- */
-async function nextTagsPage(pager, ps, nextPage, offset, cols, total) {
-  const { tags, total: fetchedTotal } = await fetchTags(nextPage, ps);
-  return paginateListResult({
-    type: "tags", items: tags, fetchedTotal, pager, nextPage, offset, ps, total,
-    extraPagerFields: {},
-    mapItem: (tg, n) => ({ n, slug: tg.slug, id: tg.id, url: tg.link, title: stripHtml(tg.name), date: "" }),
-    moreMessage: t.more_tags, cols,
+    mapItem: spec.mapItem,
+    moreMessage: spec.moreMsg, cols,
   });
 }
 
 const LIST_HANDLERS = {
   search: nextSearchPage,
   posts: nextPostsPage,
-  pages: nextPagesPage,
-  categories: nextCategoriesPage,
-  tags: nextTagsPage,
+  pages: (pager, ps, nextPage, offset, cols, total) => nextResourcePage("pages", fetchPages, pager, ps, nextPage, offset, cols, total),
+  categories: (pager, ps, nextPage, offset, cols, total) => nextResourcePage("categories", fetchCategories, pager, ps, nextPage, offset, cols, total),
+  tags: (pager, ps, nextPage, offset, cols, total) => nextResourcePage("tags", fetchTags, pager, ps, nextPage, offset, cols, total),
 };
 
 /**

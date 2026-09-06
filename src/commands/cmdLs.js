@@ -3,31 +3,34 @@ import { fmtApiError } from "../apiError.js";
 import { fetchPosts } from "../api/posts.js";
 import { fetchPages } from "../api/pages.js";
 import { fetchCategories, fetchTags } from "../api/taxonomy.js";
-import { batchFmtLineEls, getLineWidth, stripHtml, formatDate } from "../utils.js";
+import { batchFmtLineEls, getLineWidth, stripHtml } from "../utils.js";
+import { RESOURCE_SPECS } from "./resourceSpecs.js";
 
 const FETCH_ALL_CONCURRENCY = 5;
 
 /**
  * Picks the item array out of a fetcher's result, whatever its key is named.
  * @param {{posts?:Array,pages?:Array,cats?:Array,tags?:Array}} result - A single fetcher response.
+ * @param {string} itemsKey - The resource's items key (`RESOURCE_SPECS[key].itemsKey`).
  * @returns {Array} The result's item list.
  */
-function extractItems(result) {
-  return result.posts ?? result.pages ?? result.cats ?? result.tags;
+function extractItems(result, itemsKey) {
+  return result[itemsKey];
 }
 
 /**
  * Exhaustively fetches all pages of a paginated API resource.
  * Fetches page 1 first to discover the total, then fetches remaining pages in
  * concurrency-capped batches (avoids firing dozens of simultaneous requests on large sites).
- * @param {function(page:number, pageSize:number):Promise<{posts?:Array,pages?:Array,cats?:Array,tags?:Array,total:number}>} fetcher - API fetch function.
+ * @param {function(page:number, pageSize:number):Promise<Object>} fetcher - API fetch function.
+ * @param {string} itemsKey - The resource's items key (`RESOURCE_SPECS[key].itemsKey`).
  * @returns {Promise<{items:Array,total:number}>} All items concatenated with the total count.
  */
-async function fetchAllPages(fetcher) {
+async function fetchAllPages(fetcher, itemsKey) {
   const PAGE_SIZE = 100;
   const first = await fetcher(1, PAGE_SIZE);
   const total = first.total;
-  const firstItems = extractItems(first);
+  const firstItems = extractItems(first, itemsKey);
 
   const remaining = Math.ceil((total - firstItems.length) / PAGE_SIZE);
   if (remaining <= 0) return { items: firstItems, total };
@@ -37,7 +40,7 @@ async function fetchAllPages(fetcher) {
   for (let i = 0; i < pageNumbers.length; i += FETCH_ALL_CONCURRENCY) {
     const batch = pageNumbers.slice(i, i + FETCH_ALL_CONCURRENCY);
     const results = await Promise.all(batch.map((p) => fetcher(p, PAGE_SIZE)));
-    for (const r of results) rest.push(...extractItems(r));
+    for (const r of results) rest.push(...extractItems(r, itemsKey));
   }
   return { items: [...firstItems, ...rest], total };
 }
@@ -45,14 +48,15 @@ async function fetchAllPages(fetcher) {
 /**
  * Fetches either every page (`--all`) or just the first page of a resource.
  * @param {function(page:number, pageSize:number):Promise<Object>} fetcher - API fetch function.
+ * @param {string} itemsKey - The resource's items key (`RESOURCE_SPECS[key].itemsKey`).
  * @param {boolean} showAll - Whether to fetch all pages.
  * @param {number} ps - Page size for a single-page fetch.
  * @returns {Promise<{items:Array,total:number}>} Items and total count.
  */
-async function fetchListItems(fetcher, showAll, ps) {
-  if (showAll) return fetchAllPages(fetcher);
+async function fetchListItems(fetcher, itemsKey, showAll, ps) {
+  if (showAll) return fetchAllPages(fetcher, itemsKey);
   const result = await fetcher(1, ps);
-  return { items: extractItems(result), total: result.total };
+  return { items: extractItems(result, itemsKey), total: result.total };
 }
 
 /**
@@ -85,6 +89,42 @@ async function resolvePostsFilter(args, contextRef, configOrder) {
 }
 
 /**
+ * Fetches and renders the first page of a resource listing (posts, pages,
+ * categories, or tags), driven by its `RESOURCE_SPECS` entry.
+ * @param {string} key - `RESOURCE_SPECS` key (`"posts"|"pages"|"categories"|"tags"`).
+ * @param {function(page:number, pageSize:number):Promise<Object>} fetcher - API fetch function for this resource.
+ * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
+ * @param {boolean} showAll - Whether `--all` was passed.
+ * @param {number} ps - Page size.
+ * @param {number} cols - Terminal column width.
+ * @param {Object} [options]
+ * @param {Object} [options.extraPagerFields] - Extra fields to persist on `pager.current` (e.g. posts' `order`/`filter`).
+ * @param {string[]} [options.extraFooterLines] - Extra lines inserted after the listing, before the "more" hint (e.g. posts' sort hint).
+ * @returns {Promise<string[]>} Formatted listing lines.
+ */
+async function listResource(key, fetcher, pager, showAll, ps, cols, { extraPagerFields = {}, extraFooterLines = [] } = {}) {
+  const spec = RESOURCE_SPECS[key];
+  try {
+    const { items, total } = await fetchListItems(fetcher, spec.itemsKey, showAll, ps);
+    if (!items.length) return [spec.noneMsg];
+    const hasMore = !showAll && total > ps;
+    const mapped = items.map((item, i) => spec.mapItem(item, i + 1));
+    const slugMap = {};
+    mapped.forEach(({ n, slug, id, url }) => { slugMap[n] = { slug, id, url }; });
+    pager.current = { type: key, page: 1, total, slugMap, ...extraPagerFields };
+    return [
+      spec.foundMsg(total),
+      "",
+      ...batchFmtLineEls(mapped.map(({ n, title, date }) => ({ n, title, date })), cols),
+      ...extraFooterLines,
+      ...(hasMore ? ["", spec.moreMsg] : []),
+    ];
+  } catch (e) {
+    return [fmtApiError(e)];
+  }
+}
+
+/**
  * Lists posts, respecting the active taxonomy context and any order/tag args.
  * @param {string[]} args - `ls` arguments.
  * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
@@ -100,106 +140,11 @@ async function listPosts(args, pager, showAll, ps, cols, contextRef, configOrder
   if (resolved.error) return resolved.error;
   const { order, filter } = resolved;
 
-  try {
-    const { items: posts, total } = await fetchListItems((p, s) => fetchPosts(p, s, order, filter), showAll, ps);
-    if (!posts.length) return [t.ls_no_posts];
-    const hasMore = !showAll && total > ps;
-    const slugMap = {};
-    posts.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-    pager.current = { type: "posts", page: 1, total, slugMap, order, filter };
-    const sortHint = order === "asc" ? t.ls_sort_hint_asc : t.ls_sort_hint_desc;
-    return [
-      t.ls_posts_found(total),
-      "",
-      ...batchFmtLineEls(posts.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: formatDate(p.date) })), cols),
-      "",
-      sortHint,
-      ...(hasMore ? ["", t.more_posts] : []),
-    ];
-  } catch (e) {
-    return [fmtApiError(e)];
-  }
-}
-
-/**
- * Lists pages.
- * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
- * @param {boolean} showAll - Whether `--all` was passed.
- * @param {number} ps - Page size.
- * @param {number} cols - Terminal column width.
- * @returns {Promise<string[]>} Formatted listing lines.
- */
-async function listPages(pager, showAll, ps, cols) {
-  try {
-    const { items: pages, total } = await fetchListItems((p, s) => fetchPages(p, s), showAll, ps);
-    if (!pages.length) return [t.ls_no_pages];
-    const hasMore = !showAll && total > ps;
-    const slugMap = {};
-    pages.forEach((p, i) => { slugMap[i + 1] = { slug: p.slug, id: p.id, url: p.link }; });
-    pager.current = { type: "pages", page: 1, total, slugMap };
-    return [
-      t.ls_pages_found(total),
-      "",
-      ...batchFmtLineEls(pages.map((p, i) => ({ n: i + 1, title: stripHtml(p.title.rendered), date: "" })), cols),
-      ...(hasMore ? ["", t.more_pages] : []),
-    ];
-  } catch (e) {
-    return [fmtApiError(e)];
-  }
-}
-
-/**
- * Lists categories.
- * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
- * @param {boolean} showAll - Whether `--all` was passed.
- * @param {number} ps - Page size.
- * @param {number} cols - Terminal column width.
- * @returns {Promise<string[]>} Formatted listing lines.
- */
-async function listCategories(pager, showAll, ps, cols) {
-  try {
-    const { items: cats, total } = await fetchListItems((p, s) => fetchCategories(p, s), showAll, ps);
-    if (!cats.length) return [t.ls_no_categories];
-    const hasMore = !showAll && total > ps;
-    const slugMap = {};
-    cats.forEach((c, i) => { slugMap[i + 1] = { slug: c.slug, id: c.id, url: c.link }; });
-    pager.current = { type: "categories", page: 1, total, slugMap };
-    return [
-      t.ls_categories_found(total),
-      "",
-      ...batchFmtLineEls(cats.map((c, i) => ({ n: i + 1, title: stripHtml(c.name), date: "" })), cols),
-      ...(hasMore ? ["", t.more_categories] : []),
-    ];
-  } catch (e) {
-    return [fmtApiError(e)];
-  }
-}
-
-/**
- * Lists tags.
- * @param {import('react').RefObject<Object|null>} pager - Shared pager state ref.
- * @param {boolean} showAll - Whether `--all` was passed.
- * @param {number} ps - Page size.
- * @param {number} cols - Terminal column width.
- * @returns {Promise<string[]>} Formatted listing lines.
- */
-async function listTags(pager, showAll, ps, cols) {
-  try {
-    const { items: tags, total } = await fetchListItems((p, s) => fetchTags(p, s), showAll, ps);
-    if (!tags.length) return [t.ls_no_tags];
-    const hasMore = !showAll && total > ps;
-    const slugMap = {};
-    tags.forEach((tg, i) => { slugMap[i + 1] = { slug: tg.slug, id: tg.id, url: tg.link }; });
-    pager.current = { type: "tags", page: 1, total, slugMap };
-    return [
-      t.ls_tags_found(total),
-      "",
-      ...batchFmtLineEls(tags.map((tg, i) => ({ n: i + 1, title: stripHtml(tg.name), date: "" })), cols),
-      ...(hasMore ? ["", t.more_tags] : []),
-    ];
-  } catch (e) {
-    return [fmtApiError(e)];
-  }
+  const sortHint = order === "asc" ? t.ls_sort_hint_asc : t.ls_sort_hint_desc;
+  return listResource("posts", (p, s) => fetchPosts(p, s, order, filter), pager, showAll, ps, cols, {
+    extraPagerFields: { order, filter },
+    extraFooterLines: ["", sortHint],
+  });
 }
 
 /**
@@ -224,9 +169,9 @@ export default async function cmdLs(args, pager, configRef, contextRef) {
   }
 
   if (!target || target === "posts") return listPosts(args, pager, showAll, ps, cols, contextRef, configRef.current.order);
-  if (target === "pages") return listPages(pager, showAll, ps, cols);
-  if (target === "categories" || target === "cats") return listCategories(pager, showAll, ps, cols);
-  if (target === "tags") return listTags(pager, showAll, ps, cols);
+  if (target === "pages") return listResource("pages", (p, s) => fetchPages(p, s), pager, showAll, ps, cols);
+  if (target === "categories" || target === "cats") return listResource("categories", (p, s) => fetchCategories(p, s), pager, showAll, ps, cols);
+  if (target === "tags") return listResource("tags", (p, s) => fetchTags(p, s), pager, showAll, ps, cols);
 
   return [t.ls_not_found(target)];
 }
