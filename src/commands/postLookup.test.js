@@ -52,7 +52,9 @@ describe("resolvePost", () => {
     expect(fetchPostBySlug).not.toHaveBeenCalled();
     expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=3"));
     expect(post).toBe(MOCK_POST);
-    expect(slug).toBe("3");
+    // The slug now reflects the post actually found, not the raw ordinal —
+    // so a subsequent error message (if any) names something meaningful.
+    expect(slug).toBe("test-post");
   });
 
   it("returns a null post when the ordinal-fallback fetch response is not ok", async () => {
@@ -71,5 +73,21 @@ describe("resolvePost", () => {
     fetchPostBySlug.mockResolvedValue(null);
     const { post } = await resolvePost("nonexistent", {});
     expect(post).toBeNull();
+  });
+
+  // Live-testing finding: `tree`, `ls categories`, `ls tags`, and `ls pages`
+  // all populate the pager's slugMap with non-post entries. A stale slugMap
+  // from one of those must not make `cat`/`read <n>` a dead end — it should
+  // fall back to the nth-most-recent-post fetch instead of erroring.
+  it("falls back to the nth-most-recent post when the mapped slug doesn't match any post (stale category/tag slugMap)", async () => {
+    fetchPostBySlug.mockResolvedValue(null); // "news" (a category slug) matches no post
+    apiFetch.mockResolvedValue({ ok: true, json: async () => [MOCK_POST] });
+
+    const { post, slug } = await resolvePost("1", { 1: { slug: "news", id: 2, url: "http://x/category/news/" } });
+
+    expect(fetchPostBySlug).toHaveBeenCalledWith("news");
+    expect(apiFetch).toHaveBeenCalledWith(expect.stringContaining("page=1"));
+    expect(post).toBe(MOCK_POST);
+    expect(slug).toBe("test-post");
   });
 });

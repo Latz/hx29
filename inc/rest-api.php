@@ -5,6 +5,17 @@
  * as a pre-sanitised alternative for slug-free access.
  */
 
+/**
+ * Lets the terminal's `reply` command post comments anonymously via the
+ * standard wp/v2/comments REST endpoint. Core disables this by default
+ * (the filter's own default is `false`) independently of the classic
+ * comment form's rules — WP_Comments_Controller only consults this filter
+ * after already confirming `comment_registration` is off, so this simply
+ * brings REST-submitted comments in line with a site's existing (classic)
+ * anonymous-commenting policy rather than loosening it.
+ */
+add_filter('rest_allow_anonymous_comments', '__return_true');
+
 add_action('rest_api_init', function () {
 
     // GET /wp-json/hx29/v1/posts?offset=0&limit=5

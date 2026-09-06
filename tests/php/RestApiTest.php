@@ -1,6 +1,7 @@
 <?php
 /**
- * Robustness tests for inc/rest-api.php (robustness.md Medium #10).
+ * Robustness tests for inc/rest-api.php (robustness.md Medium #10),
+ * plus a live-usage finding: anonymous REST comment creation.
  */
 class RestApiTest extends WP_UnitTestCase {
 
@@ -51,5 +52,32 @@ class RestApiTest extends WP_UnitTestCase {
         $this->assertFalse(get_transient('hx29_posts_500_5'));
         $this->assertFalse(get_transient('hx29_posts_999999_5'));
         $this->assertNotFalse(get_transient("hx29_posts_{$total}_5"));
+    }
+
+    /**
+     * Live-usage finding: WP core's wp/v2/comments REST endpoint rejects
+     * anonymous comment creation by default (`rest_allow_anonymous_comments`
+     * defaults to false), so the terminal's `reply` command didn't work for
+     * any real (logged-out) visitor on a stock install. Confirmed via a
+     * real dispatched REST request (not a direct function call) so the
+     * actual permission-callback chain, including our filter, is exercised.
+     */
+    public function test_anonymous_comment_creation_is_allowed_via_rest() {
+        global $wp_rest_server;
+        $wp_rest_server = new WP_REST_Server();
+        do_action('rest_api_init', $wp_rest_server);
+
+        $this->assertFalse(is_user_logged_in());
+        $post_id = self::factory()->post->create(['post_status' => 'publish']);
+
+        $request = new WP_REST_Request('POST', '/wp/v2/comments');
+        $request->set_param('post', $post_id);
+        $request->set_param('author_name', 'guest');
+        $request->set_param('author_email', 'guest@hx29.local');
+        $request->set_param('content', 'Live-tested anonymous reply.');
+
+        $response = $wp_rest_server->dispatch($request);
+
+        $this->assertSame(201, $response->get_status());
     }
 }
