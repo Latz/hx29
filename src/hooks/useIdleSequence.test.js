@@ -5,8 +5,9 @@ vi.mock("../utils.js", () => ({ scrollTerminal: vi.fn() }));
 vi.mock("../random.js", () => ({ cosmeticRandom: vi.fn(() => 0) }));
 
 const neonFlicker = vi.fn(async () => {});
+const vortex = vi.fn(async () => {});
 vi.mock("../idle/neonFlicker.js", () => ({ default: neonFlicker }));
-vi.mock("../idle/vortex.js", () => ({ default: vi.fn(async () => {}) }));
+vi.mock("../idle/vortex.js", () => ({ default: vortex }));
 vi.mock("../idle/bufferMelt.js", () => ({ default: vi.fn(async () => {}) }));
 vi.mock("../idle/cyberdeck.js", () => ({ default: vi.fn(async () => {}) }));
 vi.mock("../idle/overheat.js", () => ({ default: vi.fn(async () => {}) }));
@@ -14,6 +15,7 @@ vi.mock("../idle/gridGlitch.js", () => ({ default: vi.fn(async () => {}) }));
 vi.mock("../idle/synapseDesync.js", () => ({ default: vi.fn(async () => {}) }));
 vi.mock("../idle/memoryLeak.js", () => ({ default: vi.fn(async () => {}) }));
 
+import { cosmeticRandom } from "../random.js";
 import useIdleSequence from "./useIdleSequence.js";
 
 const IDLE_MS = 5 * 60 * 1000;
@@ -107,6 +109,28 @@ describe("useIdleSequence", () => {
 
     expect(ctx.signal.aborted).toBe(true);
     expect(result.current.idleActiveRef.current).toBe(false);
+  });
+
+  // robustness.md High #8: a failed chunk load / throwing sequence must not
+  // leave idleActiveRef stuck true or stop idle effects from ever retrying.
+  it("recovers when the picked sequence throws: clears idleActiveRef and reschedules", async () => {
+    neonFlicker.mockRejectedValueOnce(new Error("chunk load failed"));
+    // Force the first pick to neonFlicker (index 0) and the retry to vortex
+    // (index 1) — pickSequence refuses to repeat the same index twice in a row.
+    cosmeticRandom.mockReturnValueOnce(0).mockReturnValueOnce(0.2);
+    const { introPlayingRef, printingRef } = makeRefs();
+    const { result } = renderHook(() => useIdleSequence(introPlayingRef, printingRef, vi.fn()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IDLE_MS + 10);
+    });
+    expect(neonFlicker).toHaveBeenCalledTimes(1);
+    expect(result.current.idleActiveRef.current).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IDLE_MS + 10);
+    });
+    expect(vortex).toHaveBeenCalledTimes(1);
   });
 
   it("idleTimerRef.schedule() restarts the idle timer from now", async () => {

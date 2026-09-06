@@ -121,16 +121,24 @@ export default function useIntro(introItems, setTerminalLines) {
     const cancelledRef = { current: false };
 
     (async () => {
-      for (let i = 0; i < introItems.length; i++) {
-        if (cancelledRef.current) break;
-        const item = introItems[i];
-        await wait(item.delay);
-        if (cancelledRef.current) break;
-        await playItem(item, i, setTerminalLines, cancelledRef);
-      }
-      if (!cancelledRef.current) {
-        setIntroPlaying(false);
-        setTimeout(() => document.querySelector(".terminal-hidden-input")?.focus(), 50);
+      // A throw partway through (e.g. a malformed intro item) must not leave
+      // introPlaying stuck true forever — onInput stays nulled until reload
+      // if setIntroPlaying(false) is never reached.
+      try {
+        for (let i = 0; i < introItems.length; i++) {
+          if (cancelledRef.current) break;
+          const item = introItems[i];
+          await wait(item.delay);
+          if (cancelledRef.current) break;
+          await playItem(item, i, setTerminalLines, cancelledRef);
+        }
+      } catch {
+        // Swallow — a malformed item shouldn't crash the boot sequence.
+      } finally {
+        if (!cancelledRef.current) {
+          setIntroPlaying(false);
+          setTimeout(() => document.querySelector(".terminal-hidden-input")?.focus(), 50);
+        }
       }
     })();
 

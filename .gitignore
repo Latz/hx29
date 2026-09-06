@@ -4,3 +4,6 @@ coverage.xml
 bin/reports/
 .scannerwork/
 .env
+vendor/
+.phpunit.result.cache
+

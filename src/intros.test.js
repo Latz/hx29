@@ -185,4 +185,38 @@ describe("getSessionIntro", () => {
 
     expect(result.items[0].text).toContain("2 days ago");
   });
+
+  // robustness.md High #7: loadSession() must not throw when localStorage or
+  // crypto is unavailable/throwing (e.g. Safari private browsing), since it
+  // runs at module load time before React mounts.
+  it("does not throw when localStorage.getItem throws", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => { throw new DOMException("disabled", "SecurityError"); },
+      setItem: () => { throw new DOMException("disabled", "SecurityError"); },
+      removeItem: () => {},
+    });
+
+    expect(() => getSessionIntro("TestSite")).not.toThrow();
+    const result = getSessionIntro("TestSite");
+    expect(result.stage).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(result.items)).toBe(true);
+  });
+
+  it("does not throw when localStorage.setItem throws (quota exceeded)", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: (k) => localStorageStore[k] ?? null,
+      setItem: () => { throw new DOMException("quota exceeded", "QuotaExceededError"); },
+      removeItem: (k) => { delete localStorageStore[k]; },
+    });
+
+    expect(() => getSessionIntro("TestSite")).not.toThrow();
+  });
+
+  it("does not throw when crypto.getRandomValues throws", () => {
+    vi.stubGlobal("crypto", {
+      getRandomValues: () => { throw new Error("crypto unavailable"); },
+    });
+
+    expect(() => getSessionIntro("TestSite")).not.toThrow();
+  });
 });

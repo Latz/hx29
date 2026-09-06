@@ -1,0 +1,9 @@
+{
+    "name": "hx29/theme",
+    "description": "Dev dependencies for the hx29 theme's PHP test suite.",
+    "private": true,
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "yoast/phpunit-polyfills": "^2.0"
+    }
+}

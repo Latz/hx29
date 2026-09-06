@@ -51,26 +51,36 @@ function expandItem(item, vars) {
  * Loads or initialises persistent session data from `localStorage`:
  * a stable visitor signature, visit count, and last-visit timestamp.
  * Increments the visit counter once per hour.
+ *
+ * Runs at module load time, before React mounts, so any failure here
+ * (localStorage disabled/quota-exceeded, e.g. Safari private browsing;
+ * crypto.getRandomValues unavailable) must not throw — it would otherwise
+ * take down the whole bundle with no fallback UI. Falls back to an
+ * in-memory, non-persisted session on any such failure.
  * @returns {{sig:string, visits:number, lastVisit:string|null}}
  */
 function loadSession() {
-  let sig = localStorage.getItem('hx29_sig');
-  if (!sig) {
-    const rnd = new Uint32Array(1);
-    crypto.getRandomValues(rnd);
-    sig = 'SIG-' + rnd[0].toString(16).slice(0, 6).toUpperCase();
-    localStorage.setItem('hx29_sig', sig);
+  try {
+    let sig = localStorage.getItem('hx29_sig');
+    if (!sig) {
+      const rnd = new Uint32Array(1);
+      crypto.getRandomValues(rnd);
+      sig = 'SIG-' + rnd[0].toString(16).slice(0, 6).toUpperCase();
+      localStorage.setItem('hx29_sig', sig);
+    }
+    const lastVisit = localStorage.getItem('hx29_last_visit') || null;
+    const hourPassed = lastVisit && (Date.now() - new Date(lastVisit)) >= 3_600_000;
+    const isFirstVisit = !lastVisit;
+    let visits = Number.parseInt(localStorage.getItem('hx29_visits') || '0', 10);
+    if (isFirstVisit || hourPassed) {
+      visits += 1;
+      localStorage.setItem('hx29_visits', visits);
+      localStorage.setItem('hx29_last_visit', new Date().toISOString());
+    }
+    return { sig, visits: Math.max(visits, 1), lastVisit };
+  } catch {
+    return { sig: 'SIG-000000', visits: 1, lastVisit: null };
   }
-  const lastVisit = localStorage.getItem('hx29_last_visit') || null;
-  const hourPassed = lastVisit && (Date.now() - new Date(lastVisit)) >= 3_600_000;
-  const isFirstVisit = !lastVisit;
-  let visits = Number.parseInt(localStorage.getItem('hx29_visits') || '0', 10);
-  if (isFirstVisit || hourPassed) {
-    visits += 1;
-    localStorage.setItem('hx29_visits', visits);
-    localStorage.setItem('hx29_last_visit', new Date().toISOString());
-  }
-  return { sig, visits: Math.max(visits, 1), lastVisit };
 }
 
 /**

@@ -17,10 +17,26 @@ function hx29_setup() {
 }
 add_action('after_setup_theme', 'hx29_setup');
 
+/**
+ * Builds the <link rel="preload"> tag for the terminal font, or an empty
+ * string if the font file isn't present (avoids a silent 404 preload).
+ * @param string $font_path Absolute path to the font file.
+ * @param string $font_url Public URL to use in the tag when the file exists.
+ * @return string
+ */
+function hx29_font_preload_tag(string $font_path, string $font_url): string {
+    if (!file_exists($font_path)) {
+        return '';
+    }
+    return "<link rel=\"preload\" href=\"" . esc_url($font_url) . "\" as=\"font\" type=\"font/woff2\" crossorigin>\n";
+}
+
 // Preconnect to REST API origin and preload the terminal font.
 add_action('wp_head', function () {
     $rest_origin = esc_url(home_url());
-    $font_url    = esc_url(get_theme_file_uri('assets/fonts/glasstty.woff2'));
     echo "<link rel=\"preconnect\" href=\"{$rest_origin}\">\n";
-    echo "<link rel=\"preload\" href=\"{$font_url}\" as=\"font\" type=\"font/woff2\" crossorigin>\n";
+    echo hx29_font_preload_tag(
+        get_theme_file_path('assets/fonts/glasstty.woff2'),
+        get_theme_file_uri('assets/fonts/glasstty.woff2')
+    );
 }, 1);

@@ -3,15 +3,48 @@
  * Asset enqueuing: registers the main stylesheet and the React terminal bundle.
  */
 
+/**
+ * Resolves a cache-busting asset version from a file's mtime, falling back
+ * to a constant when the file is missing/unreadable (avoids a filemtime()
+ * warning turning into a `false` version string).
+ * @param string $path Absolute path to the versioned file.
+ * @param string $fallback Version string to use when $path doesn't exist.
+ * @return string|int
+ */
+function hx29_get_asset_version(string $path, string $fallback) {
+    return file_exists($path) ? filemtime($path) : $fallback;
+}
+
+/**
+ * Loads and validates a wp-scripts build/index.asset.php manifest, filling
+ * in safe defaults so a missing/partial build can't produce "undefined
+ * array key" warnings downstream.
+ * @param string $asset_path Absolute path to the asset manifest file.
+ * @return array{dependencies: array, version: string|int}
+ */
+function hx29_get_build_asset(string $asset_path): array {
+    $asset = file_exists($asset_path) ? (array) require $asset_path : [];
+
+    return [
+        'dependencies' => is_array($asset['dependencies'] ?? null) ? $asset['dependencies'] : [],
+        'version'      => is_scalar($asset['version'] ?? null) ? $asset['version'] : HX29_VERSION,
+    ];
+}
+
 function hx29_enqueue_scripts() {
-    wp_enqueue_style('hx29-style', get_stylesheet_uri(), [], filemtime(get_stylesheet_directory() . '/style.css'));
+    wp_enqueue_style(
+        'hx29-style',
+        get_stylesheet_uri(),
+        [],
+        hx29_get_asset_version(get_stylesheet_directory() . '/style.css', HX29_VERSION)
+    );
 
     $asset_path = get_theme_file_path('build/index.asset.php');
     if (!file_exists($asset_path)) {
         // Build not run yet — nothing to enqueue.
         return;
     }
-    $asset = require_once $asset_path;
+    $asset = hx29_get_build_asset($asset_path);
 
     wp_enqueue_script(
         'hx29-terminal',

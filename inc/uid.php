@@ -4,7 +4,7 @@
  */
 
 function hx29_get_or_create_uid(): string {
-    if (!empty($_COOKIE['hx29_uid'])) {
+    if (!empty($_COOKIE['hx29_uid']) && is_string($_COOKIE['hx29_uid'])) {
         $uid = preg_replace('/[^a-f0-9]/', '', $_COOKIE['hx29_uid']);
         if ($uid) {
             return $uid;

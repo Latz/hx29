@@ -61,8 +61,20 @@ export default function useIdleSequence(introPlayingRef, printingRef, setTermina
       lastSeq = pick;
       ts = Date.now();
 
-      const seq = await SEQUENCE_LOADERS[pick]();
-      await seq({ key, wait, append, update, scrollTerminal, idleActiveRef, signal: controller.signal });
+      // A failed chunk load (network error) or a throw inside the sequence
+      // itself must not leave idleActiveRef stuck true, and idle effects
+      // should still retry later instead of going silent until the user
+      // happens to type again. A normally-completing sequence already
+      // resets idleActiveRef itself and intentionally does not reschedule
+      // (recurrence is driven by the next user input) — this only changes
+      // behavior on the failure path.
+      try {
+        const seq = await SEQUENCE_LOADERS[pick]();
+        await seq({ key, wait, append, update, scrollTerminal, idleActiveRef, signal: controller.signal });
+      } catch {
+        idleActiveRef.current = false;
+        scheduleIdle();
+      }
     };
 
     const scheduleIdle = () => {

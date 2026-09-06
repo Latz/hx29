@@ -235,7 +235,13 @@ function WPTerminal() {
 
     resetHistoryPos();
     pushHistory(historyRef, raw);
-    const result = await executeCommand(raw, pager, configRef, contextRef, historyRef, setCtxDisplay, pendingRef);
+
+    let result;
+    try {
+      result = await executeCommand(raw, pager, configRef, contextRef, historyRef, setCtxDisplay, pendingRef);
+    } catch (e) {
+      result = [t.error(e?.message ?? String(e))];
+    }
 
     if (result === "__CLEAR__") {
       setTerminalLines([]);
@@ -251,10 +257,17 @@ function WPTerminal() {
     setPrinting(true);
     printingRef.current = true;
 
-    await printLines(lines, setTerminalLines, lineId);
-
-    setPrinting(false);
-    printingRef.current = false;
+    // A throw here must still release the printing lock — otherwise onInput
+    // stays nulled (printing stuck true) and the terminal never recovers
+    // without a page reload.
+    try {
+      await printLines(lines, setTerminalLines, lineId);
+    } catch (e) {
+      setTerminalLines((prev) => [...prev, <TerminalOutput key={`err-${++lineId.current}`}>{t.error(e?.message ?? String(e))}</TerminalOutput>].slice(-MAX_LINES));
+    } finally {
+      setPrinting(false);
+      printingRef.current = false;
+    }
     if (pendingRef.current) setPendingPrompt(t.cd_select_prompt);
   }, []);
 

@@ -123,4 +123,21 @@ describe("useIntro", () => {
 
     expect(document.activeElement).toBe(input);
   });
+
+  // robustness.md High #8: a throw mid-sequence must not leave introPlaying
+  // stuck true forever (onInput stays nulled until reload otherwise).
+  it("still sets introPlaying=false when an intro item throws mid-sequence", async () => {
+    const items = [
+      { text: null, delay: 0 }, // playItem no-ops on null/undefined text
+      { get text() { throw new Error("boom"); }, delay: 0 },
+      { text: "Never reached", delay: 0 },
+    ];
+    const { result } = renderHook(() => useHarness(items));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+
+    expect(result.current.introPlaying).toBe(false);
+  });
 });
