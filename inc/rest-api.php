@@ -68,6 +68,14 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
         $limit = 50;
     }
 
+    $total = hx29_get_total_posts();
+    // Clamp offset to the actual post count: every distinct offset/limit pair
+    // gets its own cached transient, so an unbounded offset (e.g. requesting
+    // offset=1..1000000) would otherwise write unbounded rows into wp_options.
+    if ($offset > $total) {
+        $offset = $total;
+    }
+
     $cache_key = "hx29_posts_{$offset}_{$limit}";
     $cached    = get_transient($cache_key);
     if (false !== $cached) {
@@ -93,7 +101,6 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
         $author_names[$id] = get_the_author_meta('display_name', $id);
     }
 
-    $total  = hx29_get_total_posts();
     $output = array_map(function ($post) use ($author_names) {
         return [
             'id'      => $post->ID,
@@ -108,6 +115,7 @@ function hx29_rest_get_posts(WP_REST_Request $request): WP_REST_Response {
     wp_reset_postdata();
 
     $data = ['posts' => $output, 'total' => $total];
+
     set_transient($cache_key, $data, HOUR_IN_SECONDS);
 
     return new WP_REST_Response($data, 200);

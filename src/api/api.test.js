@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("./apiFetch.js", () => ({
-  default: vi.fn(),
-}));
+vi.mock("./apiFetch.js", () => {
+  class ApiError extends Error {
+    constructor(type, status) {
+      super(type);
+      this.type = type;
+      this.status = status;
+    }
+  }
+  return { default: vi.fn(), ApiError };
+});
 vi.mock("../config.js", () => ({
   WP_API: "https://example.com/wp-json/wp/v2",
   NONCE: "",
@@ -193,5 +200,36 @@ describe("postComment", () => {
   it("throws on rejected request", async () => {
     wpApiFetch.mockRejectedValue({ message: "Forbidden", code: "rest_forbidden" });
     await expect(postComment(1, "hi")).rejects.toThrow("Forbidden");
+  });
+
+  // robustness.md Medium #9: postComment bypassed apiFetch.js's timeout
+  // layer entirely — a hung POST could block indefinitely with no
+  // user-visible timeout.
+  it("aborts and rejects with a timeout ApiError after 8s", async () => {
+    vi.useFakeTimers();
+    wpApiFetch.mockImplementation(
+      ({ signal }) =>
+        new Promise((_, reject) => {
+          signal.addEventListener("abort", () => {
+            const err = new Error("The user aborted a request.");
+            err.name = "AbortError";
+            reject(err);
+          });
+        })
+    );
+
+    const promise = postComment(42, "hi");
+    const assertion = expect(promise).rejects.toMatchObject({ type: "timeout" });
+    await vi.advanceTimersByTimeAsync(8000);
+    await assertion;
+
+    vi.useRealTimers();
+  });
+
+  it("passes an AbortSignal through to wpApiFetch", async () => {
+    wpApiFetch.mockResolvedValue({ id: 1 });
+    await postComment(42, "hi");
+    const call = wpApiFetch.mock.calls[0][0];
+    expect(call.signal).toBeInstanceOf(AbortSignal);
   });
 });

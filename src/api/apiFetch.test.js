@@ -100,4 +100,26 @@ describe("apiFetch", () => {
     expect(data).toEqual([{ id: 99 }]);
     expect(wpApiFetch).toHaveBeenCalledTimes(2);
   });
+
+  // robustness.md Low: the in-memory cache had no eviction/size cap — a long
+  // session browsing many distinct URLs would grow it unboundedly.
+  it("evicts the oldest entry once the cache exceeds MAX_CACHE_ENTRIES (200)", async () => {
+    wpApiFetch.mockImplementation(async () => makeResponse([{ id: 1 }]));
+    for (let i = 0; i < 200; i++) {
+      await apiFetch(`/posts-cap-${i}`);
+    }
+    expect(wpApiFetch).toHaveBeenCalledTimes(200);
+
+    // One more distinct URL should push the cache over the cap, evicting entry 0.
+    await apiFetch("/posts-cap-200");
+    expect(wpApiFetch).toHaveBeenCalledTimes(201);
+
+    // The evicted entry must now be a real cache miss again.
+    await apiFetch("/posts-cap-0");
+    expect(wpApiFetch).toHaveBeenCalledTimes(202);
+
+    // A recently-used entry must still be cached (not evicted).
+    await apiFetch("/posts-cap-199");
+    expect(wpApiFetch).toHaveBeenCalledTimes(202);
+  });
 });

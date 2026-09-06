@@ -3,6 +3,7 @@ import { WP_API } from "../config.js";
 
 const CACHE_TTL = 60_000;
 const FETCH_TIMEOUT = 8_000;
+const MAX_CACHE_ENTRIES = 200;
 const _cache = new Map();
 
 export class ApiError extends Error {
@@ -75,6 +76,11 @@ export default async function apiFetch(path) {
   const wpTotalPages = res.headers.get("X-WP-TotalPages");
   if (wpTotalPages) headers["X-WP-TotalPages"] = wpTotalPages;
   _cache.set(url, { data, headers, ts: Date.now() });
+  // Map preserves insertion order, so the first key is the oldest entry —
+  // evict it to cap unbounded growth over a long session.
+  if (_cache.size > MAX_CACHE_ENTRIES) {
+    _cache.delete(_cache.keys().next().value);
+  }
   return makeFakeResponse(data, headers);
 }
 

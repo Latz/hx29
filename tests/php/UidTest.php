@@ -1,6 +1,6 @@
 <?php
 /**
- * Robustness tests for inc/uid.php (robustness.md Critical #1, #2).
+ * Robustness tests for inc/uid.php (robustness.md Critical #1, #2; Medium #11, #12).
  */
 class UidTest extends WP_UnitTestCase {
 
@@ -51,5 +51,35 @@ class UidTest extends WP_UnitTestCase {
         $after_second = (int) get_option('hx29_user_counter');
 
         $this->assertSame($after_first + 1, $after_second);
+    }
+
+    /**
+     * #11: an arbitrarily long hex cookie value must be capped, not echoed
+     * back unbounded into the localized JS blob.
+     */
+    public function test_long_cookie_value_is_capped_at_32_chars() {
+        $_COOKIE['hx29_uid'] = str_repeat('a', 10000);
+
+        $uid = hx29_get_or_create_uid();
+
+        $this->assertSame(32, strlen($uid));
+    }
+
+    /**
+     * #12: if the counter option is ever missing (e.g. a race right after
+     * switch_theme deletes it), the next UID must not silently restart at 1
+     * — that risks colliding with a UID already issued in a prior cycle.
+     * It should re-seed randomly instead, same as the after_setup_theme hook.
+     */
+    public function test_counter_reseeds_randomly_instead_of_restarting_at_one_when_option_missing() {
+        delete_option('hx29_user_counter');
+        unset($_COOKIE['hx29_uid']);
+
+        $uid = hx29_get_or_create_uid();
+
+        $value = hexdec($uid);
+        $this->assertGreaterThan(1, $value);
+        $this->assertGreaterThanOrEqual(0x101, $value);
+        $this->assertLessThanOrEqual(0x1000, $value);
     }
 }

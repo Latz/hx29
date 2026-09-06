@@ -1,6 +1,8 @@
 import wpApiFetch from "@wordpress/api-fetch";
 import { addQueryArgs } from "@wordpress/url";
-import apiFetch from "./apiFetch.js";
+import apiFetch, { ApiError } from "./apiFetch.js";
+
+const POST_TIMEOUT = 8_000;
 
 /**
  * Fetches comments for a post.
@@ -28,19 +30,26 @@ export async function fetchCommentCount(postId) {
 /**
  * Posts a new comment on behalf of the current visitor.
  * Author name is read from `window.hx29.uid` at call time, defaulting to `"guest"`.
+ * Aborts after `POST_TIMEOUT` ms so a hung POST can't block indefinitely.
  * @param {number} postId - WordPress post ID to comment on.
  * @param {string} content - Plain-text comment body.
  * @returns {Promise<Object>} The created comment object returned by the REST API.
  */
 export async function postComment(postId, content) {
   const uid = (typeof window !== "undefined" && window.hx29?.uid) || "guest";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), POST_TIMEOUT);
   try {
     return await wpApiFetch({
       path: "/wp/v2/comments",
       method: "POST",
       data: { post: postId, author_name: uid, author_email: `${uid}@hx29.local`, content },
+      signal: controller.signal,
     });
   } catch (err) {
+    if (err.name === "AbortError") throw new ApiError("timeout", 0);
     throw new Error(err.message || `HTTP ${err.code || "error"}`);
+  } finally {
+    clearTimeout(timer);
   }
 }
