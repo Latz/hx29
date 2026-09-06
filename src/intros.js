@@ -20,6 +20,20 @@ function corrupt(text) {
 }
 
 /**
+ * Expands `{{var}}` placeholders in a text string.
+ * @param {string} text - Raw text, possibly containing `{{VAR}}` placeholders.
+ * @param {Object<string,string>} vars - Placeholder → value map.
+ * @returns {string} Expanded text.
+ */
+function expandText(text, vars) {
+  let result = text;
+  for (const [k, v] of Object.entries(vars)) {
+    result = result.replaceAll(`{{${k}}}`, v);
+  }
+  return result;
+}
+
+/**
  * Expands `{{var}}` placeholders in an intro item's text, and wraps phased items
  * with a corruption middle-frame for a glitch transition effect.
  * @param {{text?:string,delay:number,__phases?:Array<{text:string,hold:number}>}} item - Raw intro item.
@@ -28,23 +42,20 @@ function corrupt(text) {
  */
 function expandItem(item, vars) {
   if (item.__phases) {
-    const first = item.__phases[0];
+    const first = expandText(item.__phases[0].text, vars);
     const last = item.__phases.at(-1);
+    const lastText = expandText(last.text, vars);
     return {
       ...item,
       __phases: [
-        { text: first.text, hold: 200 + Math.floor(cosmeticRandom() * 300) },
-        { text: corrupt(first.text), hold: 100 + Math.floor(cosmeticRandom() * 200) },
-        { text: last.text, hold: last.hold },
+        { text: first, hold: 200 + Math.floor(cosmeticRandom() * 300) },
+        { text: corrupt(first), hold: 100 + Math.floor(cosmeticRandom() * 200) },
+        { text: lastText, hold: last.hold },
       ],
     };
   }
   if (!item.text) return item;
-  let text = item.text;
-  for (const [k, v] of Object.entries(vars)) {
-    text = text.replaceAll(`{{${k}}}`, v);
-  }
-  return { ...item, text };
+  return { ...item, text: expandText(item.text, vars) };
 }
 
 /**

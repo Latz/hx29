@@ -36,7 +36,16 @@ vi.mock("./returning.json", () => ({
     },
     {
       stage: 1,
-      items: [{ text: "Visit {{VISITS}}, last seen {{TIME_AGO}}", delay: 100 }],
+      items: [
+        { text: "Visit {{VISITS}}, last seen {{TIME_AGO}}", delay: 100 },
+        {
+          delay: 10,
+          __phases: [
+            { text: "Token {{SIG}} pending", hold: 10 },
+            { text: "Token {{SIG}} confirmed", hold: 20 },
+          ],
+        },
+      ],
     },
   ],
 }));
@@ -184,6 +193,24 @@ describe("getSessionIntro", () => {
     const result = getSessionIntro("TestSite");
 
     expect(result.items[0].text).toContain("2 days ago");
+  });
+
+  // Regression: expandItem() only substituted {{var}} placeholders for
+  // plain-text items — a phased item's text was returned untouched, so
+  // e.g. "{{SIG}}" rendered literally to every visitor. Caught by live
+  // browser stress-testing, not by any prior unit test.
+  it("expands {{var}} placeholders inside a phased item's text", () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+    localStorageStore["hx29_sig"] = "SIG-ABCDEF";
+    localStorageStore["hx29_visits"] = "1";
+    localStorageStore["hx29_last_visit"] = fiveMinAgo;
+
+    const result = getSessionIntro("TestSite");
+    const phased = result.items.find((item) => item.__phases);
+
+    expect(phased).toBeDefined();
+    expect(phased.__phases[0].text).toBe("Token SIG-ABCDEF pending");
+    expect(phased.__phases[2].text).toBe("Token SIG-ABCDEF confirmed");
   });
 
   // robustness.md High #7: loadSession() must not throw when localStorage or
